@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { notFound } from "@tanstack/react-router";
 
 const CITY_VALUES = [
   "Domingos Martins",
@@ -160,4 +161,159 @@ export const searchProperties = createServerFn({ method: "POST" })
     });
 
     return { properties: items };
+  });
+
+// ============================================================
+// getPropertyDetail — single property page payload
+// ============================================================
+
+export type PropertyPhoto = {
+  id: string;
+  url: string;
+  is_cover: boolean;
+  sort_order: number;
+};
+
+export type BlockedRange = { start: string; end: string };
+
+export type PropertyDetail = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  city: string;
+  address_detail: string | null;
+  google_maps_url: string | null;
+  max_guests: number;
+  bedrooms: number;
+  bathrooms: number;
+  parking_spots: number;
+  price_weekday: number;
+  price_weekend: number;
+  price_high_season: number | null;
+  cleaning_fee: number;
+  min_nights_weekday: number;
+  min_nights_weekend: number;
+  checkin_time: string;
+  checkout_time: string;
+  accepts_pets: boolean;
+  amenities: string[];
+  house_rules: string | null;
+  photos: PropertyPhoto[];
+  blocked_ranges: BlockedRange[];
+  block_on_request: boolean;
+};
+
+export const getPropertyDetail = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ slug: z.string().min(1).max(255) }).parse(input),
+  )
+  .handler(async ({ data }): Promise<PropertyDetail> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: prop, error } = await supabaseAdmin
+      .from("properties")
+      .select("*")
+      .eq("slug", data.slug)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!prop) throw notFound();
+
+    // Photos
+    const { data: photoRows } = await supabaseAdmin
+      .from("property_photos")
+      .select("id, storage_path, public_url, is_cover, sort_order")
+      .eq("property_id", prop.id)
+      .order("is_cover", { ascending: false })
+      .order("sort_order", { ascending: true });
+
+    const photos: PropertyPhoto[] = [];
+    for (const p of photoRows ?? []) {
+      let url = "";
+      if (p.public_url?.startsWith("http")) {
+        url = p.public_url;
+      } else if (p.storage_path) {
+        const { data: signed } = await supabaseAdmin.storage
+          .from("property-photos")
+          .createSignedUrl(p.storage_path, 60 * 60);
+        if (signed?.signedUrl) url = signed.signedUrl;
+      }
+      if (url) {
+        photos.push({
+          id: p.id,
+          url,
+          is_cover: p.is_cover,
+          sort_order: p.sort_order,
+        });
+      }
+    }
+
+    // block_on_request setting
+    const { data: setting } = await supabaseAdmin
+      .from("site_settings")
+      .select("value")
+      .eq("key", "block_on_request")
+      .maybeSingle();
+    const blockOnRequest = setting?.value === "true";
+    const blockingStatuses = blockOnRequest
+      ? ["pending", "confirmed"]
+      : ["confirmed"];
+
+    // Blocked ranges: future-relevant only (end_date >= today)
+    const today = new Date().toISOString().slice(0, 10);
+
+    const [{ data: blocks }, { data: reservs }] = await Promise.all([
+      supabaseAdmin
+        .from("blocked_dates")
+        .select("start_date, end_date")
+        .eq("property_id", prop.id)
+        .gte("end_date", today),
+      supabaseAdmin
+        .from("reservations")
+        .select("checkin_date, checkout_date, status")
+        .eq("property_id", prop.id)
+        .in("status", blockingStatuses)
+        .gte("checkout_date", today),
+    ]);
+
+    const blocked_ranges: BlockedRange[] = [
+      ...(blocks ?? []).map((b) => ({ start: b.start_date, end: b.end_date })),
+      ...(reservs ?? []).map((r) => ({
+        start: r.checkin_date,
+        end: r.checkout_date,
+      })),
+    ];
+
+    return {
+      id: prop.id,
+      slug: prop.slug,
+      name: prop.name,
+      description: prop.description,
+      city: prop.city,
+      address_detail: prop.address_detail,
+      google_maps_url: prop.google_maps_url,
+      max_guests: prop.max_guests,
+      bedrooms: prop.bedrooms,
+      bathrooms: prop.bathrooms,
+      parking_spots: prop.parking_spots,
+      price_weekday: Number(prop.price_weekday),
+      price_weekend: Number(prop.price_weekend),
+      price_high_season:
+        prop.price_high_season != null ? Number(prop.price_high_season) : null,
+      cleaning_fee: Number(prop.cleaning_fee),
+      min_nights_weekday: prop.min_nights_weekday,
+      min_nights_weekend: prop.min_nights_weekend,
+      checkin_time: prop.checkin_time,
+      checkout_time: prop.checkout_time,
+      accepts_pets: prop.accepts_pets,
+      amenities: Array.isArray(prop.amenities)
+        ? (prop.amenities as string[])
+        : [],
+      house_rules: prop.house_rules,
+      photos,
+      blocked_ranges,
+      block_on_request: blockOnRequest,
+    };
   });

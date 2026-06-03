@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as PublicIndexRouteImport } from './routes/_public.index'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
+import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -38,16 +39,23 @@ const AdminAdminRoute = AdminAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AdminRoute,
 } as any)
+const PublicImovelSlugRoute = PublicImovelSlugRouteImport.update({
+  id: '/imovel/$slug',
+  path: '/imovel/$slug',
+  getParentRoute: () => PublicRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/admin': typeof AdminAdminRoute
   '/admin/login': typeof AdminLoginRoute
+  '/imovel/$slug': typeof PublicImovelSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/admin': typeof AdminAdminRoute
   '/admin/login': typeof AdminLoginRoute
+  '/imovel/$slug': typeof PublicImovelSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -56,12 +64,13 @@ export interface FileRoutesById {
   '/_admin/admin': typeof AdminAdminRoute
   '/admin/login': typeof AdminLoginRoute
   '/_public/': typeof PublicIndexRoute
+  '/_public/imovel/$slug': typeof PublicImovelSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/admin/login'
+  fullPaths: '/' | '/admin' | '/admin/login' | '/imovel/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/admin/login'
+  to: '/' | '/admin' | '/admin/login' | '/imovel/$slug'
   id:
     | '__root__'
     | '/_admin'
@@ -69,6 +78,7 @@ export interface FileRouteTypes {
     | '/_admin/admin'
     | '/admin/login'
     | '/_public/'
+    | '/_public/imovel/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -114,6 +124,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_public/imovel/$slug': {
+      id: '/_public/imovel/$slug'
+      path: '/imovel/$slug'
+      fullPath: '/imovel/$slug'
+      preLoaderRoute: typeof PublicImovelSlugRouteImport
+      parentRoute: typeof PublicRoute
+    }
   }
 }
 
@@ -129,10 +146,12 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PublicRouteChildren {
   PublicIndexRoute: typeof PublicIndexRoute
+  PublicImovelSlugRoute: typeof PublicImovelSlugRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
   PublicIndexRoute: PublicIndexRoute,
+  PublicImovelSlugRoute: PublicImovelSlugRoute,
 }
 
 const PublicRouteWithChildren =
