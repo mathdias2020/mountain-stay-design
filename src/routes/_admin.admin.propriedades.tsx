@@ -271,17 +271,16 @@ function PropertyRowItem({
     transition,
     background: isDragging ? "#FAFAF8" : index % 2 === 1 ? "#F5F4F1" : "#fff",
     borderBottom: "1px solid #ECEBE7",
-    display: "grid",
-    gridTemplateColumns: "80px 1.6fr 1.4fr 1fr 110px 70px 110px",
-    gap: 12,
-    alignItems: "center",
-    padding: "12px 16px",
     cursor: isDragging ? "grabbing" : "default",
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
-      <div {...attributes} {...listeners} style={{ cursor: "grab" }}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid items-center gap-3 px-4 py-3 [grid-template-columns:1fr_110px_110px] md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_110px]"
+    >
+      <div {...attributes} {...listeners} className="hidden md:block" style={{ cursor: "grab" }}>
         {row.cover_url ? (
           <img
             src={row.cover_url}
@@ -308,10 +307,12 @@ function PropertyRowItem({
         <div style={{ fontWeight: 500, color: "#2F2E2A" }}>{row.name}</div>
         <div style={{ fontSize: 12, color: "#9A9890" }}>{row.city}</div>
       </div>
-      <div style={{ fontSize: 13, color: "#5C5B57" }}>
+      <div className="hidden md:block" style={{ fontSize: 13, color: "#5C5B57" }}>
         {row.max_guests} hóspedes · {row.bedrooms} quartos · {row.bathrooms} banheiros
       </div>
-      <div style={{ fontSize: 13, color: "#2F2E2A" }}>{formatPrice(row.price_weekday)}/noite</div>
+      <div className="hidden md:block" style={{ fontSize: 13, color: "#2F2E2A" }}>
+        {formatPrice(row.price_weekday)}/noite
+      </div>
       <div>
         <Badge
           style={{ background: meta.bg, color: meta.fg, borderColor: "transparent" }}
@@ -320,7 +321,7 @@ function PropertyRowItem({
           {meta.label}
         </Badge>
       </div>
-      <div>
+      <div className="hidden md:block">
         <button
           type="button"
           onClick={onToggleFeatured}
