@@ -249,6 +249,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
     try {
       const payloadBase = {
         name: values.name,
+        slug: slugify(values.name),
         city: values.city,
         address_detail: values.address_detail || null,
         google_maps_url: values.google_maps_url || null,
@@ -292,6 +293,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
           .eq("id", pid!);
         if (error) throw error;
       }
+      if (!pid) throw new Error("ID da propriedade indisponível");
 
       // Delete removed existing photos
       const toDelete = photos.filter(
@@ -347,7 +349,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
       const inserts = newOrder
         .filter((p) => !p.id)
         .map((p, idx) => ({
-          property_id: pid,
+          property_id: pid as string,
           storage_path: p.storage_path,
           public_url: p.public_url,
           is_cover: p.is_cover,
