@@ -11,6 +11,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 const items = [
   { title: "Visão Geral", url: "/admin", icon: LayoutDashboard, exact: true },
@@ -29,9 +30,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const isActive = (url: string, exact?: boolean) =>
     exact ? pathname === url : pathname === url || pathname.startsWith(url + "/");
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     onNavigate?.();
-    navigate({ to: "/admin/login" });
+    await supabase.auth.signOut();
+    navigate({ to: "/admin/login", replace: true });
   };
 
   return (
