@@ -119,7 +119,7 @@ function ReservationsPage() {
       let q = supabase
         .from("reservations")
         .select(
-          "id, reservation_code, guest_name, guest_whatsapp, checkin_date, checkout_date, total_price, status, properties(name)",
+          "id, reservation_code, property_id, guest_name, guest_whatsapp, checkin_date, checkout_date, total_price, status",
           { count: "exact" }
         )
         .order("created_at", { ascending: false })
@@ -137,7 +137,19 @@ function ReservationsPage() {
       }
 
       const { data, count } = await q;
-      const rows: ReservationRow[] = (data ?? []).map((r: any) => ({
+      const list = data ?? [];
+      const propertyIds = Array.from(
+        new Set(list.map((r: any) => r.property_id).filter(Boolean))
+      );
+      let nameMap = new Map<string, string>();
+      if (propertyIds.length) {
+        const { data: props } = await supabase
+          .from("properties")
+          .select("id, name")
+          .in("id", propertyIds);
+        nameMap = new Map((props ?? []).map((p: any) => [p.id, p.name]));
+      }
+      const rows: ReservationRow[] = list.map((r: any) => ({
         id: r.id,
         reservation_code: r.reservation_code,
         guest_name: r.guest_name,
@@ -146,7 +158,7 @@ function ReservationsPage() {
         checkout_date: r.checkout_date,
         total_price: r.total_price,
         status: r.status,
-        property_name: r.properties?.name ?? null,
+        property_name: nameMap.get(r.property_id) ?? null,
       }));
       return { rows, count: count ?? 0 };
     },
