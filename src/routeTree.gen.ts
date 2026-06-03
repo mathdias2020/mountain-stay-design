@@ -17,6 +17,7 @@ import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
 import { Route as AdminAdminReservasRouteImport } from './routes/_admin.admin.reservas'
 import { Route as AdminAdminPropriedadesRouteImport } from './routes/_admin.admin.propriedades'
+import { Route as AdminAdminCalendarioRouteImport } from './routes/_admin.admin.calendario'
 import { Route as AdminAdminReservasIdRouteImport } from './routes/_admin.admin.reservas.$id'
 import { Route as AdminAdminPropriedadesNovaRouteImport } from './routes/_admin.admin.propriedades.nova'
 import { Route as AdminAdminPropriedadesIdEditarRouteImport } from './routes/_admin.admin.propriedades.$id.editar'
@@ -59,6 +60,11 @@ const AdminAdminPropriedadesRoute = AdminAdminPropriedadesRouteImport.update({
   path: '/propriedades',
   getParentRoute: () => AdminAdminRoute,
 } as any)
+const AdminAdminCalendarioRoute = AdminAdminCalendarioRouteImport.update({
+  id: '/calendario',
+  path: '/calendario',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
 const AdminAdminReservasIdRoute = AdminAdminReservasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/imovel/$slug': typeof PublicImovelSlugRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/imovel/$slug': typeof PublicImovelSlugRoute
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/_admin/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/_public/': typeof PublicIndexRoute
+  '/_admin/admin/calendario': typeof AdminAdminCalendarioRoute
   '/_admin/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/_admin/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin/login'
+    | '/admin/calendario'
     | '/admin/propriedades'
     | '/admin/reservas'
     | '/imovel/$slug'
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin/login'
+    | '/admin/calendario'
     | '/admin/propriedades'
     | '/admin/reservas'
     | '/imovel/$slug'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/_admin/admin'
     | '/admin/login'
     | '/_public/'
+    | '/_admin/admin/calendario'
     | '/_admin/admin/propriedades'
     | '/_admin/admin/reservas'
     | '/_public/imovel/$slug'
@@ -215,6 +227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminPropriedadesRouteImport
       parentRoute: typeof AdminAdminRoute
     }
+    '/_admin/admin/calendario': {
+      id: '/_admin/admin/calendario'
+      path: '/calendario'
+      fullPath: '/admin/calendario'
+      preLoaderRoute: typeof AdminAdminCalendarioRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
     '/_admin/admin/reservas/$id': {
       id: '/_admin/admin/reservas/$id'
       path: '/$id'
@@ -267,11 +286,13 @@ const AdminAdminReservasRouteWithChildren =
   AdminAdminReservasRoute._addFileChildren(AdminAdminReservasRouteChildren)
 
 interface AdminAdminRouteChildren {
+  AdminAdminCalendarioRoute: typeof AdminAdminCalendarioRoute
   AdminAdminPropriedadesRoute: typeof AdminAdminPropriedadesRouteWithChildren
   AdminAdminReservasRoute: typeof AdminAdminReservasRouteWithChildren
 }
 
 const AdminAdminRouteChildren: AdminAdminRouteChildren = {
+  AdminAdminCalendarioRoute: AdminAdminCalendarioRoute,
   AdminAdminPropriedadesRoute: AdminAdminPropriedadesRouteWithChildren,
   AdminAdminReservasRoute: AdminAdminReservasRouteWithChildren,
 }
@@ -311,3 +332,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
