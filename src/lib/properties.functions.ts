@@ -199,7 +199,6 @@ export type PropertyDetail = {
   accepts_pets: boolean;
   amenities: string[];
   house_rules: string | null;
-  high_season_dates: unknown;
   photos: PropertyPhoto[];
   blocked_ranges: BlockedRange[];
   block_on_request: boolean;
@@ -313,7 +312,6 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
         ? (prop.amenities as string[])
         : [],
       house_rules: prop.house_rules,
-      high_season_dates: prop.high_season_dates,
       photos,
       blocked_ranges,
       block_on_request: blockOnRequest,
