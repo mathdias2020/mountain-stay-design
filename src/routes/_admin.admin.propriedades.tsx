@@ -182,28 +182,53 @@ function PropertiesAdminPage() {
         }}
       >
         <div
-          className="grid items-center px-4 py-3"
+          className="grid items-center gap-3 px-4 py-3 [grid-template-columns:1fr_110px_110px] md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_110px]"
           style={{
-            gridTemplateColumns: "80px 1.6fr 1.4fr 1fr 110px 70px 110px",
-            gap: 12,
             fontSize: 12,
             color: "#9A9890",
             borderBottom: "1px solid #ECEBE7",
           }}
         >
-          <div>Foto</div>
+          <div className="hidden md:block">Foto</div>
           <div>Nome / cidade</div>
-          <div>Capacidade</div>
-          <div>Preço base</div>
+          <div className="hidden md:block">Capacidade</div>
+          <div className="hidden md:block">Preço base</div>
           <div>Status</div>
-          <div>Destaque</div>
+          <div className="hidden md:block">Destaque</div>
           <div className="text-right">Ações</div>
         </div>
 
         {isLoading ? (
-          <div className="p-6" style={{ color: "#5C5B57" }}>Carregando...</div>
+          <div className="divide-y" style={{ borderColor: "#ECEBE7" }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="grid items-center gap-3 px-4 py-3 [grid-template-columns:1fr_110px_110px] md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_110px]"
+              >
+                <div className="hidden h-[60px] w-[60px] animate-pulse rounded-[8px] md:block" style={{ backgroundColor: "#E2E1DD" }} />
+                <div className="h-4 animate-pulse rounded" style={{ backgroundColor: "#E2E1DD" }} />
+                <div className="hidden h-4 animate-pulse rounded md:block" style={{ backgroundColor: "#E2E1DD" }} />
+                <div className="hidden h-4 animate-pulse rounded md:block" style={{ backgroundColor: "#E2E1DD" }} />
+                <div className="h-4 animate-pulse rounded" style={{ backgroundColor: "#E2E1DD" }} />
+                <div className="hidden h-4 animate-pulse rounded md:block" style={{ backgroundColor: "#E2E1DD" }} />
+                <div className="h-4 animate-pulse rounded justify-self-end w-16" style={{ backgroundColor: "#E2E1DD" }} />
+              </div>
+            ))}
+          </div>
         ) : rows.length === 0 ? (
-          <div className="p-6" style={{ color: "#5C5B57" }}>Nenhuma propriedade encontrada.</div>
+          <div className="flex flex-col items-center gap-4 px-6 py-16 text-center">
+            <HomeIcon size={96} color="#DDDCD9" strokeWidth={1.5} />
+            <p className="text-sm" style={{ color: "#5C5B57" }}>
+              {statusFilter === "all"
+                ? "Nenhuma propriedade cadastrada ainda."
+                : "Nenhuma propriedade encontrada com este filtro."}
+            </p>
+            {statusFilter === "all" && (
+              <Button onClick={() => navigate({ to: "/admin/propriedades/nova" as never })}>
+                Cadastrar primeira propriedade
+              </Button>
+            )}
+          </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>
@@ -246,17 +271,16 @@ function PropertyRowItem({
     transition,
     background: isDragging ? "#FAFAF8" : index % 2 === 1 ? "#F5F4F1" : "#fff",
     borderBottom: "1px solid #ECEBE7",
-    display: "grid",
-    gridTemplateColumns: "80px 1.6fr 1.4fr 1fr 110px 70px 110px",
-    gap: 12,
-    alignItems: "center",
-    padding: "12px 16px",
     cursor: isDragging ? "grabbing" : "default",
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
-      <div {...attributes} {...listeners} style={{ cursor: "grab" }}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid items-center gap-3 px-4 py-3 [grid-template-columns:1fr_110px_110px] md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_110px]"
+    >
+      <div {...attributes} {...listeners} className="hidden md:block" style={{ cursor: "grab" }}>
         {row.cover_url ? (
           <img
             src={row.cover_url}
@@ -283,10 +307,12 @@ function PropertyRowItem({
         <div style={{ fontWeight: 500, color: "#2F2E2A" }}>{row.name}</div>
         <div style={{ fontSize: 12, color: "#9A9890" }}>{row.city}</div>
       </div>
-      <div style={{ fontSize: 13, color: "#5C5B57" }}>
+      <div className="hidden md:block" style={{ fontSize: 13, color: "#5C5B57" }}>
         {row.max_guests} hóspedes · {row.bedrooms} quartos · {row.bathrooms} banheiros
       </div>
-      <div style={{ fontSize: 13, color: "#2F2E2A" }}>{formatPrice(row.price_weekday)}/noite</div>
+      <div className="hidden md:block" style={{ fontSize: 13, color: "#2F2E2A" }}>
+        {formatPrice(row.price_weekday)}/noite
+      </div>
       <div>
         <Badge
           style={{ background: meta.bg, color: meta.fg, borderColor: "transparent" }}
@@ -295,7 +321,7 @@ function PropertyRowItem({
           {meta.label}
         </Badge>
       </div>
-      <div>
+      <div className="hidden md:block">
         <button
           type="button"
           onClick={onToggleFeatured}
