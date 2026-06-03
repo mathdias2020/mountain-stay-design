@@ -313,16 +313,11 @@ function PropertyRowItem({
         <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Editar">
           <Pencil size={16} />
         </Button>
-        <a
-          href={`/imovel/${row.slug}`}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Ver imóvel"
-        >
-          <Button variant="ghost" size="icon" asChild={false}>
+        <Button variant="ghost" size="icon" asChild aria-label="Ver imóvel">
+          <a href={`/imovel/${row.slug}`} target="_blank" rel="noreferrer">
             <Eye size={16} />
-          </Button>
-        </a>
+          </a>
+        </Button>
       </div>
     </div>
   );
