@@ -161,7 +161,17 @@ function ReservationDetailPage() {
   });
 
   if (detail.isLoading) {
-    return <div className="text-muted-foreground">Carregando reserva...</div>;
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-10 w-full animate-pulse rounded"
+            style={{ backgroundColor: "#E2E1DD" }}
+          />
+        ))}
+      </div>
+    );
   }
   if (!detail.data) {
     return (
