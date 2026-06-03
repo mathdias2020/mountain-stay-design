@@ -19,6 +19,7 @@ import { Route as AdminAdminReservasRouteImport } from './routes/_admin.admin.re
 import { Route as AdminAdminPropriedadesRouteImport } from './routes/_admin.admin.propriedades'
 import { Route as AdminAdminReservasIdRouteImport } from './routes/_admin.admin.reservas.$id'
 import { Route as AdminAdminPropriedadesNovaRouteImport } from './routes/_admin.admin.propriedades.nova'
+import { Route as AdminAdminPropriedadesIdEditarRouteImport } from './routes/_admin.admin.propriedades.$id.editar'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -69,6 +70,12 @@ const AdminAdminPropriedadesNovaRoute =
     path: '/nova',
     getParentRoute: () => AdminAdminPropriedadesRoute,
   } as any)
+const AdminAdminPropriedadesIdEditarRoute =
+  AdminAdminPropriedadesIdEditarRouteImport.update({
+    id: '/$id/editar',
+    path: '/$id/editar',
+    getParentRoute: () => AdminAdminPropriedadesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/imovel/$slug': typeof PublicImovelSlugRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
+  '/admin/propriedades/$id/editar': typeof AdminAdminPropriedadesIdEditarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -89,6 +97,7 @@ export interface FileRoutesByTo {
   '/imovel/$slug': typeof PublicImovelSlugRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
+  '/admin/propriedades/$id/editar': typeof AdminAdminPropriedadesIdEditarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,6 +111,7 @@ export interface FileRoutesById {
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
   '/_admin/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/_admin/admin/reservas/$id': typeof AdminAdminReservasIdRoute
+  '/_admin/admin/propriedades/$id/editar': typeof AdminAdminPropriedadesIdEditarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
     | '/imovel/$slug'
     | '/admin/propriedades/nova'
     | '/admin/reservas/$id'
+    | '/admin/propriedades/$id/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/imovel/$slug'
     | '/admin/propriedades/nova'
     | '/admin/reservas/$id'
+    | '/admin/propriedades/$id/editar'
   id:
     | '__root__'
     | '/_admin'
@@ -136,6 +148,7 @@ export interface FileRouteTypes {
     | '/_public/imovel/$slug'
     | '/_admin/admin/propriedades/nova'
     | '/_admin/admin/reservas/$id'
+    | '/_admin/admin/propriedades/$id/editar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -216,16 +229,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminPropriedadesNovaRouteImport
       parentRoute: typeof AdminAdminPropriedadesRoute
     }
+    '/_admin/admin/propriedades/$id/editar': {
+      id: '/_admin/admin/propriedades/$id/editar'
+      path: '/$id/editar'
+      fullPath: '/admin/propriedades/$id/editar'
+      preLoaderRoute: typeof AdminAdminPropriedadesIdEditarRouteImport
+      parentRoute: typeof AdminAdminPropriedadesRoute
+    }
   }
 }
 
 interface AdminAdminPropriedadesRouteChildren {
   AdminAdminPropriedadesNovaRoute: typeof AdminAdminPropriedadesNovaRoute
+  AdminAdminPropriedadesIdEditarRoute: typeof AdminAdminPropriedadesIdEditarRoute
 }
 
 const AdminAdminPropriedadesRouteChildren: AdminAdminPropriedadesRouteChildren =
   {
     AdminAdminPropriedadesNovaRoute: AdminAdminPropriedadesNovaRoute,
+    AdminAdminPropriedadesIdEditarRoute: AdminAdminPropriedadesIdEditarRoute,
   }
 
 const AdminAdminPropriedadesRouteWithChildren =
