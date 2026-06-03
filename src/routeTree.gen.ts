@@ -16,6 +16,7 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
 import { Route as AdminAdminReservasRouteImport } from './routes/_admin.admin.reservas'
+import { Route as AdminAdminPropriedadesRouteImport } from './routes/_admin.admin.propriedades'
 import { Route as AdminAdminReservasIdRouteImport } from './routes/_admin.admin.reservas.$id'
 
 const PublicRoute = PublicRouteImport.update({
@@ -51,6 +52,11 @@ const AdminAdminReservasRoute = AdminAdminReservasRouteImport.update({
   path: '/reservas',
   getParentRoute: () => AdminAdminRoute,
 } as any)
+const AdminAdminPropriedadesRoute = AdminAdminPropriedadesRouteImport.update({
+  id: '/propriedades',
+  path: '/propriedades',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
 const AdminAdminReservasIdRoute = AdminAdminReservasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/admin/propriedades': typeof AdminAdminPropriedadesRoute
   '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/imovel/$slug': typeof PublicImovelSlugRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/admin/propriedades': typeof AdminAdminPropriedadesRoute
   '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/imovel/$slug': typeof PublicImovelSlugRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/_admin/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/_public/': typeof PublicIndexRoute
+  '/_admin/admin/propriedades': typeof AdminAdminPropriedadesRoute
   '/_admin/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
   '/_admin/admin/reservas/$id': typeof AdminAdminReservasIdRoute
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin/login'
+    | '/admin/propriedades'
     | '/admin/reservas'
     | '/imovel/$slug'
     | '/admin/reservas/$id'
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin/login'
+    | '/admin/propriedades'
     | '/admin/reservas'
     | '/imovel/$slug'
     | '/admin/reservas/$id'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/_admin/admin'
     | '/admin/login'
     | '/_public/'
+    | '/_admin/admin/propriedades'
     | '/_admin/admin/reservas'
     | '/_public/imovel/$slug'
     | '/_admin/admin/reservas/$id'
@@ -170,6 +182,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminReservasRouteImport
       parentRoute: typeof AdminAdminRoute
     }
+    '/_admin/admin/propriedades': {
+      id: '/_admin/admin/propriedades'
+      path: '/propriedades'
+      fullPath: '/admin/propriedades'
+      preLoaderRoute: typeof AdminAdminPropriedadesRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
     '/_admin/admin/reservas/$id': {
       id: '/_admin/admin/reservas/$id'
       path: '/$id'
@@ -192,10 +211,12 @@ const AdminAdminReservasRouteWithChildren =
   AdminAdminReservasRoute._addFileChildren(AdminAdminReservasRouteChildren)
 
 interface AdminAdminRouteChildren {
+  AdminAdminPropriedadesRoute: typeof AdminAdminPropriedadesRoute
   AdminAdminReservasRoute: typeof AdminAdminReservasRouteWithChildren
 }
 
 const AdminAdminRouteChildren: AdminAdminRouteChildren = {
+  AdminAdminPropriedadesRoute: AdminAdminPropriedadesRoute,
   AdminAdminReservasRoute: AdminAdminReservasRouteWithChildren,
 }
 
@@ -234,3 +255,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
