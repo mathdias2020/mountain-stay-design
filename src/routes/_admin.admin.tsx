@@ -60,11 +60,21 @@ async function fetchRecent(): Promise<ReservationRow[]> {
   const { data } = await supabase
     .from("reservations")
     .select(
-      "id, reservation_code, guest_name, guest_whatsapp, checkin_date, checkout_date, total_price, status, properties(name)"
+      "id, reservation_code, property_id, guest_name, guest_whatsapp, checkin_date, checkout_date, total_price, status"
     )
     .order("created_at", { ascending: false })
     .limit(10);
-  return (data ?? []).map((r: any) => ({
+  const rows = data ?? [];
+  const propertyIds = Array.from(new Set(rows.map((r: any) => r.property_id).filter(Boolean)));
+  let nameMap = new Map<string, string>();
+  if (propertyIds.length) {
+    const { data: props } = await supabase
+      .from("properties")
+      .select("id, name")
+      .in("id", propertyIds);
+    nameMap = new Map((props ?? []).map((p: any) => [p.id, p.name]));
+  }
+  return rows.map((r: any) => ({
     id: r.id,
     reservation_code: r.reservation_code,
     guest_name: r.guest_name,
@@ -73,7 +83,7 @@ async function fetchRecent(): Promise<ReservationRow[]> {
     checkout_date: r.checkout_date,
     total_price: r.total_price,
     status: r.status,
-    property_name: r.properties?.name ?? null,
+    property_name: nameMap.get(r.property_id) ?? null,
   }));
 }
 
