@@ -15,6 +15,7 @@ import { Route as PublicIndexRouteImport } from './routes/_public.index'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
+import { Route as AdminAdminReservasRouteImport } from './routes/_admin.admin.reservas'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -44,33 +45,46 @@ const PublicImovelSlugRoute = PublicImovelSlugRouteImport.update({
   path: '/imovel/$slug',
   getParentRoute: () => PublicRoute,
 } as any)
+const AdminAdminReservasRoute = AdminAdminReservasRouteImport.update({
+  id: '/reservas',
+  path: '/reservas',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
-  '/admin': typeof AdminAdminRoute
+  '/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/admin/reservas': typeof AdminAdminReservasRoute
   '/imovel/$slug': typeof PublicImovelSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
-  '/admin': typeof AdminAdminRoute
+  '/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/admin/reservas': typeof AdminAdminReservasRoute
   '/imovel/$slug': typeof PublicImovelSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_admin': typeof AdminRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
-  '/_admin/admin': typeof AdminAdminRoute
+  '/_admin/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/_public/': typeof PublicIndexRoute
+  '/_admin/admin/reservas': typeof AdminAdminReservasRoute
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/admin/login' | '/imovel/$slug'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/admin/login'
+    | '/admin/reservas'
+    | '/imovel/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/admin/login' | '/imovel/$slug'
+  to: '/' | '/admin' | '/admin/login' | '/admin/reservas' | '/imovel/$slug'
   id:
     | '__root__'
     | '/_admin'
@@ -78,6 +92,7 @@ export interface FileRouteTypes {
     | '/_admin/admin'
     | '/admin/login'
     | '/_public/'
+    | '/_admin/admin/reservas'
     | '/_public/imovel/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -131,15 +146,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicImovelSlugRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_admin/admin/reservas': {
+      id: '/_admin/admin/reservas'
+      path: '/reservas'
+      fullPath: '/admin/reservas'
+      preLoaderRoute: typeof AdminAdminReservasRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
   }
 }
 
+interface AdminAdminRouteChildren {
+  AdminAdminReservasRoute: typeof AdminAdminReservasRoute
+}
+
+const AdminAdminRouteChildren: AdminAdminRouteChildren = {
+  AdminAdminReservasRoute: AdminAdminReservasRoute,
+}
+
+const AdminAdminRouteWithChildren = AdminAdminRoute._addFileChildren(
+  AdminAdminRouteChildren,
+)
+
 interface AdminRouteChildren {
-  AdminAdminRoute: typeof AdminAdminRoute
+  AdminAdminRoute: typeof AdminAdminRouteWithChildren
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminAdminRoute: AdminAdminRoute,
+  AdminAdminRoute: AdminAdminRouteWithChildren,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -165,3 +199,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
