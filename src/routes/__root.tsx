@@ -117,7 +117,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href:
           "data:image/svg+xml;utf8," +
           encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#6B7052"/><g fill="none" stroke="#DDDCD9" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 24 L13 10 L19 18 L22 14 L27 24"/><path d="M14 24 L20 14 L27 24"/></g></svg>',
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#6B7052"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="40" fill="#ffffff">R</text></svg>',
           ),
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
