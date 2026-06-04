@@ -171,7 +171,7 @@ function CalendarPage() {
       const isManual = !(b.reason || "").toLowerCase().includes("reserva confirmada");
       if (!isManual) continue;
       let d = parseISO(b.start_date);
-      const end = addDays(parseISO(b.end_date), 1);
+      const end = parseISO(b.end_date);
       while (d < end) {
         const k = isoDate(d);
         const prev = m.get(k) ?? { iso: k };
