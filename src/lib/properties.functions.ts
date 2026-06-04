@@ -61,30 +61,24 @@ export const searchProperties = createServerFn({ method: "POST" })
     // Cover photos
     const { data: photos } = await supabaseAdmin
       .from("property_photos")
-      .select("property_id, storage_path, public_url, is_cover, sort_order")
+      .select("property_id, storage_path, is_cover, sort_order")
       .in("property_id", ids)
       .order("is_cover", { ascending: false })
       .order("sort_order", { ascending: true });
 
-    const coverByProp = new Map<string, { storage_path: string; public_url: string }>();
+    const coverByProp = new Map<string, { storage_path: string }>();
     for (const p of photos ?? []) {
       if (!coverByProp.has(p.property_id)) {
         coverByProp.set(p.property_id, {
           storage_path: p.storage_path,
-          public_url: p.public_url,
         });
       }
     }
 
-    // Generate signed URLs (bucket is private)
+    // Generate signed URLs (bucket is private; always sign from storage_path)
     const signedByProp = new Map<string, string>();
     await Promise.all(
       Array.from(coverByProp.entries()).map(async ([propId, cover]) => {
-        // Prefer stored public_url if it's already an absolute URL
-        if (cover.public_url?.startsWith("http")) {
-          signedByProp.set(propId, cover.public_url);
-          return;
-        }
         if (!cover.storage_path) return;
         const { data: signed } = await supabaseAdmin.storage
           .from("property-photos")
@@ -225,7 +219,7 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
     // Photos
     const { data: photoRows } = await supabaseAdmin
       .from("property_photos")
-      .select("id, storage_path, public_url, is_cover, sort_order")
+      .select("id, storage_path, is_cover, sort_order")
       .eq("property_id", prop.id)
       .order("is_cover", { ascending: false })
       .order("sort_order", { ascending: true });
@@ -233,9 +227,7 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
     const photos: PropertyPhoto[] = [];
     for (const p of photoRows ?? []) {
       let url = "";
-      if (p.public_url?.startsWith("http")) {
-        url = p.public_url;
-      } else if (p.storage_path) {
+      if (p.storage_path) {
         const { data: signed } = await supabaseAdmin.storage
           .from("property-photos")
           .createSignedUrl(p.storage_path, 60 * 60);

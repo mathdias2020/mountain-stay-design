@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Home, MapPin, Users, BedDouble } from "lucide-react";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,8 @@ interface Props {
 export function PropertyCard({ property, showAvailability }: Props) {
   const disabled = showAvailability && property.is_available === false;
   const basePrice = Math.min(property.price_weekday, property.price_weekend);
+  const [imgBroken, setImgBroken] = useState(false);
+  const hasImg = !!property.cover_url && !imgBroken;
 
   return (
     <article
@@ -24,12 +27,13 @@ export function PropertyCard({ property, showAvailability }: Props) {
     >
       {/* Cover */}
       <div className="relative aspect-[4/3] w-full bg-secondary">
-        {property.cover_url ? (
+        {hasImg ? (
           <img
-            src={property.cover_url}
+            src={property.cover_url!}
             alt={`Foto de ${property.name}`}
             loading="lazy"
             className="h-full w-full object-cover"
+            onError={() => setImgBroken(true)}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
