@@ -172,7 +172,7 @@ export function FiltersCard({ initial, onSearch }: Props) {
           </div>
 
           {/* Submit */}
-          <Button variant="primary" onClick={handleSubmit} className="h-10">
+          <Button variant="primary" onClick={handleSubmit} className="h-10 w-full md:w-auto">
             Buscar
           </Button>
         </div>

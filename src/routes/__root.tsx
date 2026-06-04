@@ -78,20 +78,41 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "RotainStay — Casas para temporada nas montanhas do Espírito Santo" },
+      {
+        name: "description",
+        content:
+          "Alugue casas e chalés para temporada em Domingos Martins, Pedra Azul e região serrana do Espírito Santo. Reserve agora com facilidade.",
+      },
+      { name: "author", content: "RotainStay" },
+      { property: "og:site_name", content: "RotainStay" },
+      {
+        property: "og:title",
+        content: "RotainStay — Casas para temporada nas montanhas do Espírito Santo",
+      },
+      {
+        property: "og:description",
+        content:
+          "Alugue casas e chalés para temporada em Domingos Martins, Pedra Azul e região serrana do Espírito Santo. Reserve agora com facilidade.",
+      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
+      {
+        name: "twitter:title",
+        content: "RotainStay — Casas para temporada nas montanhas do Espírito Santo",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Alugue casas e chalés para temporada em Domingos Martins, Pedra Azul e região serrana do Espírito Santo. Reserve agora com facilidade.",
+      },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
