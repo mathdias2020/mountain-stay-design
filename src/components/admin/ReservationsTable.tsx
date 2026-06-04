@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Eye, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { TableRowSkeleton } from "@/components/skeletons/TableRowSkeleton";
 import {
   formatBRL,
   formatDateBR,
@@ -67,22 +68,18 @@ export function ReservationsTable({
         <table className="w-full" style={{ fontSize: 13 }}>
           <thead>
             <tr className="text-left" style={{ color: "#5C5B57" }}>
-              <th className="px-4 py-3 font-medium">Código</th>
-              <th className="px-4 py-3 font-medium">Propriedade</th>
+              <th className="hidden px-4 py-3 font-medium md:table-cell">Código</th>
+              <th className="hidden px-4 py-3 font-medium md:table-cell">Propriedade</th>
               <th className="px-4 py-3 font-medium">Hóspede</th>
-              <th className="px-4 py-3 font-medium">Período</th>
-              <th className="px-4 py-3 font-medium">Total</th>
+              <th className="hidden px-4 py-3 font-medium md:table-cell">Período</th>
+              <th className="hidden px-4 py-3 font-medium md:table-cell">Total</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                  Carregando...
-                </td>
-              </tr>
+              <TableRowSkeleton rows={5} cols={7} />
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
@@ -98,17 +95,17 @@ export function ReservationsTable({
                     key={r.id}
                     style={{ backgroundColor: i % 2 === 1 ? "#F5F4F1" : "#FFFFFF" }}
                   >
-                    <td className="px-4 py-3" style={{ fontWeight: 500 }}>
+                    <td className="hidden px-4 py-3 md:table-cell" style={{ fontWeight: 500 }}>
                       {r.reservation_code}
                     </td>
-                    <td className="px-4 py-3">{r.property_name ?? "—"}</td>
+                    <td className="hidden px-4 py-3 md:table-cell">{r.property_name ?? "—"}</td>
                     <td className="px-4 py-3">
                       <div>{r.guest_name}</div>
                       <div className="text-xs text-muted-foreground">
                         {r.guest_whatsapp}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="hidden px-4 py-3 md:table-cell">
                       <div>
                         {formatDateBR(r.checkin_date)} a {formatDateBR(r.checkout_date)}
                       </div>
@@ -116,7 +113,7 @@ export function ReservationsTable({
                         {nights} {nights === 1 ? "noite" : "noites"}
                       </div>
                     </td>
-                    <td className="px-4 py-3" style={{ fontWeight: 500 }}>
+                    <td className="hidden px-4 py-3 md:table-cell" style={{ fontWeight: 500 }}>
                       {formatBRL(r.total_price)}
                     </td>
                     <td className="px-4 py-3">

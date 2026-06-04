@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PropertyForm } from "@/components/admin/PropertyForm";
 import { CITY_OPTIONS, type PropertyFormValues } from "@/lib/property-form";
+import { FormSkeleton } from "@/components/skeletons/FormSkeleton";
 
 export const Route = createFileRoute("/_admin/admin/propriedades/$id/editar")({
   head: () => ({ meta: [{ title: "Editar propriedade — RotainStay" }] }),
@@ -33,7 +34,7 @@ function EditProperty() {
   });
 
   if (isLoading) {
-    return <p style={{ color: "#5C5B57" }}>Carregando...</p>;
+    return <FormSkeleton />;
   }
   if (error || !data) {
     return <p style={{ color: "#B43A3A" }}>Erro ao carregar propriedade.</p>;

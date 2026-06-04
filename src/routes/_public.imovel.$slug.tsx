@@ -19,6 +19,7 @@ import { AmenitiesList } from "@/components/property/AmenitiesList";
 import { BookingCard } from "@/components/property/BookingCard";
 import { AvailabilityCalendar } from "@/components/property/AvailabilityCalendar";
 import { expandBlockedDates } from "@/lib/pricing";
+import { DetailPageSkeleton } from "@/components/skeletons/DetailPageSkeleton";
 
 export const Route = createFileRoute("/_public/imovel/$slug")({
   component: PropertyDetailPage,
@@ -47,11 +48,7 @@ function PropertyDetailPage() {
   );
 
   if (isLoading || !property) {
-    return (
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="aspect-[16/9] w-full animate-pulse rounded-[14px] bg-secondary" />
-      </div>
-    );
+    return <DetailPageSkeleton />;
   }
 
   return (
