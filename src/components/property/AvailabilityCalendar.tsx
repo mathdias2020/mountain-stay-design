@@ -1,5 +1,6 @@
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { ptBR } from "date-fns/locale";
 
 interface Props {
   blockedSet: Set<string>;
@@ -18,13 +19,14 @@ export function AvailabilityCalendar({ blockedSet }: Props) {
   const isAvailable = (d: Date) => !isPast(d) && !isBlocked(d);
 
   return (
-    <div className="rounded-[14px] border border-border bg-surface p-4">
+    <div className="overflow-hidden rounded-[14px] border border-border bg-surface p-4">
       <h3 className="mb-3 text-sm font-semibold text-text-primary">
         Disponibilidade
       </h3>
       <Calendar
         mode="single"
-        numberOfMonths={2}
+        numberOfMonths={1}
+        locale={ptBR}
         defaultMonth={today}
         disabled={() => true}
         modifiers={{
@@ -38,7 +40,7 @@ export function AvailabilityCalendar({ blockedSet }: Props) {
           available: "bg-[#D4EDDA] text-[#1A5C2A] rounded-md",
           past: "bg-[#F5F4F1] text-text-muted rounded-md",
         }}
-        className={cn("p-0 pointer-events-auto")}
+        className={cn("p-0 pointer-events-auto w-full")}
       />
       <div className="mt-4 flex items-center gap-4 text-xs text-text-secondary">
         <span className="inline-flex items-center gap-1.5">

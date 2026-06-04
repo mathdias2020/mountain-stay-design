@@ -323,8 +323,9 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
             .from(BUCKET)
             .upload(path, p.file, { contentType: p.file.type, upsert: false });
           if (upErr) throw upErr;
-          const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-          newOrder.push({ storage_path: path, public_url: pub.publicUrl, is_cover: p.isCover });
+          // Bucket is private; do not store a public URL.
+          // Server functions sign storage_path on demand.
+          newOrder.push({ storage_path: path, public_url: "", is_cover: p.isCover });
         } else {
           newOrder.push({
             id: p.data.id,
