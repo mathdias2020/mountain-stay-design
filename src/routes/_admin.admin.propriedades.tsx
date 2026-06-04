@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/admin/EmptyState";
 
 export const Route = createFileRoute("/_admin/admin/propriedades")({
   head: () => ({ meta: [{ title: "Propriedades — RotainStay" }] }),
@@ -151,7 +152,7 @@ function PropertiesAdminPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 style={{ fontWeight: 600, fontSize: 24, color: "#2F2E2A" }}>Propriedades</h1>
         <Button onClick={() => navigate({ to: "/admin/propriedades/nova" as never })}>
           Nova propriedade
@@ -173,6 +174,23 @@ function PropertiesAdminPage() {
         </Select>
       </div>
 
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-16 w-full animate-pulse rounded-[10px] bg-[#E2E1DD]" />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <EmptyState
+          icon={HomeIcon}
+          title="Nenhuma propriedade cadastrada ainda."
+          action={
+            <Button onClick={() => navigate({ to: "/admin/propriedades/nova" as never })}>
+              Cadastrar primeira propriedade
+            </Button>
+          }
+        />
+      ) : (
       <div
         style={{
           background: "#fff",
@@ -182,10 +200,8 @@ function PropertiesAdminPage() {
         }}
       >
         <div
-          className="grid items-center px-4 py-3"
+          className="hidden md:grid md:items-center md:gap-3 md:px-4 md:py-3 md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_110px]"
           style={{
-            gridTemplateColumns: "80px 1.6fr 1.4fr 1fr 110px 70px 110px",
-            gap: 12,
             fontSize: 12,
             color: "#9A9890",
             borderBottom: "1px solid #ECEBE7",
@@ -200,12 +216,7 @@ function PropertiesAdminPage() {
           <div className="text-right">Ações</div>
         </div>
 
-        {isLoading ? (
-          <div className="p-6" style={{ color: "#5C5B57" }}>Carregando...</div>
-        ) : rows.length === 0 ? (
-          <div className="p-6" style={{ color: "#5C5B57" }}>Nenhuma propriedade encontrada.</div>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>
               {rows.map((row, idx) => (
                 <PropertyRowItem
@@ -219,9 +230,9 @@ function PropertiesAdminPage() {
                 />
               ))}
             </SortableContext>
-          </DndContext>
-        )}
+        </DndContext>
       </div>
+      )}
     </div>
   );
 }
@@ -246,16 +257,15 @@ function PropertyRowItem({
     transition,
     background: isDragging ? "#FAFAF8" : index % 2 === 1 ? "#F5F4F1" : "#fff",
     borderBottom: "1px solid #ECEBE7",
-    display: "grid",
-    gridTemplateColumns: "80px 1.6fr 1.4fr 1fr 110px 70px 110px",
-    gap: 12,
-    alignItems: "center",
-    padding: "12px 16px",
     cursor: isDragging ? "grabbing" : "default",
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid items-center gap-3 px-4 py-3 [grid-template-columns:60px_1fr_auto] md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_110px]"
+    >
       <div {...attributes} {...listeners} style={{ cursor: "grab" }}>
         {row.cover_url ? (
           <img
@@ -282,12 +292,20 @@ function PropertyRowItem({
       <div>
         <div style={{ fontWeight: 500, color: "#2F2E2A" }}>{row.name}</div>
         <div style={{ fontSize: 12, color: "#9A9890" }}>{row.city}</div>
+        <div className="mt-1 md:hidden">
+          <Badge
+            style={{ background: meta.bg, color: meta.fg, borderColor: "transparent" }}
+            variant="outline"
+          >
+            {meta.label}
+          </Badge>
+        </div>
       </div>
-      <div style={{ fontSize: 13, color: "#5C5B57" }}>
+      <div className="hidden md:block" style={{ fontSize: 13, color: "#5C5B57" }}>
         {row.max_guests} hóspedes · {row.bedrooms} quartos · {row.bathrooms} banheiros
       </div>
-      <div style={{ fontSize: 13, color: "#2F2E2A" }}>{formatPrice(row.price_weekday)}/noite</div>
-      <div>
+      <div className="hidden md:block" style={{ fontSize: 13, color: "#2F2E2A" }}>{formatPrice(row.price_weekday)}/noite</div>
+      <div className="hidden md:block">
         <Badge
           style={{ background: meta.bg, color: meta.fg, borderColor: "transparent" }}
           variant="outline"
@@ -295,7 +313,7 @@ function PropertyRowItem({
           {meta.label}
         </Badge>
       </div>
-      <div>
+      <div className="hidden md:block">
         <button
           type="button"
           onClick={onToggleFeatured}

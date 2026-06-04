@@ -29,6 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { CalendarSkeleton } from "@/components/skeletons/CalendarSkeleton";
 
 export const Route = createFileRoute("/_admin/admin/calendario")({
   head: () => ({ meta: [{ title: "Calendário — RotainStay" }] }),
@@ -105,7 +106,7 @@ function CalendarPage() {
     [monthCursor]
   );
 
-  const { data: calData } = useQuery({
+  const { data: calData, isLoading: calLoading } = useQuery({
     queryKey: ["admin", "calendar", "data", propertyId, rangeStart, rangeEnd],
     enabled: !!propertyId,
     queryFn: async () => {
@@ -249,12 +250,16 @@ function CalendarPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <MonthGrid month={month1} dayMap={dayMap} today={today} onDayClick={onDayClick} />
-          <div className="hidden md:block">
-            <MonthGrid month={month2} dayMap={dayMap} today={today} onDayClick={onDayClick} />
+        {calLoading || !calData ? (
+          <CalendarSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MonthGrid month={month1} dayMap={dayMap} today={today} onDayClick={onDayClick} />
+            <div className="hidden md:block">
+              <MonthGrid month={month2} dayMap={dayMap} today={today} onDayClick={onDayClick} />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-4" style={{ fontSize: 13, color: "#5C5B57" }}>
           <LegendDot color="#fff" border="#E2E1DD" label="Disponível" />
