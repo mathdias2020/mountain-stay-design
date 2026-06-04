@@ -23,7 +23,18 @@ async function fetchProperty(id: string) {
     .eq("property_id", id)
     .order("sort_order", { ascending: true });
   if (phErr) throw phErr;
-  return { property: data, photos: photos ?? [] };
+  // Sign storage paths so the form can preview existing photos
+  // (bucket is private; stored public_url may be empty/broken).
+  const signed = await Promise.all(
+    (photos ?? []).map(async (p) => {
+      if (!p.storage_path) return p;
+      const { data: s } = await supabase.storage
+        .from("property-photos")
+        .createSignedUrl(p.storage_path, 60 * 60);
+      return { ...p, public_url: s?.signedUrl ?? p.public_url };
+    }),
+  );
+  return { property: data, photos: signed };
 }
 
 function EditProperty() {
