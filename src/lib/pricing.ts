@@ -4,10 +4,13 @@ export type PriceBreakdown = {
   nights: number;
   weekdayNights: number;
   weekendNights: number;
+  highSeasonNights: number;
   weekdayPrice: number;
   weekendPrice: number;
+  highSeasonPrice: number | null;
   weekdaySubtotal: number;
   weekendSubtotal: number;
+  highSeasonTotal: number;
   cleaningFee: number;
   total: number;
 };
@@ -18,32 +21,59 @@ function isWeekendNight(d: Date) {
   return day === 5 || day === 6;
 }
 
+/** Checa se a data da noite cai em alguma janela de alta temporada (intervalo inclusivo). */
+function isHighSeasonNight(
+  night: Date,
+  ranges: { start: string; end: string }[],
+): boolean {
+  const key = night.toISOString().slice(0, 10);
+  for (const r of ranges) {
+    if (key >= r.start && key <= r.end) return true;
+  }
+  return false;
+}
+
 export function calculatePrice(
   checkin: Date,
   checkout: Date,
   priceWeekday: number,
   priceWeekend: number,
   cleaningFee: number,
+  priceHighSeason?: number | null,
+  highSeasonDates?: { start: string; end: string }[] | null,
 ): PriceBreakdown {
   const nights = Math.max(0, differenceInCalendarDays(checkout, checkin));
   let weekdayNights = 0;
   let weekendNights = 0;
+  let highSeasonNights = 0;
+  const hsRanges =
+    priceHighSeason != null && Array.isArray(highSeasonDates)
+      ? highSeasonDates
+      : [];
   for (let i = 0; i < nights; i++) {
     const night = addDays(checkin, i);
-    if (isWeekendNight(night)) weekendNights++;
+    if (hsRanges.length > 0 && isHighSeasonNight(night, hsRanges)) {
+      highSeasonNights++;
+    } else if (isWeekendNight(night)) weekendNights++;
     else weekdayNights++;
   }
   const weekdaySubtotal = weekdayNights * priceWeekday;
   const weekendSubtotal = weekendNights * priceWeekend;
-  const total = weekdaySubtotal + weekendSubtotal + cleaningFee;
+  const highSeasonTotal =
+    highSeasonNights * (priceHighSeason ?? 0);
+  const total =
+    weekdaySubtotal + weekendSubtotal + highSeasonTotal + cleaningFee;
   return {
     nights,
     weekdayNights,
     weekendNights,
+    highSeasonNights,
     weekdayPrice: priceWeekday,
     weekendPrice: priceWeekend,
+    highSeasonPrice: priceHighSeason ?? null,
     weekdaySubtotal,
     weekendSubtotal,
+    highSeasonTotal,
     cleaningFee,
     total,
   };

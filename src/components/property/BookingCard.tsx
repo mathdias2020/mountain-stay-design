@@ -39,6 +39,8 @@ export function BookingCard({ property, blockedSet }: Props) {
       property.price_weekday,
       property.price_weekend,
       property.cleaning_fee,
+      property.price_high_season,
+      property.high_season_dates,
     );
   }, [checkin, checkout, property]);
 
@@ -147,6 +149,14 @@ export function BookingCard({ property, blockedSet }: Props) {
                 {breakdown.weekendNights} {breakdown.weekendNights === 1 ? "noite de fim de semana" : "noites de fim de semana"} × {formatBRL(breakdown.weekendPrice)}
               </span>
               <span>{formatBRL(breakdown.weekendSubtotal)}</span>
+            </div>
+          )}
+          {breakdown.highSeasonNights > 0 && breakdown.highSeasonPrice != null && (
+            <div className="flex justify-between">
+              <span>
+                {breakdown.highSeasonNights} {breakdown.highSeasonNights === 1 ? "noite alta temporada" : "noites alta temporada"} × {formatBRL(breakdown.highSeasonPrice)}
+              </span>
+              <span>{formatBRL(breakdown.highSeasonTotal)}</span>
             </div>
           )}
           <div className="flex justify-between">

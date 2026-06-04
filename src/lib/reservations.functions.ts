@@ -47,7 +47,7 @@ export const createReservation = createServerFn({ method: "POST" })
     const { data: prop, error: propErr } = await supabaseAdmin
       .from("properties")
       .select(
-        "id, name, status, max_guests, parking_spots, price_weekday, price_weekend, cleaning_fee, min_nights_weekday, min_nights_weekend, accepts_pets",
+        "id, name, status, max_guests, parking_spots, price_weekday, price_weekend, price_high_season, high_season_dates, cleaning_fee, min_nights_weekday, min_nights_weekend, accepts_pets",
       )
       .eq("id", data.property_id)
       .maybeSingle();
@@ -112,12 +112,17 @@ export const createReservation = createServerFn({ method: "POST" })
     }
 
     // 5. Recalcular preço (NÃO confiar no cliente)
+    const hsDates = Array.isArray(prop.high_season_dates)
+      ? (prop.high_season_dates as { start: string; end: string }[])
+      : [];
     const breakdown = calculatePrice(
       ci,
       co,
       Number(prop.price_weekday),
       Number(prop.price_weekend),
       Number(prop.cleaning_fee),
+      prop.price_high_season != null ? Number(prop.price_high_season) : null,
+      hsDates,
     );
     if (breakdown.nights === 0) throw new Error("Período inválido.");
     const minRequired =
@@ -151,11 +156,15 @@ export const createReservation = createServerFn({ method: "POST" })
         price_breakdown: {
           weekday_nights: breakdown.weekdayNights,
           weekend_nights: breakdown.weekendNights,
+          high_season_nights: breakdown.highSeasonNights,
           weekday_price: breakdown.weekdayPrice,
           weekend_price: breakdown.weekendPrice,
+          high_season_price: breakdown.highSeasonPrice,
           weekday_subtotal: breakdown.weekdaySubtotal,
           weekend_subtotal: breakdown.weekendSubtotal,
+          high_season_total: breakdown.highSeasonTotal,
           cleaning_fee: breakdown.cleaningFee,
+          total: breakdown.total,
         },
         total_price: breakdown.total,
         status: "pending",
