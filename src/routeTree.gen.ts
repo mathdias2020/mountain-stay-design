@@ -16,6 +16,8 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
+import { Route as AdminAdminReservasRouteImport } from './routes/_admin.admin.reservas'
+import { Route as AdminAdminPropriedadesRouteImport } from './routes/_admin.admin.propriedades'
 import { Route as AdminAdminConfiguracoesRouteImport } from './routes/_admin.admin.configuracoes'
 import { Route as AdminAdminCalendarioRouteImport } from './routes/_admin.admin.calendario'
 import { Route as AdminAdminReservasIndexRouteImport } from './routes/_admin.admin.reservas.index'
@@ -57,6 +59,16 @@ const PublicImovelSlugRoute = PublicImovelSlugRouteImport.update({
   path: '/imovel/$slug',
   getParentRoute: () => PublicRoute,
 } as any)
+const AdminAdminReservasRoute = AdminAdminReservasRouteImport.update({
+  id: '/reservas',
+  path: '/reservas',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
+const AdminAdminPropriedadesRoute = AdminAdminPropriedadesRouteImport.update({
+  id: '/propriedades',
+  path: '/propriedades',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
 const AdminAdminConfiguracoesRoute = AdminAdminConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
@@ -68,32 +80,32 @@ const AdminAdminCalendarioRoute = AdminAdminCalendarioRouteImport.update({
   getParentRoute: () => AdminAdminRoute,
 } as any)
 const AdminAdminReservasIndexRoute = AdminAdminReservasIndexRouteImport.update({
-  id: '/reservas/',
-  path: '/reservas/',
-  getParentRoute: () => AdminAdminRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAdminReservasRoute,
 } as any)
 const AdminAdminPropriedadesIndexRoute =
   AdminAdminPropriedadesIndexRouteImport.update({
-    id: '/propriedades/',
-    path: '/propriedades/',
-    getParentRoute: () => AdminAdminRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AdminAdminPropriedadesRoute,
   } as any)
 const AdminAdminReservasIdRoute = AdminAdminReservasIdRouteImport.update({
-  id: '/reservas/$id',
-  path: '/reservas/$id',
-  getParentRoute: () => AdminAdminRoute,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminAdminReservasRoute,
 } as any)
 const AdminAdminPropriedadesNovaRoute =
   AdminAdminPropriedadesNovaRouteImport.update({
-    id: '/propriedades/nova',
-    path: '/propriedades/nova',
-    getParentRoute: () => AdminAdminRoute,
+    id: '/nova',
+    path: '/nova',
+    getParentRoute: () => AdminAdminPropriedadesRoute,
   } as any)
 const AdminAdminPropriedadesIdEditarRoute =
   AdminAdminPropriedadesIdEditarRouteImport.update({
-    id: '/propriedades/$id/editar',
-    path: '/propriedades/$id/editar',
-    getParentRoute: () => AdminAdminRoute,
+    id: '/$id/editar',
+    path: '/$id/editar',
+    getParentRoute: () => AdminAdminPropriedadesRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -102,6 +114,8 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
+  '/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
+  '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/imovel/$slug': typeof PublicImovelSlugRoute
   '/admin/': typeof AdminAdminIndexRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
@@ -132,6 +146,8 @@ export interface FileRoutesById {
   '/_public/': typeof PublicIndexRoute
   '/_admin/admin/calendario': typeof AdminAdminCalendarioRoute
   '/_admin/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
+  '/_admin/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
+  '/_admin/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
@@ -148,6 +164,8 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/calendario'
     | '/admin/configuracoes'
+    | '/admin/propriedades'
+    | '/admin/reservas'
     | '/imovel/$slug'
     | '/admin/'
     | '/admin/propriedades/nova'
@@ -177,6 +195,8 @@ export interface FileRouteTypes {
     | '/_public/'
     | '/_admin/admin/calendario'
     | '/_admin/admin/configuracoes'
+    | '/_admin/admin/propriedades'
+    | '/_admin/admin/reservas'
     | '/_public/imovel/$slug'
     | '/_admin/admin/'
     | '/_admin/admin/propriedades/nova'
@@ -243,6 +263,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicImovelSlugRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_admin/admin/reservas': {
+      id: '/_admin/admin/reservas'
+      path: '/reservas'
+      fullPath: '/admin/reservas'
+      preLoaderRoute: typeof AdminAdminReservasRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
+    '/_admin/admin/propriedades': {
+      id: '/_admin/admin/propriedades'
+      path: '/propriedades'
+      fullPath: '/admin/propriedades'
+      preLoaderRoute: typeof AdminAdminPropriedadesRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
     '/_admin/admin/configuracoes': {
       id: '/_admin/admin/configuracoes'
       path: '/configuracoes'
@@ -259,62 +293,87 @@ declare module '@tanstack/react-router' {
     }
     '/_admin/admin/reservas/': {
       id: '/_admin/admin/reservas/'
-      path: '/reservas'
+      path: '/'
       fullPath: '/admin/reservas/'
       preLoaderRoute: typeof AdminAdminReservasIndexRouteImport
-      parentRoute: typeof AdminAdminRoute
+      parentRoute: typeof AdminAdminReservasRoute
     }
     '/_admin/admin/propriedades/': {
       id: '/_admin/admin/propriedades/'
-      path: '/propriedades'
+      path: '/'
       fullPath: '/admin/propriedades/'
       preLoaderRoute: typeof AdminAdminPropriedadesIndexRouteImport
-      parentRoute: typeof AdminAdminRoute
+      parentRoute: typeof AdminAdminPropriedadesRoute
     }
     '/_admin/admin/reservas/$id': {
       id: '/_admin/admin/reservas/$id'
-      path: '/reservas/$id'
+      path: '/$id'
       fullPath: '/admin/reservas/$id'
       preLoaderRoute: typeof AdminAdminReservasIdRouteImport
-      parentRoute: typeof AdminAdminRoute
+      parentRoute: typeof AdminAdminReservasRoute
     }
     '/_admin/admin/propriedades/nova': {
       id: '/_admin/admin/propriedades/nova'
-      path: '/propriedades/nova'
+      path: '/nova'
       fullPath: '/admin/propriedades/nova'
       preLoaderRoute: typeof AdminAdminPropriedadesNovaRouteImport
-      parentRoute: typeof AdminAdminRoute
+      parentRoute: typeof AdminAdminPropriedadesRoute
     }
     '/_admin/admin/propriedades/$id/editar': {
       id: '/_admin/admin/propriedades/$id/editar'
-      path: '/propriedades/$id/editar'
+      path: '/$id/editar'
       fullPath: '/admin/propriedades/$id/editar'
       preLoaderRoute: typeof AdminAdminPropriedadesIdEditarRouteImport
-      parentRoute: typeof AdminAdminRoute
+      parentRoute: typeof AdminAdminPropriedadesRoute
     }
   }
 }
 
+interface AdminAdminPropriedadesRouteChildren {
+  AdminAdminPropriedadesNovaRoute: typeof AdminAdminPropriedadesNovaRoute
+  AdminAdminPropriedadesIndexRoute: typeof AdminAdminPropriedadesIndexRoute
+  AdminAdminPropriedadesIdEditarRoute: typeof AdminAdminPropriedadesIdEditarRoute
+}
+
+const AdminAdminPropriedadesRouteChildren: AdminAdminPropriedadesRouteChildren =
+  {
+    AdminAdminPropriedadesNovaRoute: AdminAdminPropriedadesNovaRoute,
+    AdminAdminPropriedadesIndexRoute: AdminAdminPropriedadesIndexRoute,
+    AdminAdminPropriedadesIdEditarRoute: AdminAdminPropriedadesIdEditarRoute,
+  }
+
+const AdminAdminPropriedadesRouteWithChildren =
+  AdminAdminPropriedadesRoute._addFileChildren(
+    AdminAdminPropriedadesRouteChildren,
+  )
+
+interface AdminAdminReservasRouteChildren {
+  AdminAdminReservasIdRoute: typeof AdminAdminReservasIdRoute
+  AdminAdminReservasIndexRoute: typeof AdminAdminReservasIndexRoute
+}
+
+const AdminAdminReservasRouteChildren: AdminAdminReservasRouteChildren = {
+  AdminAdminReservasIdRoute: AdminAdminReservasIdRoute,
+  AdminAdminReservasIndexRoute: AdminAdminReservasIndexRoute,
+}
+
+const AdminAdminReservasRouteWithChildren =
+  AdminAdminReservasRoute._addFileChildren(AdminAdminReservasRouteChildren)
+
 interface AdminAdminRouteChildren {
   AdminAdminCalendarioRoute: typeof AdminAdminCalendarioRoute
   AdminAdminConfiguracoesRoute: typeof AdminAdminConfiguracoesRoute
+  AdminAdminPropriedadesRoute: typeof AdminAdminPropriedadesRouteWithChildren
+  AdminAdminReservasRoute: typeof AdminAdminReservasRouteWithChildren
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
-  AdminAdminPropriedadesNovaRoute: typeof AdminAdminPropriedadesNovaRoute
-  AdminAdminReservasIdRoute: typeof AdminAdminReservasIdRoute
-  AdminAdminPropriedadesIndexRoute: typeof AdminAdminPropriedadesIndexRoute
-  AdminAdminReservasIndexRoute: typeof AdminAdminReservasIndexRoute
-  AdminAdminPropriedadesIdEditarRoute: typeof AdminAdminPropriedadesIdEditarRoute
 }
 
 const AdminAdminRouteChildren: AdminAdminRouteChildren = {
   AdminAdminCalendarioRoute: AdminAdminCalendarioRoute,
   AdminAdminConfiguracoesRoute: AdminAdminConfiguracoesRoute,
+  AdminAdminPropriedadesRoute: AdminAdminPropriedadesRouteWithChildren,
+  AdminAdminReservasRoute: AdminAdminReservasRouteWithChildren,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
-  AdminAdminPropriedadesNovaRoute: AdminAdminPropriedadesNovaRoute,
-  AdminAdminReservasIdRoute: AdminAdminReservasIdRoute,
-  AdminAdminPropriedadesIndexRoute: AdminAdminPropriedadesIndexRoute,
-  AdminAdminReservasIndexRoute: AdminAdminReservasIndexRoute,
-  AdminAdminPropriedadesIdEditarRoute: AdminAdminPropriedadesIdEditarRoute,
 }
 
 const AdminAdminRouteWithChildren = AdminAdminRoute._addFileChildren(
