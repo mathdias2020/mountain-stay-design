@@ -33,17 +33,7 @@ function EditProperty() {
   });
 
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-10 w-full animate-pulse rounded"
-            style={{ backgroundColor: "#E2E1DD" }}
-          />
-        ))}
-      </div>
-    );
+    return <p style={{ color: "#5C5B57" }}>Carregando...</p>;
   }
   if (error || !data) {
     return <p style={{ color: "#B43A3A" }}>Erro ao carregar propriedade.</p>;
