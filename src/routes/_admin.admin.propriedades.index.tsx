@@ -30,7 +30,7 @@ import {
 import { toast } from "sonner";
 import { EmptyState } from "@/components/admin/EmptyState";
 
-export const Route = createFileRoute("/_admin/admin/propriedades")({
+export const Route = createFileRoute("/_admin/admin/propriedades/")({
   head: () => ({ meta: [{ title: "Propriedades — RotainStay" }] }),
   component: PropertiesAdminPage,
 });
