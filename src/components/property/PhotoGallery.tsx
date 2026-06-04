@@ -12,8 +12,17 @@ interface Props {
 export function PhotoGallery({ photos, propertyName }: Props) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [broken, setBroken] = useState<Set<string>>(new Set());
+  const markBroken = (id: string) =>
+    setBroken((prev) => {
+      const n = new Set(prev);
+      n.add(id);
+      return n;
+    });
 
-  if (photos.length === 0) {
+  const usable = photos.filter((p) => !broken.has(p.id));
+
+  if (usable.length === 0) {
     return (
       <div className="flex aspect-[16/9] w-full items-center justify-center rounded-[14px] bg-secondary">
         <Home className="h-16 w-16 text-text-muted" strokeWidth={1.5} />
@@ -21,9 +30,9 @@ export function PhotoGallery({ photos, propertyName }: Props) {
     );
   }
 
-  const main = photos[activeIdx] ?? photos[0];
-  const thumbs = photos.slice(0, 4);
-  const extra = photos.length - 4;
+  const main = usable[activeIdx] ?? usable[0];
+  const thumbs = usable.slice(0, 4);
+  const extra = usable.length - 4;
 
   return (
     <>
@@ -32,6 +41,10 @@ export function PhotoGallery({ photos, propertyName }: Props) {
           src={main.url}
           alt={`Foto de ${propertyName}`}
           className="aspect-[16/9] w-full object-cover"
+          onError={() => {
+            markBroken(main.id);
+            setActiveIdx(0);
+          }}
         />
       </div>
 
@@ -55,6 +68,7 @@ export function PhotoGallery({ photos, propertyName }: Props) {
                   src={p.url}
                   alt=""
                   className="h-full w-full object-cover"
+                  onError={() => markBroken(p.id)}
                 />
                 {showOverlay && (
                   <span className="absolute inset-0 flex items-center justify-center bg-black/60 text-xs font-medium text-white">
@@ -85,6 +99,9 @@ export function PhotoGallery({ photos, propertyName }: Props) {
                 src={p.url}
                 alt={`Foto de ${propertyName}`}
                 className="aspect-square w-full rounded-[8px] object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
               />
             ))}
           </div>
