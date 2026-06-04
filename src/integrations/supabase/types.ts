@@ -396,6 +396,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
       slugify: { Args: { input: string }; Returns: string }
     }
     Enums: {
