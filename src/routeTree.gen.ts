@@ -14,11 +14,14 @@ import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as PublicIndexRouteImport } from './routes/_public.index'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
+import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
 import { Route as AdminAdminReservasRouteImport } from './routes/_admin.admin.reservas'
 import { Route as AdminAdminPropriedadesRouteImport } from './routes/_admin.admin.propriedades'
 import { Route as AdminAdminConfiguracoesRouteImport } from './routes/_admin.admin.configuracoes'
 import { Route as AdminAdminCalendarioRouteImport } from './routes/_admin.admin.calendario'
+import { Route as AdminAdminReservasIndexRouteImport } from './routes/_admin.admin.reservas.index'
+import { Route as AdminAdminPropriedadesIndexRouteImport } from './routes/_admin.admin.propriedades.index'
 import { Route as AdminAdminReservasIdRouteImport } from './routes/_admin.admin.reservas.$id'
 import { Route as AdminAdminPropriedadesNovaRouteImport } from './routes/_admin.admin.propriedades.nova'
 import { Route as AdminAdminPropriedadesIdEditarRouteImport } from './routes/_admin.admin.propriedades.$id.editar'
@@ -46,6 +49,11 @@ const AdminAdminRoute = AdminAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
 const PublicImovelSlugRoute = PublicImovelSlugRouteImport.update({
   id: '/imovel/$slug',
   path: '/imovel/$slug',
@@ -71,6 +79,17 @@ const AdminAdminCalendarioRoute = AdminAdminCalendarioRouteImport.update({
   path: '/calendario',
   getParentRoute: () => AdminAdminRoute,
 } as any)
+const AdminAdminReservasIndexRoute = AdminAdminReservasIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAdminReservasRoute,
+} as any)
+const AdminAdminPropriedadesIndexRoute =
+  AdminAdminPropriedadesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AdminAdminPropriedadesRoute,
+  } as any)
 const AdminAdminReservasIdRoute = AdminAdminReservasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -98,21 +117,24 @@ export interface FileRoutesByFullPath {
   '/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/imovel/$slug': typeof PublicImovelSlugRoute
+  '/admin/': typeof AdminAdminIndexRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
+  '/admin/propriedades/': typeof AdminAdminPropriedadesIndexRoute
+  '/admin/reservas/': typeof AdminAdminReservasIndexRoute
   '/admin/propriedades/$id/editar': typeof AdminAdminPropriedadesIdEditarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
-  '/admin': typeof AdminAdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
-  '/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
-  '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/imovel/$slug': typeof PublicImovelSlugRoute
+  '/admin': typeof AdminAdminIndexRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
+  '/admin/propriedades': typeof AdminAdminPropriedadesIndexRoute
+  '/admin/reservas': typeof AdminAdminReservasIndexRoute
   '/admin/propriedades/$id/editar': typeof AdminAdminPropriedadesIdEditarRoute
 }
 export interface FileRoutesById {
@@ -127,8 +149,11 @@ export interface FileRoutesById {
   '/_admin/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/_admin/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
+  '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/_admin/admin/reservas/$id': typeof AdminAdminReservasIdRoute
+  '/_admin/admin/propriedades/': typeof AdminAdminPropriedadesIndexRoute
+  '/_admin/admin/reservas/': typeof AdminAdminReservasIndexRoute
   '/_admin/admin/propriedades/$id/editar': typeof AdminAdminPropriedadesIdEditarRoute
 }
 export interface FileRouteTypes {
@@ -142,21 +167,24 @@ export interface FileRouteTypes {
     | '/admin/propriedades'
     | '/admin/reservas'
     | '/imovel/$slug'
+    | '/admin/'
     | '/admin/propriedades/nova'
     | '/admin/reservas/$id'
+    | '/admin/propriedades/'
+    | '/admin/reservas/'
     | '/admin/propriedades/$id/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/admin/login'
     | '/admin/calendario'
     | '/admin/configuracoes'
-    | '/admin/propriedades'
-    | '/admin/reservas'
     | '/imovel/$slug'
+    | '/admin'
     | '/admin/propriedades/nova'
     | '/admin/reservas/$id'
+    | '/admin/propriedades'
+    | '/admin/reservas'
     | '/admin/propriedades/$id/editar'
   id:
     | '__root__'
@@ -170,8 +198,11 @@ export interface FileRouteTypes {
     | '/_admin/admin/propriedades'
     | '/_admin/admin/reservas'
     | '/_public/imovel/$slug'
+    | '/_admin/admin/'
     | '/_admin/admin/propriedades/nova'
     | '/_admin/admin/reservas/$id'
+    | '/_admin/admin/propriedades/'
+    | '/_admin/admin/reservas/'
     | '/_admin/admin/propriedades/$id/editar'
   fileRoutesById: FileRoutesById
 }
@@ -218,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/': {
+      id: '/_admin/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAdminIndexRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
     '/_public/imovel/$slug': {
       id: '/_public/imovel/$slug'
       path: '/imovel/$slug'
@@ -253,6 +291,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminCalendarioRouteImport
       parentRoute: typeof AdminAdminRoute
     }
+    '/_admin/admin/reservas/': {
+      id: '/_admin/admin/reservas/'
+      path: '/'
+      fullPath: '/admin/reservas/'
+      preLoaderRoute: typeof AdminAdminReservasIndexRouteImport
+      parentRoute: typeof AdminAdminReservasRoute
+    }
+    '/_admin/admin/propriedades/': {
+      id: '/_admin/admin/propriedades/'
+      path: '/'
+      fullPath: '/admin/propriedades/'
+      preLoaderRoute: typeof AdminAdminPropriedadesIndexRouteImport
+      parentRoute: typeof AdminAdminPropriedadesRoute
+    }
     '/_admin/admin/reservas/$id': {
       id: '/_admin/admin/reservas/$id'
       path: '/$id'
@@ -279,12 +331,14 @@ declare module '@tanstack/react-router' {
 
 interface AdminAdminPropriedadesRouteChildren {
   AdminAdminPropriedadesNovaRoute: typeof AdminAdminPropriedadesNovaRoute
+  AdminAdminPropriedadesIndexRoute: typeof AdminAdminPropriedadesIndexRoute
   AdminAdminPropriedadesIdEditarRoute: typeof AdminAdminPropriedadesIdEditarRoute
 }
 
 const AdminAdminPropriedadesRouteChildren: AdminAdminPropriedadesRouteChildren =
   {
     AdminAdminPropriedadesNovaRoute: AdminAdminPropriedadesNovaRoute,
+    AdminAdminPropriedadesIndexRoute: AdminAdminPropriedadesIndexRoute,
     AdminAdminPropriedadesIdEditarRoute: AdminAdminPropriedadesIdEditarRoute,
   }
 
@@ -295,10 +349,12 @@ const AdminAdminPropriedadesRouteWithChildren =
 
 interface AdminAdminReservasRouteChildren {
   AdminAdminReservasIdRoute: typeof AdminAdminReservasIdRoute
+  AdminAdminReservasIndexRoute: typeof AdminAdminReservasIndexRoute
 }
 
 const AdminAdminReservasRouteChildren: AdminAdminReservasRouteChildren = {
   AdminAdminReservasIdRoute: AdminAdminReservasIdRoute,
+  AdminAdminReservasIndexRoute: AdminAdminReservasIndexRoute,
 }
 
 const AdminAdminReservasRouteWithChildren =
@@ -309,6 +365,7 @@ interface AdminAdminRouteChildren {
   AdminAdminConfiguracoesRoute: typeof AdminAdminConfiguracoesRoute
   AdminAdminPropriedadesRoute: typeof AdminAdminPropriedadesRouteWithChildren
   AdminAdminReservasRoute: typeof AdminAdminReservasRouteWithChildren
+  AdminAdminIndexRoute: typeof AdminAdminIndexRoute
 }
 
 const AdminAdminRouteChildren: AdminAdminRouteChildren = {
@@ -316,6 +373,7 @@ const AdminAdminRouteChildren: AdminAdminRouteChildren = {
   AdminAdminConfiguracoesRoute: AdminAdminConfiguracoesRoute,
   AdminAdminPropriedadesRoute: AdminAdminPropriedadesRouteWithChildren,
   AdminAdminReservasRoute: AdminAdminReservasRouteWithChildren,
+  AdminAdminIndexRoute: AdminAdminIndexRoute,
 }
 
 const AdminAdminRouteWithChildren = AdminAdminRoute._addFileChildren(
@@ -353,13 +411,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
