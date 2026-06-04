@@ -171,7 +171,7 @@ function CalendarPage() {
       const isManual = !(b.reason || "").toLowerCase().includes("reserva confirmada");
       if (!isManual) continue;
       let d = parseISO(b.start_date);
-      const end = addDays(parseISO(b.end_date), 1);
+      const end = parseISO(b.end_date);
       while (d < end) {
         const k = isoDate(d);
         const prev = m.get(k) ?? { iso: k };
@@ -478,17 +478,20 @@ function BlockDialog({
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Data início</Label>
+            <Label>Primeira noite bloqueada</Label>
             <Input type="date" value={startDate ?? ""} readOnly />
           </div>
           <div>
-            <Label>Data fim</Label>
+            <Label>Liberação (check-in disponível neste dia)</Label>
             <Input
               type="date"
               value={endDate}
               min={startDate ? isoDate(addDays(parseISO(startDate), 1)) : undefined}
               onChange={(e) => setEndDate(e.target.value)}
             />
+            <p style={{ fontSize: 12, color: "#9A9890", marginTop: 4 }}>
+              Esta data fica disponível para nova reserva.
+            </p>
           </div>
           <div>
             <Label>Motivo</Label>
@@ -544,22 +547,47 @@ function UnblockDialog({
     onRemoved();
   }
 
+  function formatPeriod(b: Blocked) {
+    const start = parseISO(b.start_date);
+    const end = parseISO(b.end_date);
+    const nights = Math.max(
+      0,
+      Math.round((end.getTime() - start.getTime()) / 86_400_000),
+    );
+    const fmt = (d: Date) =>
+      `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const lastNight = addDays(end, -1);
+    const liberacao = `${String(end.getDate()).padStart(2, "0")}/${String(end.getMonth() + 1).padStart(2, "0")}/${end.getFullYear()}`;
+    if (nights <= 1) {
+      return {
+        line: `Noite bloqueada: ${fmt(start)} (1 noite)`,
+        liberacao,
+      };
+    }
+    return {
+      line: `Noites bloqueadas: ${fmt(start)} a ${fmt(lastNight)} (${nights} noites)`,
+      liberacao,
+    };
+  }
+
   return (
     <Dialog open={!!blocked} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Remover bloqueio</DialogTitle>
         </DialogHeader>
-        {blocked && (
-          <div className="space-y-2" style={{ fontSize: 14, color: "#2F2E2A" }}>
-            <div>
-              <strong>Período:</strong> {blocked.start_date} → {blocked.end_date}
+        {blocked && (() => {
+          const p = formatPeriod(blocked);
+          return (
+            <div className="space-y-2" style={{ fontSize: 14, color: "#2F2E2A" }}>
+              <div>{p.line}</div>
+              <div style={{ color: "#5C5B57" }}>Liberação: {p.liberacao}</div>
+              <div>
+                <strong>Motivo:</strong> {blocked.reason || "—"}
+              </div>
             </div>
-            <div>
-              <strong>Motivo:</strong> {blocked.reason || "—"}
-            </div>
-          </div>
-        )}
+          );
+        })()}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={removing}>Cancelar</Button>
           <Button variant="destructive" onClick={remove} disabled={removing}>
