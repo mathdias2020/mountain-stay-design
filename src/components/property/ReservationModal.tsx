@@ -183,8 +183,7 @@ export function ReservationModal({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
-        className="max-h-[90vh] max-w-[540px] overflow-y-auto bg-surface p-8 [&>button]:hidden"
-        style={{ borderRadius: 14 }}
+        className="left-0 top-0 max-h-[100dvh] w-screen max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-none rounded-b-[14px] bg-surface p-4 sm:left-[50%] sm:top-[50%] sm:max-h-[90vh] sm:w-auto sm:max-w-[540px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-[14px] sm:p-8 [&>button]:hidden"
       >
         <button
           type="button"

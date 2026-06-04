@@ -20,6 +20,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { ClipboardList } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
@@ -222,11 +224,14 @@ function ReservationsPage() {
         </Button>
       </div>
 
-      <ReservationsTable
-        rows={listQuery.data?.rows ?? []}
-        loading={listQuery.isLoading}
-        emptyMessage="Nenhuma reserva encontrada para os filtros aplicados."
-      />
+      {!listQuery.isLoading && (listQuery.data?.rows ?? []).length === 0 ? (
+        <EmptyState icon={ClipboardList} title="Nenhuma reserva encontrada." />
+      ) : (
+        <ReservationsTable
+          rows={listQuery.data?.rows ?? []}
+          loading={listQuery.isLoading}
+        />
+      )}
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
