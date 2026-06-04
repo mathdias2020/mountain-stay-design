@@ -478,17 +478,20 @@ function BlockDialog({
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Data início</Label>
+            <Label>Primeira noite bloqueada</Label>
             <Input type="date" value={startDate ?? ""} readOnly />
           </div>
           <div>
-            <Label>Data fim</Label>
+            <Label>Liberação (check-in disponível neste dia)</Label>
             <Input
               type="date"
               value={endDate}
               min={startDate ? isoDate(addDays(parseISO(startDate), 1)) : undefined}
               onChange={(e) => setEndDate(e.target.value)}
             />
+            <p style={{ fontSize: 12, color: "#9A9890", marginTop: 4 }}>
+              Esta data fica disponível para nova reserva.
+            </p>
           </div>
           <div>
             <Label>Motivo</Label>
