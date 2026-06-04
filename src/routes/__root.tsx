@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "RotainStay — Casas para temporada nas montanhas do Espírito Santo" },
+      { title: "RotainStay" },
       {
         name: "description",
         content:
@@ -106,6 +106,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Alugue casas e chalés para temporada em Domingos Martins, Pedra Azul e região serrana do Espírito Santo. Reserve agora com facilidade.",
       },
+      { property: "og:title", content: "RotainStay" },
+      { name: "twitter:title", content: "RotainStay" },
+      { name: "description", content: "Casas para temporada nas montanhas do Espírito Santo" },
+      { property: "og:description", content: "Casas para temporada nas montanhas do Espírito Santo" },
+      { name: "twitter:description", content: "Casas para temporada nas montanhas do Espírito Santo" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/29335eef-91a1-4019-814c-a3ab1183d6b4/id-preview-9cbcae7b--c6dfa468-7d5c-4953-ad88-1bfcf51f40f5.lovable.app-1780541883999.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/29335eef-91a1-4019-814c-a3ab1183d6b4/id-preview-9cbcae7b--c6dfa468-7d5c-4953-ad88-1bfcf51f40f5.lovable.app-1780541883999.png" },
     ],
     links: [
       {
