@@ -25,7 +25,7 @@ import { ClipboardList } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
-export const Route = createFileRoute("/_admin/admin/reservas")({
+export const Route = createFileRoute("/_admin/admin/reservas/")({
   head: () => ({ meta: [{ title: "Reservas — RotainStay" }] }),
   component: ReservationsPage,
 });
