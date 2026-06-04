@@ -1,6 +1,8 @@
+import { MountainSilhouette } from "@/components/brand/MountainSilhouette";
+
 export function Hero() {
   return (
-    <section className="bg-primary px-6 py-14 md:py-20">
+    <section className="relative bg-primary px-6 pt-14 pb-24 md:pt-20 md:pb-28">
       <div className="mx-auto max-w-4xl text-center">
         <h1
           className="font-semibold text-white"
@@ -18,6 +20,13 @@ export function Hero() {
             Casas e chalés para temporada em Domingos Martins, Pedra Azul e região serrana.
           </span>
         </p>
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 leading-[0]">
+        <MountainSilhouette
+          backColor="#4E5438"
+          frontColor="#5A6045"
+          height={80}
+        />
       </div>
     </section>
   );
