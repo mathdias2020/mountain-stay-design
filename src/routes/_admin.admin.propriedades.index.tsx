@@ -73,13 +73,24 @@ async function fetchProperties(statusFilter: string): Promise<PropertyRow[]> {
   if (ids.length > 0) {
     const { data: photos } = await supabase
       .from("property_photos")
-      .select("property_id, public_url, is_cover, sort_order")
+      .select("property_id, storage_path, is_cover, sort_order")
       .in("property_id", ids)
       .order("is_cover", { ascending: false })
       .order("sort_order", { ascending: true });
+    const firstByProp = new Map<string, string>();
     for (const ph of photos ?? []) {
-      if (!coverMap.has(ph.property_id)) coverMap.set(ph.property_id, ph.public_url);
+      if (!firstByProp.has(ph.property_id) && ph.storage_path) {
+        firstByProp.set(ph.property_id, ph.storage_path);
+      }
     }
+    await Promise.all(
+      Array.from(firstByProp.entries()).map(async ([pid, path]) => {
+        const { data: signed } = await supabase.storage
+          .from("property-photos")
+          .createSignedUrl(path, 60 * 60);
+        if (signed?.signedUrl) coverMap.set(pid, signed.signedUrl);
+      }),
+    );
   }
 
   return (data ?? []).map((p) => ({ ...p, cover_url: coverMap.get(p.id) ?? null }));
@@ -272,6 +283,9 @@ function PropertyRowItem({
             src={row.cover_url}
             alt={row.name}
             style={{ width: 60, height: 60, borderRadius: 8, objectFit: "cover" }}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
           />
         ) : (
           <div
