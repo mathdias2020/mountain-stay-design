@@ -808,7 +808,14 @@ function PhotoThumb({
   };
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      <img
+        src={url}
+        alt=""
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        onError={(e) => {
+          (e.currentTarget as HTMLImageElement).style.display = "none";
+        }}
+      />
       <button
         type="button"
         onClick={(e) => {
