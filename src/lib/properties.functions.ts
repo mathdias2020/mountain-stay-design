@@ -201,6 +201,7 @@ export type PropertyDetail = {
   house_rules: string | null;
   photos: PropertyPhoto[];
   blocked_ranges: BlockedRange[];
+  high_season_dates: { start: string; end: string }[];
   block_on_request: boolean;
 };
 
@@ -314,6 +315,9 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
       house_rules: prop.house_rules,
       photos,
       blocked_ranges,
+      high_season_dates: Array.isArray(prop.high_season_dates)
+        ? (prop.high_season_dates as { start: string; end: string }[])
+        : [],
       block_on_request: blockOnRequest,
     };
   });

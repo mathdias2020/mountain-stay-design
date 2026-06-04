@@ -574,13 +574,13 @@ function PriceCard({ breakdown, total }: { breakdown: any; total: number | strin
     if (breakdown.weekday_nights != null) {
       items.push({
         label: `Diárias semana (${breakdown.weekday_nights})`,
-        value: formatBRL(breakdown.weekday_total ?? 0),
+        value: formatBRL(breakdown.weekday_subtotal ?? 0),
       });
     }
     if (breakdown.weekend_nights != null) {
       items.push({
         label: `Diárias fim de semana (${breakdown.weekend_nights})`,
-        value: formatBRL(breakdown.weekend_total ?? 0),
+        value: formatBRL(breakdown.weekend_subtotal ?? 0),
       });
     }
     if (breakdown.high_season_nights) {
