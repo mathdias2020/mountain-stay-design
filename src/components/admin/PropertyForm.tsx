@@ -302,7 +302,13 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
           p.kind === "existing" && !!p.markedForDeletion
       );
       if (toDelete.length) {
-        const paths = toDelete.map((p) => p.data.storage_path);
+        const paths: string[] = [];
+        for (const p of toDelete) {
+          if (p.data.storage_path) paths.push(p.data.storage_path);
+          if (p.data.public_url && !p.data.public_url.startsWith("http")) {
+            paths.push(p.data.public_url);
+          }
+        }
         await supabase.storage.from(BUCKET).remove(paths);
         await supabase
           .from("property_photos")
