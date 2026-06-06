@@ -274,23 +274,54 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
       "public, max-age=30, s-maxage=60, stale-while-revalidate=300",
     );
 
-    const { data: prop, error } = await supabaseAdmin
-      .from("properties")
-      .select("*")
-      .eq("slug", data.slug)
-      .eq("status", "active")
-      .maybeSingle();
+    // Fetch property and site setting in parallel (setting doesn't need prop.id)
+    const today = new Date().toISOString().slice(0, 10);
+    const [propRes, settingRes] = await Promise.all([
+      supabaseAdmin
+        .from("properties")
+        .select("*")
+        .eq("slug", data.slug)
+        .eq("status", "active")
+        .maybeSingle(),
+      supabaseAdmin
+        .from("site_settings")
+        .select("value")
+        .eq("key", "block_on_request")
+        .maybeSingle(),
+    ]);
 
-    if (error) throw new Error(error.message);
+    if (propRes.error) throw new Error(propRes.error.message);
+    const prop = propRes.data;
     if (!prop) throw notFound();
 
-    // Photos
-    const { data: photoRows } = await supabaseAdmin
-      .from("property_photos")
-      .select("id, storage_path, public_url, is_cover, sort_order")
-      .eq("property_id", prop.id)
-      .order("is_cover", { ascending: false })
-      .order("sort_order", { ascending: true });
+    const blockOnRequest = settingRes.data?.value === "true";
+    const blockingStatuses = blockOnRequest
+      ? ["pending", "confirmed"]
+      : ["confirmed"];
+
+    // Photos + blocks + reservations all in parallel (all need prop.id)
+    const [photosRes, blocksRes, reservsRes] = await Promise.all([
+      supabaseAdmin
+        .from("property_photos")
+        .select("id, storage_path, public_url, is_cover, sort_order")
+        .eq("property_id", prop.id)
+        .order("is_cover", { ascending: false })
+        .order("sort_order", { ascending: true }),
+      supabaseAdmin
+        .from("blocked_dates")
+        .select("start_date, end_date")
+        .eq("property_id", prop.id)
+        .gte("end_date", today),
+      supabaseAdmin
+        .from("reservations")
+        .select("checkin_date, checkout_date, status")
+        .eq("property_id", prop.id)
+        .in("status", blockingStatuses)
+        .gte("checkout_date", today),
+    ]);
+    const photoRows = photosRes.data;
+    const blocks = blocksRes.data;
+    const reservs = reservsRes.data;
 
     // Batch-sign every storage path (original + thumb) in one round trip.
     const rows = photoRows ?? [];
@@ -319,34 +350,6 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
         });
       }
     }
-
-    // block_on_request setting
-    const { data: setting } = await supabaseAdmin
-      .from("site_settings")
-      .select("value")
-      .eq("key", "block_on_request")
-      .maybeSingle();
-    const blockOnRequest = setting?.value === "true";
-    const blockingStatuses = blockOnRequest
-      ? ["pending", "confirmed"]
-      : ["confirmed"];
-
-    // Blocked ranges: future-relevant only (end_date >= today)
-    const today = new Date().toISOString().slice(0, 10);
-
-    const [{ data: blocks }, { data: reservs }] = await Promise.all([
-      supabaseAdmin
-        .from("blocked_dates")
-        .select("start_date, end_date")
-        .eq("property_id", prop.id)
-        .gte("end_date", today),
-      supabaseAdmin
-        .from("reservations")
-        .select("checkin_date, checkout_date, status")
-        .eq("property_id", prop.id)
-        .in("status", blockingStatuses)
-        .gte("checkout_date", today),
-    ]);
 
     const blocked_ranges: BlockedRange[] = [
       ...(blocks ?? []).map((b) => ({ start: b.start_date, end: b.end_date })),
