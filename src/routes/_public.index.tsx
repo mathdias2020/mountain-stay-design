@@ -69,6 +69,9 @@ function HomePage() {
           city: search.city,
         },
       }),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const properties = data?.properties ?? [];

@@ -33,6 +33,9 @@ function PropertyDetailPage() {
     queryKey: ["property", slug],
     queryFn: () => getPropertyDetail({ data: { slug } }),
     retry: false,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {

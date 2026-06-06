@@ -40,6 +40,8 @@ export function PhotoGallery({ photos, propertyName }: Props) {
         <img
           src={main.url}
           alt={`Foto de ${propertyName}`}
+          fetchPriority="high"
+          decoding="async"
           className="aspect-[16/9] w-full object-cover"
           onError={() => {
             markBroken(main.id);
@@ -67,6 +69,8 @@ export function PhotoGallery({ photos, propertyName }: Props) {
                 <img
                   src={p.url}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                   onError={() => markBroken(p.id)}
                 />
@@ -96,8 +100,10 @@ export function PhotoGallery({ photos, propertyName }: Props) {
             {photos.map((p) => (
               <img
                 key={p.id}
-                src={p.url}
+                src={p.full_url}
                 alt={`Foto de ${propertyName}`}
+                loading="lazy"
+                decoding="async"
                 className="aspect-square w-full rounded-[8px] object-cover"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).style.display = "none";

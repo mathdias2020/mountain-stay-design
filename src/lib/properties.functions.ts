@@ -1,6 +1,54 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { notFound } from "@tanstack/react-router";
+import { setResponseHeader } from "@tanstack/react-start/server";
+
+// ------------------------------------------------------------------
+// In-memory signed-URL cache (per worker instance).
+// Avoids re-signing the same storage_path on every request while the
+// URL is still valid. TTL is shorter than the signed-URL expiry so we
+// never serve a URL that's about to expire.
+// ------------------------------------------------------------------
+const SIGNED_TTL_SECONDS = 60 * 60 * 24; // 24h signed URL
+const CACHE_TTL_MS = 60 * 60 * 12 * 1000; // 12h in-memory
+type SignedEntry = { url: string; expiresAt: number };
+const signedUrlCache = new Map<string, SignedEntry>();
+
+async function signMany(
+  paths: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const now = Date.now();
+  const toFetch: string[] = [];
+
+  for (const p of paths) {
+    if (!p) continue;
+    const hit = signedUrlCache.get(p);
+    if (hit && hit.expiresAt > now) {
+      out.set(p, hit.url);
+    } else {
+      toFetch.push(p);
+    }
+  }
+
+  if (toFetch.length === 0) return out;
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.storage
+    .from("property-photos")
+    .createSignedUrls(toFetch, SIGNED_TTL_SECONDS);
+  if (error || !data) return out;
+  for (const entry of data) {
+    if (entry.signedUrl && entry.path) {
+      out.set(entry.path, entry.signedUrl);
+      signedUrlCache.set(entry.path, {
+        url: entry.signedUrl,
+        expiresAt: now + CACHE_TTL_MS,
+      });
+    }
+  }
+  return out;
+}
 
 const CITY_VALUES = [
   "Domingos Martins",
@@ -38,6 +86,14 @@ export const searchProperties = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ properties: PropertyListItem[] }> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Allow browser + intermediate caches to reuse the response briefly while
+    // still revalidating in the background. Filters are part of the URL so
+    // different filter combos get their own cache entry naturally.
+    setResponseHeader(
+      "cache-control",
+      "public, max-age=30, s-maxage=60, stale-while-revalidate=300",
+    );
+
     // Base query: active properties, optional city + capacity filter
     let query = supabaseAdmin
       .from("properties")
@@ -61,31 +117,37 @@ export const searchProperties = createServerFn({ method: "POST" })
     // Cover photos
     const { data: photos } = await supabaseAdmin
       .from("property_photos")
-      .select("property_id, storage_path, is_cover, sort_order")
+      .select("property_id, storage_path, public_url, is_cover, sort_order")
       .in("property_id", ids)
       .order("is_cover", { ascending: false })
       .order("sort_order", { ascending: true });
 
-    const coverByProp = new Map<string, { storage_path: string }>();
+    // For listings we prefer the lightweight thumb (stored in `public_url`
+    // as a storage path — legacy column reused; if absent we fall back to
+    // the original storage_path).
+    const coverByProp = new Map<string, { path: string }>();
     for (const p of photos ?? []) {
       if (!coverByProp.has(p.property_id)) {
+        const thumbPath =
+          p.public_url && !p.public_url.startsWith("http")
+            ? p.public_url
+            : null;
         coverByProp.set(p.property_id, {
-          storage_path: p.storage_path,
+          path: thumbPath || p.storage_path,
         });
       }
     }
 
-    // Generate signed URLs (bucket is private; always sign from storage_path)
+    // Generate signed URLs in a single batched call (bucket is private)
+    const allPaths = Array.from(coverByProp.values())
+      .map((c) => c.path)
+      .filter(Boolean);
+    const signed = await signMany(allPaths);
     const signedByProp = new Map<string, string>();
-    await Promise.all(
-      Array.from(coverByProp.entries()).map(async ([propId, cover]) => {
-        if (!cover.storage_path) return;
-        const { data: signed } = await supabaseAdmin.storage
-          .from("property-photos")
-          .createSignedUrl(cover.storage_path, 60 * 60);
-        if (signed?.signedUrl) signedByProp.set(propId, signed.signedUrl);
-      }),
-    );
+    for (const [propId, cover] of coverByProp.entries()) {
+      const url = signed.get(cover.path);
+      if (url) signedByProp.set(propId, url);
+    }
 
     // Availability: only compute when both dates are present
     const hasDateRange = Boolean(data.checkin && data.checkout);
@@ -164,6 +226,7 @@ export const searchProperties = createServerFn({ method: "POST" })
 export type PropertyPhoto = {
   id: string;
   url: string;
+  full_url: string;
   is_cover: boolean;
   sort_order: number;
 };
@@ -206,6 +269,11 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PropertyDetail> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    setResponseHeader(
+      "cache-control",
+      "public, max-age=30, s-maxage=60, stale-while-revalidate=300",
+    );
+
     const { data: prop, error } = await supabaseAdmin
       .from("properties")
       .select("*")
@@ -219,24 +287,33 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
     // Photos
     const { data: photoRows } = await supabaseAdmin
       .from("property_photos")
-      .select("id, storage_path, is_cover, sort_order")
+      .select("id, storage_path, public_url, is_cover, sort_order")
       .eq("property_id", prop.id)
       .order("is_cover", { ascending: false })
       .order("sort_order", { ascending: true });
 
-    const photos: PropertyPhoto[] = [];
-    for (const p of photoRows ?? []) {
-      let url = "";
-      if (p.storage_path) {
-        const { data: signed } = await supabaseAdmin.storage
-          .from("property-photos")
-          .createSignedUrl(p.storage_path, 60 * 60);
-        if (signed?.signedUrl) url = signed.signedUrl;
+    // Batch-sign every storage path (original + thumb) in one round trip.
+    const rows = photoRows ?? [];
+    const pathSet = new Set<string>();
+    for (const p of rows) {
+      if (p.storage_path) pathSet.add(p.storage_path);
+      if (p.public_url && !p.public_url.startsWith("http")) {
+        pathSet.add(p.public_url);
       }
+    }
+    const signed = await signMany(Array.from(pathSet));
+    const photos: PropertyPhoto[] = [];
+    for (const p of rows) {
+      const thumbPath =
+        p.public_url && !p.public_url.startsWith("http") ? p.public_url : null;
+      const fullUrl = p.storage_path ? (signed.get(p.storage_path) ?? "") : "";
+      const url =
+        (thumbPath ? signed.get(thumbPath) : null) || fullUrl || "";
       if (url) {
         photos.push({
           id: p.id,
           url,
+          full_url: fullUrl || url,
           is_cover: p.is_cover,
           sort_order: p.sort_order,
         });

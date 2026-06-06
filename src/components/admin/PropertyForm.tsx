@@ -21,6 +21,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import { supabase } from "@/integrations/supabase/client";
+import { generateThumbnail } from "@/lib/image-thumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -301,7 +302,13 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
           p.kind === "existing" && !!p.markedForDeletion
       );
       if (toDelete.length) {
-        const paths = toDelete.map((p) => p.data.storage_path);
+        const paths: string[] = [];
+        for (const p of toDelete) {
+          if (p.data.storage_path) paths.push(p.data.storage_path);
+          if (p.data.public_url && !p.data.public_url.startsWith("http")) {
+            paths.push(p.data.public_url);
+          }
+        }
         await supabase.storage.from(BUCKET).remove(paths);
         await supabase
           .from("property_photos")
@@ -317,15 +324,36 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
         const p = visible[i];
         if (p.kind === "new") {
           const ext = p.file.name.split(".").pop() || "jpg";
-          const filename = `${crypto.randomUUID()}.${ext}`;
-          const path = `properties/${pid}/${filename}`;
+          const id = crypto.randomUUID();
+          const path = `properties/${pid}/${id}.${ext}`;
           const { error: upErr } = await supabase.storage
             .from(BUCKET)
             .upload(path, p.file, { contentType: p.file.type, upsert: false });
           if (upErr) throw upErr;
-          // Bucket is private; do not store a public URL.
-          // Server functions sign storage_path on demand.
-          newOrder.push({ storage_path: path, public_url: "", is_cover: p.isCover });
+          // Also generate a small thumbnail used by listings / gallery preview
+          // to keep the public site fast. Thumb storage path is stored in the
+          // legacy `public_url` column (we no longer use public URLs).
+          let thumbPath = "";
+          try {
+            const thumb = await generateThumbnail(p.file, 800, 0.78);
+            if (thumb) {
+              thumbPath = `properties/${pid}/${id}.thumb.jpg`;
+              const { error: thErr } = await supabase.storage
+                .from(BUCKET)
+                .upload(thumbPath, thumb, {
+                  contentType: "image/jpeg",
+                  upsert: false,
+                });
+              if (thErr) thumbPath = "";
+            }
+          } catch {
+            thumbPath = "";
+          }
+          newOrder.push({
+            storage_path: path,
+            public_url: thumbPath, // legacy column reused for thumb path
+            is_cover: p.isCover,
+          });
         } else {
           newOrder.push({
             id: p.data.id,
