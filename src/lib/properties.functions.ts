@@ -226,6 +226,7 @@ export const searchProperties = createServerFn({ method: "POST" })
 export type PropertyPhoto = {
   id: string;
   url: string;
+  full_url: string;
   is_cover: boolean;
   sort_order: number;
 };
@@ -305,14 +306,14 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
     for (const p of rows) {
       const thumbPath =
         p.public_url && !p.public_url.startsWith("http") ? p.public_url : null;
+      const fullUrl = p.storage_path ? (signed.get(p.storage_path) ?? "") : "";
       const url =
-        (thumbPath ? signed.get(thumbPath) : null) ||
-        (p.storage_path ? signed.get(p.storage_path) : null) ||
-        "";
+        (thumbPath ? signed.get(thumbPath) : null) || fullUrl || "";
       if (url) {
         photos.push({
           id: p.id,
           url,
+          full_url: fullUrl || url,
           is_cover: p.is_cover,
           sort_order: p.sort_order,
         });
