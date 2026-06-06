@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.reservations_generate_code() FROM PUBLIC, anon, authenticated;
