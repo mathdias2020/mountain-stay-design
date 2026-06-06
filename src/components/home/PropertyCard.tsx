@@ -32,6 +32,7 @@ export function PropertyCard({ property, showAvailability }: Props) {
             src={property.cover_url!}
             alt={`Foto de ${property.name}`}
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
             onError={() => setImgBroken(true)}
           />
