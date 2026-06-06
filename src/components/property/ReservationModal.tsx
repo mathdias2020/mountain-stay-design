@@ -241,24 +241,6 @@ export function ReservationModal({
                     className={inputClass(!!errors.whatsapp)}
                   />
                 </Field>
-                <Field label="E-mail" error={errors.email}>
-                  <input
-                    type="email"
-                    placeholder="seu@email.com.br"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={inputClass(!!errors.email)}
-                  />
-                </Field>
-                <Field label="Cidade de origem">
-                  <input
-                    type="text"
-                    placeholder="De onde você vem?"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className={inputClass(false)}
-                  />
-                </Field>
                 <Field label="Como conheceu a RotainStay?">
                   <select
                     value={howFound}
