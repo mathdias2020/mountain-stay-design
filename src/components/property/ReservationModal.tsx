@@ -59,8 +59,6 @@ export function ReservationModal({
   // Form state
   const [name, setName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [email, setEmail] = useState("");
-  const [city, setCity] = useState("");
   const [howFound, setHowFound] = useState<string>("");
   const [adults, setAdults] = useState(Math.max(1, guests));
   const [children, setChildren] = useState(0);
@@ -108,8 +106,6 @@ export function ReservationModal({
       setTimeout(() => {
         setName("");
         setWhatsapp("");
-        setEmail("");
-        setCity("");
         setHowFound("");
         setChildren(0);
         setHasPets(false);
@@ -130,8 +126,6 @@ export function ReservationModal({
     if (name.trim().length < 2) e.name = "Informe seu nome completo.";
     const digits = whatsapp.replace(/\D/g, "");
     if (digits.length !== 11) e.whatsapp = "WhatsApp deve ter 11 dígitos (DDD + número).";
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      e.email = "E-mail inválido.";
     if (!terms) e.terms = "Você precisa aceitar os termos.";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -153,8 +147,6 @@ export function ReservationModal({
         checkout_date: format(checkout, "yyyy-MM-dd"),
         guest_name: name.trim(),
         guest_whatsapp: whatsapp.replace(/\D/g, ""),
-        guest_email: email.trim() || undefined,
-        guest_city: city.trim() || undefined,
         how_found:
           howFound && HOW_FOUND_OPTIONS.includes(howFound as never)
             ? (howFound as (typeof HOW_FOUND_OPTIONS)[number])
@@ -247,24 +239,6 @@ export function ReservationModal({
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(maskWhatsApp(e.target.value))}
                     className={inputClass(!!errors.whatsapp)}
-                  />
-                </Field>
-                <Field label="E-mail" error={errors.email}>
-                  <input
-                    type="email"
-                    placeholder="seu@email.com.br"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={inputClass(!!errors.email)}
-                  />
-                </Field>
-                <Field label="Cidade de origem">
-                  <input
-                    type="text"
-                    placeholder="De onde você vem?"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className={inputClass(false)}
                   />
                 </Field>
                 <Field label="Como conheceu a RotainStay?">

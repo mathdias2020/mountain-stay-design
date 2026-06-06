@@ -262,7 +262,6 @@ export type Database = {
           checkin_date: string
           checkout_date: string
           created_at: string
-          guest_city: string | null
           guest_email: string | null
           guest_message: string | null
           guest_name: string
@@ -287,7 +286,6 @@ export type Database = {
           checkin_date: string
           checkout_date: string
           created_at?: string
-          guest_city?: string | null
           guest_email?: string | null
           guest_message?: string | null
           guest_name: string
@@ -312,7 +310,6 @@ export type Database = {
           checkin_date?: string
           checkout_date?: string
           created_at?: string
-          guest_city?: string | null
           guest_email?: string | null
           guest_message?: string | null
           guest_name?: string

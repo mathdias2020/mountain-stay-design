@@ -10,14 +10,6 @@ const inputSchema = z.object({
   checkout_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   guest_name: z.string().trim().min(2).max(120),
   guest_whatsapp: z.string().regex(/^\d{11}$/, "WhatsApp inválido"),
-  guest_email: z
-    .string()
-    .trim()
-    .email()
-    .max(255)
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
-  guest_city: z.string().trim().max(120).optional(),
   how_found: z.enum(HOW_FOUND).optional(),
   num_adults: z.number().int().min(1).max(30),
   num_children: z.number().int().min(0).max(10),
@@ -143,8 +135,7 @@ export const createReservation = createServerFn({ method: "POST" })
         property_id: prop.id,
         guest_name: data.guest_name,
         guest_whatsapp: data.guest_whatsapp,
-        guest_email: data.guest_email ?? null,
-        guest_city: data.guest_city ?? null,
+        guest_email: null,
         how_found: data.how_found ?? null,
         checkin_date: data.checkin_date,
         checkout_date: data.checkout_date,
