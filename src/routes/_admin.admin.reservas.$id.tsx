@@ -58,7 +58,6 @@ type Reservation = {
   guest_name: string;
   guest_whatsapp: string;
   guest_email: string | null;
-  guest_city: string | null;
   how_found: string | null;
   guest_message: string | null;
   total_price: number | string;
@@ -122,7 +121,7 @@ function ReservationDetailPage() {
       const { data: r } = await supabase
         .from("reservations")
         .select(
-          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, guest_city, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id"
+          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id"
         )
         .eq("id", id)
         .maybeSingle();
