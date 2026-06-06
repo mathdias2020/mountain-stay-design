@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useMemo } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -21,15 +21,8 @@ import { AvailabilityCalendar } from "@/components/property/AvailabilityCalendar
 import { expandBlockedDates } from "@/lib/pricing";
 import { DetailPageSkeleton } from "@/components/skeletons/DetailPageSkeleton";
 
-export const Route = createFileRoute("/_public/imovel/$slug")({
-  component: PropertyDetailPage,
-});
-
-function PropertyDetailPage() {
-  const { slug } = Route.useParams();
-  const navigate = useNavigate();
-
-  const { data: property, isLoading, isError } = useQuery({
+const propertyQueryOptions = (slug: string) =>
+  queryOptions({
     queryKey: ["property", slug],
     queryFn: () => getPropertyDetail({ data: { slug } }),
     retry: false,
@@ -37,6 +30,20 @@ function PropertyDetailPage() {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+export const Route = createFileRoute("/_public/imovel/$slug")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(propertyQueryOptions(params.slug)),
+  component: PropertyDetailPage,
+});
+
+function PropertyDetailPage() {
+  const { slug } = Route.useParams();
+  const navigate = useNavigate();
+
+  const { data: property, isLoading, isError } = useQuery(
+    propertyQueryOptions(slug),
+  );
 
   useEffect(() => {
     if (isError) {
