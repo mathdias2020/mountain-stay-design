@@ -261,6 +261,36 @@ function GuestCard({ r }: { r: Reservation }) {
   const msg = encodeURIComponent(
     `Olá ${r.guest_name}, tudo bem? Sou da RotainStay e estou entrando em contato sobre sua reserva ${r.reservation_code}.`
   );
+  const [email, setEmail] = useState(r.guest_email ?? "");
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  useEffect(() => {
+    setEmail(r.guest_email ?? "");
+  }, [r.guest_email]);
+
+  const emailChanged = (email.trim() || null) !== (r.guest_email ?? null);
+  const emailValid =
+    email.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+  async function saveEmail() {
+    if (!emailValid) {
+      toast.error("E-mail inválido.");
+      return;
+    }
+    setSavingEmail(true);
+    const { error } = await supabase
+      .from("reservations")
+      .update({ guest_email: email.trim() || null })
+      .eq("id", r.id);
+    setSavingEmail(false);
+    if (error) {
+      toast.error("Falha ao salvar e-mail: " + error.message);
+      return;
+    }
+    toast.success("E-mail salvo.");
+    r.guest_email = email.trim() || null;
+  }
+
   return (
     <Card>
       <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1C1C1A" }}>Dados do hóspede</h3>
@@ -280,9 +310,29 @@ function GuestCard({ r }: { r: Reservation }) {
             </a>
           }
         />
-        <Field label="E-mail" value={r.guest_email ?? "—"} />
-        <Field label="Cidade de origem" value={r.guest_city ?? "—"} />
         <Field label="Como conheceu" value={r.how_found ?? "—"} />
+      </div>
+      <div className="mt-5">
+        <div style={{ fontSize: 12, color: "#9A9890" }} className="mb-1">
+          E-mail
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@exemplo.com"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+          <Button
+            type="button"
+            size="sm"
+            onClick={saveEmail}
+            disabled={!emailChanged || !emailValid || savingEmail}
+          >
+            {savingEmail ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
       </div>
       <div className="mt-5">
         <a
