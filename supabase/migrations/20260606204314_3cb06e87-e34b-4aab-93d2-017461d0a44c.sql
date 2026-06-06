@@ -1,0 +1,1 @@
+ALTER TABLE public.reservations DROP COLUMN IF EXISTS guest_city;
