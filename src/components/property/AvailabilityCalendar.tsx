@@ -28,7 +28,7 @@ export function AvailabilityCalendar({ blockedSet }: Props) {
         numberOfMonths={1}
         locale={ptBR}
         defaultMonth={today}
-        disabled={() => true}
+        disabled={(d) => isPast(d) || isBlocked(d)}
         modifiers={{
           blocked: isBlocked,
           past: isPast,
