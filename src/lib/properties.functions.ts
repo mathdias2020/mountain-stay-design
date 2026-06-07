@@ -107,6 +107,7 @@ export const searchProperties = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await query
       .order("featured", { ascending: false })
+      .order("tier", { ascending: true })
       .order("sort_order", { ascending: true });
 
     if (error) throw new Error(error.message);
@@ -392,4 +393,152 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
         : [],
       block_on_request: blockOnRequest,
     };
+  });
+
+// ============================================================
+// getSuggestedProperties — sugestões na página de detalhe
+// ============================================================
+
+const suggestInputSchema = z.object({
+  excludeId: z.string().uuid(),
+  checkin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  checkout: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  guests: z.number().int().min(1).max(30).optional(),
+});
+
+export const getSuggestedProperties = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => suggestInputSchema.parse(input))
+  .handler(async ({ data }): Promise<{ properties: PropertyListItem[] }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    setResponseHeader(
+      "cache-control",
+      "public, max-age=30, s-maxage=60, stale-while-revalidate=300",
+    );
+
+    let query = supabaseAdmin
+      .from("properties")
+      .select(
+        "id, slug, name, city, max_guests, bedrooms, bathrooms, price_weekday, price_weekend, featured, tier, sort_order",
+      )
+      .eq("status", "active")
+      .neq("id", data.excludeId);
+
+    if (data.guests) query = query.gte("max_guests", data.guests);
+
+    const { data: rows, error } = await query
+      .order("tier", { ascending: true })
+      .order("featured", { ascending: false })
+      .limit(30);
+
+    if (error) throw new Error(error.message);
+    if (!rows || rows.length === 0) return { properties: [] };
+
+    let candidateIds = rows.map((r) => r.id);
+    const hasDateRange = Boolean(data.checkin && data.checkout);
+
+    if (hasDateRange) {
+      const checkin = data.checkin!;
+      const checkout = data.checkout!;
+      const [{ data: blocks }, { data: reservs }] = await Promise.all([
+        supabaseAdmin
+          .from("blocked_dates")
+          .select("property_id")
+          .in("property_id", candidateIds)
+          .lt("start_date", checkout)
+          .gt("end_date", checkin),
+        supabaseAdmin
+          .from("reservations")
+          .select("property_id")
+          .in("property_id", candidateIds)
+          .eq("status", "confirmed")
+          .lt("checkin_date", checkout)
+          .gt("checkout_date", checkin),
+      ]);
+      const unavailable = new Set<string>();
+      for (const b of blocks ?? []) unavailable.add(b.property_id);
+      for (const r of reservs ?? []) unavailable.add(r.property_id);
+      candidateIds = candidateIds.filter((id) => !unavailable.has(id));
+    }
+
+    // Keep ordering (tier ASC, featured DESC) but shuffle within tier+featured group
+    type Row = (typeof rows)[number];
+    const byId = new Map<string, Row>();
+    for (const r of rows) byId.set(r.id, r);
+    const filtered = candidateIds
+      .map((id) => byId.get(id)!)
+      .filter(Boolean);
+
+    // Group by (tier, featured) preserving order, shuffle each group, then take 3.
+    const groups = new Map<string, Row[]>();
+    const groupKeys: string[] = [];
+    for (const r of filtered) {
+      const key = `${r.tier ?? 3}|${r.featured ? 1 : 0}`;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+        groupKeys.push(key);
+      }
+      groups.get(key)!.push(r);
+    }
+    const pick: Row[] = [];
+    for (const key of groupKeys) {
+      const arr = groups.get(key)!.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      for (const r of arr) {
+        pick.push(r);
+        if (pick.length >= 3) break;
+      }
+      if (pick.length >= 3) break;
+    }
+
+    if (pick.length === 0) return { properties: [] };
+
+    const pickedIds = pick.map((r) => r.id);
+    const { data: photos } = await supabaseAdmin
+      .from("property_photos")
+      .select("property_id, storage_path, public_url, is_cover, sort_order")
+      .in("property_id", pickedIds)
+      .order("is_cover", { ascending: false })
+      .order("sort_order", { ascending: true });
+
+    const coverByProp = new Map<string, { path: string }>();
+    for (const p of photos ?? []) {
+      if (!coverByProp.has(p.property_id)) {
+        const thumbPath =
+          p.public_url && !p.public_url.startsWith("http") ? p.public_url : null;
+        coverByProp.set(p.property_id, { path: thumbPath || p.storage_path });
+      }
+    }
+    const allPaths = Array.from(coverByProp.values())
+      .map((c) => c.path)
+      .filter(Boolean);
+    const signed = await signMany(allPaths);
+    const signedByProp = new Map<string, string>();
+    for (const [propId, cover] of coverByProp.entries()) {
+      const url = signed.get(cover.path);
+      if (url) signedByProp.set(propId, url);
+    }
+
+    const items: PropertyListItem[] = pick.map((r) => {
+      const basePrice = Math.min(Number(r.price_weekday), Number(r.price_weekend));
+      return {
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        city: r.city,
+        max_guests: r.max_guests,
+        bedrooms: r.bedrooms,
+        bathrooms: r.bathrooms,
+        price_weekday: Number(r.price_weekday),
+        price_weekend: Number(r.price_weekend),
+        cover_url: signedByProp.get(r.id) ?? null,
+        is_available: hasDateRange ? true : null,
+        estimated_total: null,
+      };
+    });
+
+    return { properties: items };
   });

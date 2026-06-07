@@ -183,6 +183,60 @@ export type Database = {
           },
         ]
       }
+      property_submissions: {
+        Row: {
+          admin_notes: string | null
+          bedrooms: number
+          city: string
+          created_at: string
+          desired_daily_rate: number
+          email: string
+          house_description: string
+          id: string
+          max_guests: number
+          message: string | null
+          name: string
+          photo_url: string
+          status: string
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          bedrooms: number
+          city: string
+          created_at?: string
+          desired_daily_rate: number
+          email: string
+          house_description: string
+          id?: string
+          max_guests: number
+          message?: string | null
+          name: string
+          photo_url: string
+          status?: string
+          updated_at?: string
+          whatsapp: string
+        }
+        Update: {
+          admin_notes?: string | null
+          bedrooms?: number
+          city?: string
+          created_at?: string
+          desired_daily_rate?: number
+          email?: string
+          house_description?: string
+          id?: string
+          max_guests?: number
+          message?: string | null
+          name?: string
+          photo_url?: string
+          status?: string
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       reservation_documents: {
         Row: {
           created_at: string

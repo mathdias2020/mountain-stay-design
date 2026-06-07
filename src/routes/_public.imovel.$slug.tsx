@@ -21,6 +21,7 @@ import { BookingCard } from "@/components/property/BookingCard";
 import { AvailabilityCalendar } from "@/components/property/AvailabilityCalendar";
 import { expandBlockedDates } from "@/lib/pricing";
 import { DetailPageSkeleton } from "@/components/skeletons/DetailPageSkeleton";
+import { Suggestions } from "@/components/property/Suggestions";
 
 const isoDate = z
   .string()
@@ -211,6 +212,12 @@ function PropertyDetailPage() {
           <AvailabilityCalendar blockedSet={blockedSet} />
         </aside>
       </div>
+      <Suggestions
+        excludeId={property.id}
+        checkin={search.checkin}
+        checkout={search.checkout}
+        guests={search.guests}
+      />
     </div>
   );
 }

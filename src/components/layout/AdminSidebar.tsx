@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -9,6 +10,7 @@ import {
   Menu,
   X,
   LogOut,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +19,7 @@ const items = [
   { title: "Visão Geral", url: "/admin", icon: LayoutDashboard, exact: true },
   { title: "Reservas", url: "/admin/reservas", icon: ClipboardList },
   { title: "Propriedades", url: "/admin/propriedades", icon: Home },
+  { title: "Submissões", url: "/admin/submissoes", icon: Inbox, badge: "submissions" as const },
   { title: "Calendário", url: "/admin/calendario", icon: Calendar },
   { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
 ] as const;
@@ -25,6 +28,19 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
   const pathname = useRouterState({
     select: (s) => s.location.pathname,
+  });
+
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ["admin", "submissions", "pending-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("property_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pendente");
+      return count ?? 0;
+    },
+    refetchInterval: 30_000,
+    staleTime: 15_000,
   });
 
   const isActive = (url: string, exact?: boolean) =>
@@ -48,13 +64,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           {items.map((item) => {
             const active = isActive(item.url, "exact" in item ? item.exact : false);
             const Icon = item.icon;
+            const showBadge =
+              "badge" in item && item.badge === "submissions" && pendingCount > 0;
             return (
               <li key={item.url}>
                 <Link
                   to={item.url}
                   onClick={onNavigate}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors rounded-sm",
+                    "relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors rounded-sm",
                     "border-l-[3px] border-transparent",
                     active
                       ? "bg-primary-dark text-white border-l-secondary"
@@ -68,6 +86,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   <span>{item.title}</span>
+                  {showBadge && (
+                    <span
+                      className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold"
+                      style={{ backgroundColor: "#A63C2E", color: "#fff" }}
+                    >
+                      {pendingCount}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
