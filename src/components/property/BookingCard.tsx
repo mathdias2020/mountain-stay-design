@@ -17,12 +17,21 @@ import type { PropertyDetail } from "@/lib/properties.functions";
 interface Props {
   property: PropertyDetail;
   blockedSet: Set<string>;
+  initialCheckin?: Date;
+  initialCheckout?: Date;
+  initialGuests?: number;
 }
 
-export function BookingCard({ property, blockedSet }: Props) {
-  const [checkin, setCheckin] = useState<Date | undefined>(undefined);
-  const [checkout, setCheckout] = useState<Date | undefined>(undefined);
-  const [guests, setGuests] = useState(1);
+export function BookingCard({
+  property,
+  blockedSet,
+  initialCheckin,
+  initialCheckout,
+  initialGuests,
+}: Props) {
+  const [checkin, setCheckin] = useState<Date | undefined>(initialCheckin);
+  const [checkout, setCheckout] = useState<Date | undefined>(initialCheckout);
+  const [guests, setGuests] = useState(initialGuests ?? 1);
   const [modalOpen, setModalOpen] = useState(false);
 
   const today = useMemo(() => {
