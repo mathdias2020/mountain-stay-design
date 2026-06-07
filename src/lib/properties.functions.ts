@@ -107,6 +107,7 @@ export const searchProperties = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await query
       .order("featured", { ascending: false })
+      .order("tier", { ascending: true })
       .order("sort_order", { ascending: true });
 
     if (error) throw new Error(error.message);
