@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,6 @@ const schema = z.object({
   bedrooms: z.coerce.number().int().min(1).max(20),
   max_guests: z.coerce.number().int().min(1).max(30),
   desired_daily_rate: z.coerce.number().min(0),
-  photo_url: z.string().trim().url("Link inválido").max(1000),
   message: z.string().max(1000).optional(),
   consent: z.literal(true, {
     errorMap: () => ({ message: "Autorização é obrigatória" }),
@@ -73,6 +72,9 @@ function formatWhats(v: string): string {
 
 function AnnouncePage() {
   const [submitted, setSubmitted] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -80,7 +82,6 @@ function AnnouncePage() {
       whatsapp: "",
       email: "",
       house_description: "",
-      photo_url: "",
       message: "",
     } as Partial<FormValues> as FormValues,
     mode: "onSubmit",
@@ -96,7 +97,45 @@ function AnnouncePage() {
   const whats = watch("whatsapp") || "";
   const msg = watch("message") || "";
 
+  const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
+  const MAX_SIZE = 10 * 1024 * 1024;
+
+  const onPickPhoto = (file: File | null) => {
+    setPhotoError(null);
+    if (!file) {
+      setPhotoFile(null);
+      return;
+    }
+    if (!ALLOWED.includes(file.type)) {
+      setPhotoError("Formato inválido. Use JPG, PNG ou WEBP.");
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      setPhotoError("Arquivo acima de 10MB.");
+      return;
+    }
+    setPhotoFile(file);
+  };
+
   const onSubmit = async (values: FormValues) => {
+    let photoPath: string | null = null;
+    if (photoFile) {
+      setUploading(true);
+      const ext = photoFile.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("submission-photos")
+        .upload(path, photoFile, {
+          contentType: photoFile.type,
+          upsert: false,
+        });
+      setUploading(false);
+      if (upErr) {
+        toast.error("Falha ao enviar a foto. Tente novamente.");
+        return;
+      }
+      photoPath = path;
+    }
     const { error } = await supabase.from("property_submissions").insert({
       name: values.name,
       whatsapp: values.whatsapp,
@@ -106,7 +145,7 @@ function AnnouncePage() {
       bedrooms: values.bedrooms,
       max_guests: values.max_guests,
       desired_daily_rate: values.desired_daily_rate,
-      photo_url: values.photo_url,
+      photo_url: photoPath,
       message: values.message || null,
     });
     if (error) {
@@ -282,18 +321,37 @@ function AnnouncePage() {
                   )}
                 </div>
                 <div>
-                  <Label>Link de foto da casa *</Label>
-                  <Input
-                    type="url"
-                    placeholder="https://drive.google.com/... ou https://..."
-                    {...register("photo_url")}
-                  />
+                  <Label>Foto da casa (opcional)</Label>
+                  {photoFile ? (
+                    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                      <span className="truncate text-text-primary">{photoFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => onPickPhoto(null)}
+                        className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Remover
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-surface px-3 py-4 text-sm text-text-secondary hover:bg-background">
+                      <Upload className="h-4 w-4" />
+                      <span>Selecionar foto (JPG, PNG ou WEBP — até 10MB)</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => onPickPhoto(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                  )}
                   <p style={{ fontSize: 12, color: "#9A9890", marginTop: 4 }}>
-                    Cole o link de uma foto da casa (Google Drive, Imgur, Dropbox, etc.).
-                    Ela ficará disponível apenas para nossa equipe.
+                    Envie uma foto da casa para acelerar a análise. A imagem fica
+                    disponível apenas para nossa equipe.
                   </p>
-                  {errors.photo_url && (
-                    <p className="mt-1 text-xs text-[#B43A3A]">{errors.photo_url.message}</p>
+                  {photoError && (
+                    <p className="mt-1 text-xs text-[#B43A3A]">{photoError}</p>
                   )}
                 </div>
               </section>
@@ -336,10 +394,14 @@ function AnnouncePage() {
                 type="submit"
                 variant="primary"
                 className="w-full"
-                disabled={isSubmitting}
+                disabled={isSubmitting || uploading}
                 style={{ marginTop: 24 }}
               >
-                {isSubmitting ? "Enviando..." : "Enviar para análise"}
+                {uploading
+                  ? "Enviando foto..."
+                  : isSubmitting
+                    ? "Enviando..."
+                    : "Enviar para análise"}
               </Button>
               <p
                 style={{

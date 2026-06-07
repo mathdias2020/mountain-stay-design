@@ -1,0 +1,1 @@
+ALTER TABLE public.property_submissions ALTER COLUMN photo_url DROP NOT NULL;

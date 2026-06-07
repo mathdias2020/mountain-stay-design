@@ -196,7 +196,7 @@ export type Database = {
           max_guests: number
           message: string | null
           name: string
-          photo_url: string
+          photo_url: string | null
           status: string
           updated_at: string
           whatsapp: string
@@ -213,7 +213,7 @@ export type Database = {
           max_guests: number
           message?: string | null
           name: string
-          photo_url: string
+          photo_url?: string | null
           status?: string
           updated_at?: string
           whatsapp: string
@@ -230,7 +230,7 @@ export type Database = {
           max_guests?: number
           message?: string | null
           name?: string
-          photo_url?: string
+          photo_url?: string | null
           status?: string
           updated_at?: string
           whatsapp?: string
