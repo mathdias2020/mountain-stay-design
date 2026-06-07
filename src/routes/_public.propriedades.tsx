@@ -96,7 +96,12 @@ function AllPropertiesPage() {
   };
 
   const goPage = (n: number) =>
-    navigate({ search: (prev) => ({ ...prev, page: n === 1 ? undefined : n }) });
+    navigate({
+      search: (prev: z.infer<typeof searchSchema>) => ({
+        ...prev,
+        page: n === 1 ? undefined : n,
+      }),
+    });
 
   return (
     <>

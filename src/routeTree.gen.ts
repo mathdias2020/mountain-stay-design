@@ -13,6 +13,9 @@ import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as PublicIndexRouteImport } from './routes/_public.index'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as PublicSobreRouteImport } from './routes/_public.sobre'
+import { Route as PublicPropriedadesRouteImport } from './routes/_public.propriedades'
+import { Route as PublicAnuncieRouteImport } from './routes/_public.anuncie'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
@@ -43,6 +46,21 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PublicSobreRoute = PublicSobreRouteImport.update({
+  id: '/sobre',
+  path: '/sobre',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicPropriedadesRoute = PublicPropriedadesRouteImport.update({
+  id: '/propriedades',
+  path: '/propriedades',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicAnuncieRoute = PublicAnuncieRouteImport.update({
+  id: '/anuncie',
+  path: '/anuncie',
+  getParentRoute: () => PublicRoute,
 } as any)
 const AdminAdminRoute = AdminAdminRouteImport.update({
   id: '/admin',
@@ -111,6 +129,9 @@ const AdminAdminPropriedadesIdEditarRoute =
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/admin': typeof AdminAdminRouteWithChildren
+  '/anuncie': typeof PublicAnuncieRoute
+  '/propriedades': typeof PublicPropriedadesRoute
+  '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
@@ -126,6 +147,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
+  '/anuncie': typeof PublicAnuncieRoute
+  '/propriedades': typeof PublicPropriedadesRoute
+  '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
@@ -142,6 +166,9 @@ export interface FileRoutesById {
   '/_admin': typeof AdminRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
   '/_admin/admin': typeof AdminAdminRouteWithChildren
+  '/_public/anuncie': typeof PublicAnuncieRoute
+  '/_public/propriedades': typeof PublicPropriedadesRoute
+  '/_public/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
   '/_public/': typeof PublicIndexRoute
   '/_admin/admin/calendario': typeof AdminAdminCalendarioRoute
@@ -161,6 +188,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/anuncie'
+    | '/propriedades'
+    | '/sobre'
     | '/admin/login'
     | '/admin/calendario'
     | '/admin/configuracoes'
@@ -176,6 +206,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/anuncie'
+    | '/propriedades'
+    | '/sobre'
     | '/admin/login'
     | '/admin/calendario'
     | '/admin/configuracoes'
@@ -191,6 +224,9 @@ export interface FileRouteTypes {
     | '/_admin'
     | '/_public'
     | '/_admin/admin'
+    | '/_public/anuncie'
+    | '/_public/propriedades'
+    | '/_public/sobre'
     | '/admin/login'
     | '/_public/'
     | '/_admin/admin/calendario'
@@ -241,6 +277,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_public/sobre': {
+      id: '/_public/sobre'
+      path: '/sobre'
+      fullPath: '/sobre'
+      preLoaderRoute: typeof PublicSobreRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/propriedades': {
+      id: '/_public/propriedades'
+      path: '/propriedades'
+      fullPath: '/propriedades'
+      preLoaderRoute: typeof PublicPropriedadesRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/anuncie': {
+      id: '/_public/anuncie'
+      path: '/anuncie'
+      fullPath: '/anuncie'
+      preLoaderRoute: typeof PublicAnuncieRouteImport
+      parentRoute: typeof PublicRoute
     }
     '/_admin/admin': {
       id: '/_admin/admin'
@@ -391,11 +448,17 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PublicRouteChildren {
+  PublicAnuncieRoute: typeof PublicAnuncieRoute
+  PublicPropriedadesRoute: typeof PublicPropriedadesRoute
+  PublicSobreRoute: typeof PublicSobreRoute
   PublicIndexRoute: typeof PublicIndexRoute
   PublicImovelSlugRoute: typeof PublicImovelSlugRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
+  PublicAnuncieRoute: PublicAnuncieRoute,
+  PublicPropriedadesRoute: PublicPropriedadesRoute,
+  PublicSobreRoute: PublicSobreRoute,
   PublicIndexRoute: PublicIndexRoute,
   PublicImovelSlugRoute: PublicImovelSlugRoute,
 }
