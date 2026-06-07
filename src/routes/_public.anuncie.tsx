@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,6 @@ const schema = z.object({
   bedrooms: z.coerce.number().int().min(1).max(20),
   max_guests: z.coerce.number().int().min(1).max(30),
   desired_daily_rate: z.coerce.number().min(0),
-  photo_url: z.string().trim().url("Link inválido").max(1000),
   message: z.string().max(1000).optional(),
   consent: z.literal(true, {
     errorMap: () => ({ message: "Autorização é obrigatória" }),
@@ -73,6 +72,9 @@ function formatWhats(v: string): string {
 
 function AnnouncePage() {
   const [submitted, setSubmitted] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -80,7 +82,6 @@ function AnnouncePage() {
       whatsapp: "",
       email: "",
       house_description: "",
-      photo_url: "",
       message: "",
     } as Partial<FormValues> as FormValues,
     mode: "onSubmit",
@@ -96,7 +97,45 @@ function AnnouncePage() {
   const whats = watch("whatsapp") || "";
   const msg = watch("message") || "";
 
+  const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
+  const MAX_SIZE = 10 * 1024 * 1024;
+
+  const onPickPhoto = (file: File | null) => {
+    setPhotoError(null);
+    if (!file) {
+      setPhotoFile(null);
+      return;
+    }
+    if (!ALLOWED.includes(file.type)) {
+      setPhotoError("Formato inválido. Use JPG, PNG ou WEBP.");
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      setPhotoError("Arquivo acima de 10MB.");
+      return;
+    }
+    setPhotoFile(file);
+  };
+
   const onSubmit = async (values: FormValues) => {
+    let photoPath: string | null = null;
+    if (photoFile) {
+      setUploading(true);
+      const ext = photoFile.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("submission-photos")
+        .upload(path, photoFile, {
+          contentType: photoFile.type,
+          upsert: false,
+        });
+      setUploading(false);
+      if (upErr) {
+        toast.error("Falha ao enviar a foto. Tente novamente.");
+        return;
+      }
+      photoPath = path;
+    }
     const { error } = await supabase.from("property_submissions").insert({
       name: values.name,
       whatsapp: values.whatsapp,
@@ -106,7 +145,7 @@ function AnnouncePage() {
       bedrooms: values.bedrooms,
       max_guests: values.max_guests,
       desired_daily_rate: values.desired_daily_rate,
-      photo_url: values.photo_url,
+      photo_url: photoPath,
       message: values.message || null,
     });
     if (error) {
