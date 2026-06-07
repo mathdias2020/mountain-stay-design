@@ -81,6 +81,7 @@ export const propertyFormSchema = z
     checkin_time: z.string().min(1).max(10),
     checkout_time: z.string().min(1).max(10),
     house_rules: z.string().max(2000).optional().or(z.literal("")),
+    tier: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
   });
 
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
@@ -109,4 +110,5 @@ export const defaultPropertyValues: PropertyFormValues = {
   checkin_time: "14:00",
   checkout_time: "11:00",
   house_rules: "",
+  tier: 3,
 };

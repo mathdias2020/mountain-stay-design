@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Home } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { PropertyPhoto } from "@/lib/properties.functions";
@@ -22,6 +22,23 @@ export function PhotoGallery({ photos, propertyName }: Props) {
 
   const usable = photos.filter((p) => !broken.has(p.id));
 
+  const safeIdx = Math.min(activeIdx, Math.max(0, usable.length - 1));
+  const canPrev = safeIdx > 0;
+  const canNext = safeIdx < usable.length - 1;
+
+  useEffect(() => {
+    if (modalOpen || usable.length <= 1) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" && safeIdx > 0) {
+        setActiveIdx(safeIdx - 1);
+      } else if (e.key === "ArrowRight" && safeIdx < usable.length - 1) {
+        setActiveIdx(safeIdx + 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [modalOpen, safeIdx, usable.length]);
+
   if (usable.length === 0) {
     return (
       <div className="flex aspect-[16/9] w-full items-center justify-center rounded-[14px] bg-secondary">
@@ -30,13 +47,13 @@ export function PhotoGallery({ photos, propertyName }: Props) {
     );
   }
 
-  const main = usable[activeIdx] ?? usable[0];
+  const main = usable[safeIdx];
   const thumbs = usable.slice(0, 4);
   const extra = usable.length - 4;
 
   return (
     <>
-      <div className="overflow-hidden rounded-[14px] bg-secondary">
+      <div className="relative overflow-hidden rounded-[14px] bg-secondary">
         <img
           src={main.url}
           alt={`Foto de ${propertyName}`}
@@ -48,6 +65,38 @@ export function PhotoGallery({ photos, propertyName }: Props) {
             setActiveIdx(0);
           }}
         />
+        {usable.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Foto anterior"
+              onClick={() => canPrev && setActiveIdx(safeIdx - 1)}
+              disabled={!canPrev}
+              className={cn(
+                "absolute left-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#1C1C1A] shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-opacity sm:h-10 sm:w-10",
+                canPrev
+                  ? "cursor-pointer hover:opacity-100 opacity-90"
+                  : "opacity-30 cursor-not-allowed",
+              )}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Próxima foto"
+              onClick={() => canNext && setActiveIdx(safeIdx + 1)}
+              disabled={!canNext}
+              className={cn(
+                "absolute right-4 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#1C1C1A] shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-opacity sm:h-10 sm:w-10",
+                canNext
+                  ? "cursor-pointer hover:opacity-100 opacity-90"
+                  : "opacity-30 cursor-not-allowed",
+              )}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        )}
       </div>
 
       {photos.length > 1 && (
@@ -61,7 +110,7 @@ export function PhotoGallery({ photos, propertyName }: Props) {
                 onClick={() => (showOverlay ? setModalOpen(true) : setActiveIdx(i))}
                 className={cn(
                   "relative h-20 w-20 overflow-hidden rounded-[8px] bg-secondary transition-opacity",
-                  i === activeIdx && !showOverlay
+                  i === safeIdx && !showOverlay
                     ? "ring-2 ring-primary"
                     : "hover:opacity-90",
                 )}

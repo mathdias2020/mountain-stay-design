@@ -124,6 +124,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
   const amenities = watch("amenities") || [];
   const acceptsPets = watch("accepts_pets");
   const featured = watch("featured");
+  const tier = watch("tier");
   const slug = useMemo(() => slugify(name || ""), [name]);
 
   const { fields: hsFields, append: hsAppend, remove: hsRemove } = useFieldArray({
@@ -257,6 +258,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
         description: values.description,
         status: values.status,
         featured: values.featured,
+        tier: values.tier,
         max_guests: values.max_guests,
         bedrooms: values.bedrooms,
         bathrooms: values.bathrooms,
@@ -504,6 +506,34 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
             <Label>Destacar no topo</Label>
             <Switch checked={featured} onCheckedChange={(v) => setValue("featured", v)} />
           </div>
+        </div>
+      </section>
+
+      {/* Classificação interna */}
+      <section style={sectionStyle}>
+        <h2 style={sectionTitleStyle}>Classificação interna</h2>
+        <div>
+          <Label>Tier de qualidade *</Label>
+          <Select
+            value={String(tier ?? 3)}
+            onValueChange={(v) =>
+              setValue("tier", Number(v) as PropertyFormValues["tier"])
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 — Premium (o melhor do portfólio)</SelectItem>
+              <SelectItem value="2">2 — Destaque (muito boa)</SelectItem>
+              <SelectItem value="3">3 — Padrão (boa, sólida)</SelectItem>
+              <SelectItem value="4">4 — Entrada (mais simples ou de giro)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p style={{ fontSize: 12, color: "#9A9890", marginTop: 6 }}>
+            Esta classificação é interna e nunca aparece para os visitantes do site.
+            Define a ordem de exibição nas seções de sugestões.
+          </p>
         </div>
       </section>
 

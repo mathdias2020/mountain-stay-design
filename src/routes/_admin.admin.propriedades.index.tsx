@@ -46,6 +46,7 @@ type PropertyRow = {
   price_weekday: number | string;
   status: string;
   featured: boolean;
+  tier: number;
   sort_order: number | null;
   cover_url: string | null;
 };
@@ -56,11 +57,18 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   maintenance: { label: "Manutenção", bg: "#FFF4E0", fg: "#8A5A12" },
 };
 
+const TIER_META: Record<number, { bg: string; fg: string }> = {
+  1: { bg: "#D4EDDA", fg: "#1A5C2A" },
+  2: { bg: "#E2F1FB", fg: "#0C447C" },
+  3: { bg: "#F1EFE8", fg: "#444441" },
+  4: { bg: "#FAEEDA", fg: "#633806" },
+};
+
 async function fetchProperties(statusFilter: string): Promise<PropertyRow[]> {
   let q = supabase
     .from("properties")
     .select(
-      "id, name, slug, city, max_guests, bedrooms, bathrooms, price_weekday, status, featured, sort_order"
+      "id, name, slug, city, max_guests, bedrooms, bathrooms, price_weekday, status, featured, tier, sort_order"
     )
     .order("sort_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -93,7 +101,11 @@ async function fetchProperties(statusFilter: string): Promise<PropertyRow[]> {
     );
   }
 
-  return (data ?? []).map((p) => ({ ...p, cover_url: coverMap.get(p.id) ?? null }));
+  return (data ?? []).map((p) => ({
+    ...(p as PropertyRow),
+    tier: (p as { tier?: number }).tier ?? 3,
+    cover_url: coverMap.get(p.id) ?? null,
+  }));
 }
 
 function formatPrice(v: number | string) {
@@ -211,7 +223,7 @@ function PropertiesAdminPage() {
         }}
       >
         <div
-          className="hidden md:grid md:items-center md:gap-3 md:px-4 md:py-3 md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_110px]"
+          className="hidden md:grid md:items-center md:gap-3 md:px-4 md:py-3 md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_70px_110px]"
           style={{
             fontSize: 12,
             color: "#9A9890",
@@ -223,6 +235,7 @@ function PropertiesAdminPage() {
           <div>Capacidade</div>
           <div>Preço base</div>
           <div>Status</div>
+          <div>Tier</div>
           <div>Destaque</div>
           <div className="text-right">Ações</div>
         </div>
@@ -275,7 +288,7 @@ function PropertyRowItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="grid items-center gap-3 px-4 py-3 [grid-template-columns:60px_1fr_auto] md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_110px]"
+      className="grid items-center gap-3 px-4 py-3 [grid-template-columns:60px_1fr_auto] md:[grid-template-columns:80px_1.6fr_1.4fr_1fr_110px_70px_70px_110px]"
     >
       <div {...attributes} {...listeners} style={{ cursor: "grab" }}>
         {row.cover_url ? (
@@ -326,6 +339,19 @@ function PropertyRowItem({
         >
           {meta.label}
         </Badge>
+      </div>
+      <div className="hidden md:block">
+        {(() => {
+          const t = TIER_META[row.tier] ?? TIER_META[3];
+          return (
+            <Badge
+              style={{ background: t.bg, color: t.fg, borderColor: "transparent" }}
+              variant="outline"
+            >
+              {row.tier}
+            </Badge>
+          );
+        })()}
       </div>
       <div className="hidden md:block">
         <button

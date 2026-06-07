@@ -43,11 +43,11 @@ export function AvailabilityCalendar({ blockedSet }: Props) {
         className={cn("p-0 pointer-events-auto w-full")}
       />
       <div className="mt-4 flex items-center gap-4 text-xs text-text-secondary">
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-sm bg-[#D4EDDA]" />
           Disponível
         </span>
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-sm bg-[#F8D7DA]" />
           Indisponível
         </span>

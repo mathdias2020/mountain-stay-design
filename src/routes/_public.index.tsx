@@ -156,6 +156,11 @@ function HomePage() {
                 key={p.id}
                 property={p}
                 showAvailability={hasDateRange}
+                searchParams={{
+                  checkin: search.checkin,
+                  checkout: search.checkout,
+                  guests: search.guests,
+                }}
               />
             ))}
           </div>
