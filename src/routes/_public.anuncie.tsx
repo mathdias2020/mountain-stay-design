@@ -321,18 +321,37 @@ function AnnouncePage() {
                   )}
                 </div>
                 <div>
-                  <Label>Link de foto da casa *</Label>
-                  <Input
-                    type="url"
-                    placeholder="https://drive.google.com/... ou https://..."
-                    {...register("photo_url")}
-                  />
+                  <Label>Foto da casa (opcional)</Label>
+                  {photoFile ? (
+                    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                      <span className="truncate text-text-primary">{photoFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => onPickPhoto(null)}
+                        className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Remover
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-surface px-3 py-4 text-sm text-text-secondary hover:bg-background">
+                      <Upload className="h-4 w-4" />
+                      <span>Selecionar foto (JPG, PNG ou WEBP — até 10MB)</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => onPickPhoto(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                  )}
                   <p style={{ fontSize: 12, color: "#9A9890", marginTop: 4 }}>
-                    Cole o link de uma foto da casa (Google Drive, Imgur, Dropbox, etc.).
-                    Ela ficará disponível apenas para nossa equipe.
+                    Envie uma foto da casa para acelerar a análise. A imagem fica
+                    disponível apenas para nossa equipe.
                   </p>
-                  {errors.photo_url && (
-                    <p className="mt-1 text-xs text-[#B43A3A]">{errors.photo_url.message}</p>
+                  {photoError && (
+                    <p className="mt-1 text-xs text-[#B43A3A]">{photoError}</p>
                   )}
                 </div>
               </section>
@@ -375,10 +394,14 @@ function AnnouncePage() {
                 type="submit"
                 variant="primary"
                 className="w-full"
-                disabled={isSubmitting}
+                disabled={isSubmitting || uploading}
                 style={{ marginTop: 24 }}
               >
-                {isSubmitting ? "Enviando..." : "Enviar para análise"}
+                {uploading
+                  ? "Enviando foto..."
+                  : isSubmitting
+                    ? "Enviando..."
+                    : "Enviar para análise"}
               </Button>
               <p
                 style={{
