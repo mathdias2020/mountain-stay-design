@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Home, MapPin, Users, BedDouble } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import type { PropertyListItem } from "@/lib/properties.functions";
@@ -10,9 +11,14 @@ const currency = (v: number) =>
 interface Props {
   property: PropertyListItem;
   showAvailability: boolean;
+  searchParams?: {
+    checkin?: string;
+    checkout?: string;
+    guests?: number;
+  };
 }
 
-export function PropertyCard({ property, showAvailability }: Props) {
+export function PropertyCard({ property, showAvailability, searchParams }: Props) {
   const disabled = showAvailability && property.is_available === false;
   const basePrice = Math.min(property.price_weekday, property.price_weekend);
   const [imgBroken, setImgBroken] = useState(false);
@@ -60,18 +66,18 @@ export function PropertyCard({ property, showAvailability }: Props) {
       <div className="flex flex-1 flex-col p-4">
         <h3 className="text-[16px] font-semibold text-text-primary">{property.name}</h3>
 
-        <p className="mt-1 flex items-center gap-1 text-[13px] text-text-muted">
-          <MapPin className="h-3.5 w-3.5" />
+        <p className="mt-1 flex items-center gap-2 text-[13px] text-text-muted">
+          <MapPin className="h-3.5 w-3.5 shrink-0" />
           {property.city}
         </p>
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[13px] text-text-secondary">
-          <span className="inline-flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-2">
+            <Users className="h-3.5 w-3.5 shrink-0" />
             até {property.max_guests} hóspedes
           </span>
-          <span className="inline-flex items-center gap-1">
-            <BedDouble className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-2">
+            <BedDouble className="h-3.5 w-3.5 shrink-0" />
             {property.bedrooms} {property.bedrooms === 1 ? "quarto" : "quartos"}
           </span>
         </div>
@@ -88,19 +94,26 @@ export function PropertyCard({ property, showAvailability }: Props) {
         </div>
 
         <div className="mt-auto pt-3">
-          <Button
-            variant="ghost"
-            className="w-full"
-            disabled={disabled}
-            onClick={() => {
-              if (!disabled) {
-                // Página de detalhes ainda não existe; placeholder.
-                window.location.href = `/imovel/${property.slug}`;
-              }
-            }}
-          >
-            Ver detalhes
-          </Button>
+          {disabled ? (
+            <Button variant="ghost" className="w-full" disabled>
+              Ver detalhes
+            </Button>
+          ) : (
+            <Link
+              to="/imovel/$slug"
+              params={{ slug: property.slug }}
+              search={{
+                checkin: searchParams?.checkin,
+                checkout: searchParams?.checkout,
+                guests: searchParams?.guests,
+              }}
+              className="block"
+            >
+              <Button variant="ghost" className="w-full">
+                Ver detalhes
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </article>
