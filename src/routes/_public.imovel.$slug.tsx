@@ -1,7 +1,8 @@
-import { useEffect } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, queryOptions } from "@tanstack/react-query";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -21,6 +22,17 @@ import { AvailabilityCalendar } from "@/components/property/AvailabilityCalendar
 import { expandBlockedDates } from "@/lib/pricing";
 import { DetailPageSkeleton } from "@/components/skeletons/DetailPageSkeleton";
 
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((s) => !Number.isNaN(new Date(s).getTime()));
+
+const detailSearchSchema = z.object({
+  checkin: fallback(isoDate.optional(), undefined),
+  checkout: fallback(isoDate.optional(), undefined),
+  guests: fallback(z.number().int().min(1).max(30).optional(), undefined),
+});
+
 const propertyQueryOptions = (slug: string) =>
   queryOptions({
     queryKey: ["property", slug],
@@ -32,6 +44,7 @@ const propertyQueryOptions = (slug: string) =>
   });
 
 export const Route = createFileRoute("/_public/imovel/$slug")({
+  validateSearch: zodValidator(detailSearchSchema),
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(propertyQueryOptions(params.slug)),
   component: PropertyDetailPage,
@@ -39,6 +52,7 @@ export const Route = createFileRoute("/_public/imovel/$slug")({
 
 function PropertyDetailPage() {
   const { slug } = Route.useParams();
+  const search = Route.useSearch();
   const navigate = useNavigate();
 
   const { data: property, isLoading, isError } = useQuery(
@@ -56,6 +70,21 @@ function PropertyDetailPage() {
     () => expandBlockedDates(property?.blocked_ranges ?? []),
     [property],
   );
+
+  const initialCheckin = useMemo(
+    () => (search.checkin ? new Date(`${search.checkin}T00:00:00`) : undefined),
+    [search.checkin],
+  );
+  const initialCheckout = useMemo(
+    () => (search.checkout ? new Date(`${search.checkout}T00:00:00`) : undefined),
+    [search.checkout],
+  );
+  const initialGuests = useMemo(() => {
+    if (!property || !search.guests) return undefined;
+    return search.guests >= 1 && search.guests <= property.max_guests
+      ? search.guests
+      : undefined;
+  }, [property, search.guests]);
 
   if (isLoading || !property) {
     return <DetailPageSkeleton />;
@@ -126,16 +155,16 @@ function PropertyDetailPage() {
               Regras da casa
             </h2>
             <ul className="space-y-2 text-sm text-text-secondary">
-              <li className="inline-flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
+              <li className="flex items-center gap-2">
+                <Clock className="h-4 w-4 shrink-0 text-primary" />
                 Check-in a partir das {property.checkin_time}
               </li>
-              <li className="inline-flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
+              <li className="flex items-center gap-2">
+                <Clock className="h-4 w-4 shrink-0 text-primary" />
                 Check-out até {property.checkout_time}
               </li>
               <li className="flex items-center gap-2">
-                <PawPrint className="h-4 w-4 text-primary" />
+                <PawPrint className="h-4 w-4 shrink-0 text-primary" />
                 Aceita pets: {property.accepts_pets ? "Sim" : "Não"}
               </li>
             </ul>
@@ -153,7 +182,7 @@ function PropertyDetailPage() {
               Localização
             </h2>
             <p className="flex items-center gap-2 text-sm text-text-secondary">
-              <MapPin className="h-4 w-4" />
+              <MapPin className="h-4 w-4 shrink-0" />
               {property.city}
             </p>
             {property.google_maps_url && (
@@ -172,7 +201,13 @@ function PropertyDetailPage() {
 
         {/* Coluna lateral */}
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <BookingCard property={property} blockedSet={blockedSet} />
+          <BookingCard
+            property={property}
+            blockedSet={blockedSet}
+            initialCheckin={initialCheckin}
+            initialCheckout={initialCheckout}
+            initialGuests={initialGuests}
+          />
           <AvailabilityCalendar blockedSet={blockedSet} />
         </aside>
       </div>
