@@ -106,21 +106,21 @@ function PropertyDetailPage() {
               {property.city}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-text-secondary">
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 até {property.max_guests} hóspedes
               </span>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-2">
                 <BedDouble className="h-4 w-4" />
                 {property.bedrooms}{" "}
                 {property.bedrooms === 1 ? "quarto" : "quartos"}
               </span>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-2">
                 <Bath className="h-4 w-4" />
                 {property.bathrooms}{" "}
                 {property.bathrooms === 1 ? "banheiro" : "banheiros"}
               </span>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-2">
                 <Car className="h-4 w-4" />
                 {property.parking_spots}{" "}
                 {property.parking_spots === 1 ? "vaga" : "vagas"}
@@ -190,7 +190,7 @@ function PropertyDetailPage() {
                 href={property.google_maps_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+                className="mt-3 inline-flex items-center gap-2 rounded-md border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
               >
                 <ExternalLink className="h-4 w-4" />
                 Ver no Google Maps
