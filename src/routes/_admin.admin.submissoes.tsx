@@ -38,7 +38,7 @@ type Submission = {
   bedrooms: number;
   max_guests: number;
   desired_daily_rate: number | string;
-  photo_url: string;
+  photo_url: string | null;
   message: string | null;
   status: string;
   admin_notes: string | null;
@@ -347,14 +347,26 @@ function SubmissionDialog({
           </section>
 
           <section>
-            <a
-              className="text-primary hover:underline"
-              href={submission.photo_url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Ver foto da casa
-            </a>
+            {submission.photo_url ? (
+              <button
+                type="button"
+                className="text-primary hover:underline"
+                onClick={async () => {
+                  const { data, error } = await supabase.storage
+                    .from("submission-photos")
+                    .createSignedUrl(submission.photo_url!, 60 * 10);
+                  if (error || !data?.signedUrl) {
+                    toast.error("Não foi possível abrir a foto.");
+                    return;
+                  }
+                  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+                }}
+              >
+                Ver foto da casa
+              </button>
+            ) : (
+              <span className="text-text-muted text-sm">Sem foto enviada</span>
+            )}
           </section>
 
           {submission.message && (
