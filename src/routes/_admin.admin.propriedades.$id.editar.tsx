@@ -82,6 +82,11 @@ function EditProperty() {
     checkin_time: p.checkin_time ?? "14:00",
     checkout_time: p.checkout_time ?? "11:00",
     house_rules: p.house_rules ?? "",
+    tier: ([1, 2, 3, 4] as const).includes(
+      (p as { tier?: number }).tier as 1 | 2 | 3 | 4,
+    )
+      ? ((p as { tier: 1 | 2 | 3 | 4 }).tier)
+      : 3,
   };
 
   return (
