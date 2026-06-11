@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { PropertyCard } from "@/components/home/PropertyCard";
 import { PropertyCardSkeleton } from "@/components/home/PropertyCardSkeleton";
 import { Button } from "@/components/Button";
 import { searchProperties } from "@/lib/properties.functions";
+import { InstagramCarousel } from "@/components/home/InstagramCarousel";
 
 const CITY_VALUES = [
   "Domingos Martins",
@@ -76,6 +77,7 @@ function HomePage() {
 
   const properties = data?.properties ?? [];
   const count = properties.length;
+  const visibleProperties = properties.slice(0, 6);
 
   const handleSearch = (next: HomeFilters) => {
     navigate({
@@ -150,22 +152,43 @@ function HomePage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {properties.map((p) => (
-              <PropertyCard
-                key={p.id}
-                property={p}
-                showAvailability={hasDateRange}
-                searchParams={{
-                  checkin: search.checkin,
-                  checkout: search.checkout,
-                  guests: search.guests,
-                }}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleProperties.map((p) => (
+                <PropertyCard
+                  key={p.id}
+                  property={p}
+                  showAvailability={hasDateRange}
+                  searchParams={{
+                    checkin: search.checkin,
+                    checkout: search.checkout,
+                    guests: search.guests,
+                  }}
+                />
+              ))}
+            </div>
+            {count > 6 && (
+              <div className="mt-8 flex justify-center">
+                <Button asChild variant="secondary">
+                  <Link
+                    to="/propriedades"
+                    search={{
+                      checkin: search.checkin,
+                      checkout: search.checkout,
+                      guests: search.guests,
+                      city: search.city,
+                    }}
+                  >
+                    Ver todas as propriedades
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </section>
+
+      <InstagramCarousel />
     </>
   );
 }
