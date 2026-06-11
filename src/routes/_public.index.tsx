@@ -141,7 +141,7 @@ function HomePage() {
         </div>
       </div>
 
-      <section className="mx-auto max-w-7xl px-6 pb-12 -mt-40 md:-mt-56">
+      <section className="mx-auto max-w-7xl px-6 pb-12 -mt-24 md:-mt-32">
 
         {isLoading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
