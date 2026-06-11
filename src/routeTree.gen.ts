@@ -34,6 +34,7 @@ import { Route as AdminAdminHomeRouteImport } from './routes/_admin.admin.home'
 import { Route as AdminAdminEventosRouteImport } from './routes/_admin.admin.eventos'
 import { Route as AdminAdminConfiguracoesRouteImport } from './routes/_admin.admin.configuracoes'
 import { Route as AdminAdminCalendarioRouteImport } from './routes/_admin.admin.calendario'
+import { Route as AdminAdminAtracoesRouteImport } from './routes/_admin.admin.atracoes'
 import { Route as AdminAdminReservasIndexRouteImport } from './routes/_admin.admin.reservas.index'
 import { Route as AdminAdminPropriedadesIndexRouteImport } from './routes/_admin.admin.propriedades.index'
 import { Route as AdminAdminReservasIdRouteImport } from './routes/_admin.admin.reservas.$id'
@@ -163,6 +164,11 @@ const AdminAdminCalendarioRoute = AdminAdminCalendarioRouteImport.update({
   path: '/calendario',
   getParentRoute: () => AdminAdminRoute,
 } as any)
+const AdminAdminAtracoesRoute = AdminAdminAtracoesRouteImport.update({
+  id: '/atracoes',
+  path: '/atracoes',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
 const AdminAdminReservasIndexRoute = AdminAdminReservasIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/propriedades': typeof PublicPropriedadesRoute
   '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/atracoes': typeof AdminAdminAtracoesRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
   '/admin/eventos': typeof AdminAdminEventosRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/propriedades': typeof PublicPropriedadesRoute
   '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/atracoes': typeof AdminAdminAtracoesRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
   '/admin/eventos': typeof AdminAdminEventosRoute
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/_public/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
   '/_public/': typeof PublicIndexRoute
+  '/_admin/admin/atracoes': typeof AdminAdminAtracoesRoute
   '/_admin/admin/calendario': typeof AdminAdminCalendarioRoute
   '/_admin/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
   '/_admin/admin/eventos': typeof AdminAdminEventosRoute
@@ -292,6 +301,7 @@ export interface FileRouteTypes {
     | '/propriedades'
     | '/sobre'
     | '/admin/login'
+    | '/admin/atracoes'
     | '/admin/calendario'
     | '/admin/configuracoes'
     | '/admin/eventos'
@@ -321,6 +331,7 @@ export interface FileRouteTypes {
     | '/propriedades'
     | '/sobre'
     | '/admin/login'
+    | '/admin/atracoes'
     | '/admin/calendario'
     | '/admin/configuracoes'
     | '/admin/eventos'
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/_public/sobre'
     | '/admin/login'
     | '/_public/'
+    | '/_admin/admin/atracoes'
     | '/_admin/admin/calendario'
     | '/_admin/admin/configuracoes'
     | '/_admin/admin/eventos'
@@ -557,6 +569,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminCalendarioRouteImport
       parentRoute: typeof AdminAdminRoute
     }
+    '/_admin/admin/atracoes': {
+      id: '/_admin/admin/atracoes'
+      path: '/atracoes'
+      fullPath: '/admin/atracoes'
+      preLoaderRoute: typeof AdminAdminAtracoesRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
     '/_admin/admin/reservas/': {
       id: '/_admin/admin/reservas/'
       path: '/'
@@ -627,6 +646,7 @@ const AdminAdminReservasRouteWithChildren =
   AdminAdminReservasRoute._addFileChildren(AdminAdminReservasRouteChildren)
 
 interface AdminAdminRouteChildren {
+  AdminAdminAtracoesRoute: typeof AdminAdminAtracoesRoute
   AdminAdminCalendarioRoute: typeof AdminAdminCalendarioRoute
   AdminAdminConfiguracoesRoute: typeof AdminAdminConfiguracoesRoute
   AdminAdminEventosRoute: typeof AdminAdminEventosRoute
@@ -639,6 +659,7 @@ interface AdminAdminRouteChildren {
 }
 
 const AdminAdminRouteChildren: AdminAdminRouteChildren = {
+  AdminAdminAtracoesRoute: AdminAdminAtracoesRoute,
   AdminAdminCalendarioRoute: AdminAdminCalendarioRoute,
   AdminAdminConfiguracoesRoute: AdminAdminConfiguracoesRoute,
   AdminAdminEventosRoute: AdminAdminEventosRoute,
