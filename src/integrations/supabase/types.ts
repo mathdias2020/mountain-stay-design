@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      attractions: {
+        Row: {
+          category: Database["public"]["Enums"]["attraction_category"]
+          city: string
+          cover_image_path: string
+          created_at: string
+          external_url: string | null
+          gallery: Json
+          id: string
+          is_active: boolean
+          long_description: string | null
+          short_description: string | null
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["attraction_category"]
+          city: string
+          cover_image_path: string
+          created_at?: string
+          external_url?: string | null
+          gallery?: Json
+          id?: string
+          is_active?: boolean
+          long_description?: string | null
+          short_description?: string | null
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["attraction_category"]
+          city?: string
+          cover_image_path?: string
+          created_at?: string
+          external_url?: string | null
+          gallery?: Json
+          id?: string
+          is_active?: boolean
+          long_description?: string | null
+          short_description?: string | null
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blocked_dates: {
         Row: {
           created_at: string
@@ -536,6 +587,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin"
+      attraction_category: "atracao" | "restaurante" | "passeio"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -664,6 +716,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin"],
+      attraction_category: ["atracao", "restaurante", "passeio"],
     },
   },
 } as const
