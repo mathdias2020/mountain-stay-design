@@ -169,19 +169,18 @@ function HomePage() {
             </div>
             {count > 6 && (
               <div className="mt-8 flex justify-center">
-                <Button asChild variant="secondary">
-                  <Link
-                    to="/propriedades"
-                    search={{
-                      checkin: search.checkin,
-                      checkout: search.checkout,
-                      guests: search.guests,
-                      city: search.city,
-                    }}
-                  >
-                    Ver todas as propriedades
-                  </Link>
-                </Button>
+                <Link
+                  to="/propriedades"
+                  search={{
+                    checkin: search.checkin,
+                    checkout: search.checkout,
+                    guests: search.guests,
+                    city: search.city,
+                  }}
+                  className="inline-flex items-center justify-center px-5 py-2.5 rounded-md text-sm font-medium bg-secondary text-secondary-foreground hover:bg-[#CFCEC9] transition-colors"
+                >
+                  Ver todas as propriedades
+                </Link>
               </div>
             )}
           </>
