@@ -181,6 +181,42 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_documents: {
+        Row: {
+          created_at: string
+          doc_type: Database["public"]["Enums"]["legal_doc_type"]
+          file_size: number
+          id: string
+          is_current: boolean
+          original_filename: string
+          storage_path: string
+          uploaded_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          doc_type: Database["public"]["Enums"]["legal_doc_type"]
+          file_size: number
+          id?: string
+          is_current?: boolean
+          original_filename: string
+          storage_path: string
+          uploaded_by?: string | null
+          version: number
+        }
+        Update: {
+          created_at?: string
+          doc_type?: Database["public"]["Enums"]["legal_doc_type"]
+          file_size?: number
+          id?: string
+          is_current?: boolean
+          original_filename?: string
+          storage_path?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       properties: {
         Row: {
           accepts_pets: boolean
@@ -588,6 +624,7 @@ export type Database = {
     Enums: {
       app_role: "admin"
       attraction_category: "atracao" | "restaurante" | "passeio"
+      legal_doc_type: "terms" | "privacy"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -717,6 +754,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin"],
       attraction_category: ["atracao", "restaurante", "passeio"],
+      legal_doc_type: ["terms", "privacy"],
     },
   },
 } as const
