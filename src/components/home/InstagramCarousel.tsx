@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Autoplay from "embla-carousel-autoplay";
 import { Instagram } from "lucide-react";
@@ -124,6 +124,3 @@ export function InstagramCarousel() {
     </section>
   );
 }
-
-// keep `useEffect` import side-effect free if unused later
-void useEffect;
