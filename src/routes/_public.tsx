@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { PublicFooter } from "@/components/layout/PublicFooter";
+import { FloatingWhatsApp } from "@/components/layout/FloatingWhatsApp";
 
 export const Route = createFileRoute("/_public")({
   component: PublicLayout,
@@ -14,6 +15,7 @@ function PublicLayout() {
         <Outlet />
       </main>
       <PublicFooter />
+      <FloatingWhatsApp />
     </div>
   );
 }
