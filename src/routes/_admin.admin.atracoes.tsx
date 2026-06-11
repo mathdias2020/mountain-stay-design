@@ -384,9 +384,9 @@ function AttractionsAdmin() {
               <div>
                 <Label>Cidade</Label>
                 <Select
-                  value={form.city || "__pick__"}
+                  value={cities.includes(form.city) ? form.city : "__other__"}
                   onValueChange={(v) =>
-                    v !== "__pick__" && setForm({ ...form, city: v })
+                    setForm({ ...form, city: v === "__other__" ? "" : v })
                   }
                 >
                   <SelectTrigger className="mt-1">
@@ -398,14 +398,14 @@ function AttractionsAdmin() {
                         {c}
                       </SelectItem>
                     ))}
-                    <SelectItem value="Outra">Outra…</SelectItem>
+                    <SelectItem value="__other__">Outra…</SelectItem>
                   </SelectContent>
                 </Select>
-                {form.city === "Outra" && (
+                {!cities.includes(form.city) && (
                   <Input
                     className="mt-2"
                     placeholder="Digite a cidade"
-                    value={form.city === "Outra" ? "" : form.city}
+                    value={form.city}
                     onChange={(e) => setForm({ ...form, city: e.target.value })}
                   />
                 )}
