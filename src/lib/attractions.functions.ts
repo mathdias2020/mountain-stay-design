@@ -258,14 +258,14 @@ export const upsertAttraction = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await supabaseAdmin
         .from("attractions")
-        .update(payload)
+        .update(payload as never)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
     const { data: ins, error } = await supabaseAdmin
       .from("attractions")
-      .insert(payload)
+      .insert({ ...payload, slug: "" } as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
