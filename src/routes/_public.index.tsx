@@ -4,12 +4,15 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { Hero } from "@/components/home/Hero";
 import { FiltersCard, type HomeFilters } from "@/components/home/FiltersCard";
-import { PropertyCard } from "@/components/home/PropertyCard";
 import { PropertyCardSkeleton } from "@/components/home/PropertyCardSkeleton";
 import { Button } from "@/components/Button";
 import { searchProperties } from "@/lib/properties.functions";
 import { InstagramCarousel } from "@/components/home/InstagramCarousel";
 import { EventsSection } from "@/components/home/EventsSection";
+import { PropertiesSlideshow } from "@/components/home/PropertiesSlideshow";
+import { AboutSection } from "@/components/home/AboutSection";
+import { WhatToDoSection } from "@/components/home/WhatToDoSection";
+import { getHomeCuration } from "@/lib/home.functions";
 
 const CITY_VALUES = [
   "Domingos Martins",
@@ -53,6 +56,9 @@ function HomePage() {
   const navigate = useNavigate({ from: Route.fullPath });
 
   const hasDateRange = Boolean(search.checkin && search.checkout);
+  const hasFilters = Boolean(
+    search.checkin || search.checkout || search.guests || search.city,
+  );
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [
@@ -78,7 +84,12 @@ function HomePage() {
 
   const properties = data?.properties ?? [];
   const count = properties.length;
-  const visibleProperties = properties.slice(0, 6);
+
+  const { data: curation } = useQuery({
+    queryKey: ["home-curation"],
+    queryFn: () => getHomeCuration(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleSearch = (next: HomeFilters) => {
     navigate({
@@ -154,21 +165,24 @@ function HomePage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {visibleProperties.map((p) => (
-                <PropertyCard
-                  key={p.id}
-                  property={p}
-                  showAvailability={hasDateRange}
-                  searchParams={{
-                    checkin: search.checkin,
-                    checkout: search.checkout,
-                    guests: search.guests,
-                  }}
-                />
-              ))}
-            </div>
-            {count > 6 && (
+            <PropertiesSlideshow
+              properties={properties}
+              curation={
+                curation ?? {
+                  mode: "random",
+                  pinned_ids: [null, null, null],
+                  manual_order: [],
+                }
+              }
+              hasFilters={hasFilters}
+              showAvailability={hasDateRange}
+              searchParams={{
+                checkin: search.checkin,
+                checkout: search.checkout,
+                guests: search.guests,
+              }}
+            />
+            {count > 3 && (
               <div className="mt-8 flex justify-center">
                 <Link
                   to="/propriedades"
@@ -188,9 +202,13 @@ function HomePage() {
         )}
       </section>
 
+      <AboutSection />
+
       <InstagramCarousel />
 
       <EventsSection />
+
+      <WhatToDoSection />
     </>
   );
 }

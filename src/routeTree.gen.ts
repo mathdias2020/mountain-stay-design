@@ -18,15 +18,23 @@ import { Route as PublicPropriedadesRouteImport } from './routes/_public.proprie
 import { Route as PublicEventosRouteImport } from './routes/_public.eventos'
 import { Route as PublicAnuncieRouteImport } from './routes/_public.anuncie'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
+import { Route as PublicRestaurantesIndexRouteImport } from './routes/_public.restaurantes.index'
+import { Route as PublicPasseiosIndexRouteImport } from './routes/_public.passeios.index'
+import { Route as PublicAtracoesIndexRouteImport } from './routes/_public.atracoes.index'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
+import { Route as PublicRestaurantesSlugRouteImport } from './routes/_public.restaurantes.$slug'
+import { Route as PublicPasseiosSlugRouteImport } from './routes/_public.passeios.$slug'
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
+import { Route as PublicAtracoesSlugRouteImport } from './routes/_public.atracoes.$slug'
 import { Route as AdminAdminSubmissoesRouteImport } from './routes/_admin.admin.submissoes'
 import { Route as AdminAdminReservasRouteImport } from './routes/_admin.admin.reservas'
 import { Route as AdminAdminPropriedadesRouteImport } from './routes/_admin.admin.propriedades'
 import { Route as AdminAdminInstagramRouteImport } from './routes/_admin.admin.instagram'
+import { Route as AdminAdminHomeRouteImport } from './routes/_admin.admin.home'
 import { Route as AdminAdminEventosRouteImport } from './routes/_admin.admin.eventos'
 import { Route as AdminAdminConfiguracoesRouteImport } from './routes/_admin.admin.configuracoes'
 import { Route as AdminAdminCalendarioRouteImport } from './routes/_admin.admin.calendario'
+import { Route as AdminAdminAtracoesRouteImport } from './routes/_admin.admin.atracoes'
 import { Route as AdminAdminReservasIndexRouteImport } from './routes/_admin.admin.reservas.index'
 import { Route as AdminAdminPropriedadesIndexRouteImport } from './routes/_admin.admin.propriedades.index'
 import { Route as AdminAdminReservasIdRouteImport } from './routes/_admin.admin.reservas.$id'
@@ -76,14 +84,44 @@ const AdminAdminRoute = AdminAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AdminRoute,
 } as any)
+const PublicRestaurantesIndexRoute = PublicRestaurantesIndexRouteImport.update({
+  id: '/restaurantes/',
+  path: '/restaurantes/',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicPasseiosIndexRoute = PublicPasseiosIndexRouteImport.update({
+  id: '/passeios/',
+  path: '/passeios/',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicAtracoesIndexRoute = PublicAtracoesIndexRouteImport.update({
+  id: '/atracoes/',
+  path: '/atracoes/',
+  getParentRoute: () => PublicRoute,
+} as any)
 const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminAdminRoute,
 } as any)
+const PublicRestaurantesSlugRoute = PublicRestaurantesSlugRouteImport.update({
+  id: '/restaurantes/$slug',
+  path: '/restaurantes/$slug',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicPasseiosSlugRoute = PublicPasseiosSlugRouteImport.update({
+  id: '/passeios/$slug',
+  path: '/passeios/$slug',
+  getParentRoute: () => PublicRoute,
+} as any)
 const PublicImovelSlugRoute = PublicImovelSlugRouteImport.update({
   id: '/imovel/$slug',
   path: '/imovel/$slug',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicAtracoesSlugRoute = PublicAtracoesSlugRouteImport.update({
+  id: '/atracoes/$slug',
+  path: '/atracoes/$slug',
   getParentRoute: () => PublicRoute,
 } as any)
 const AdminAdminSubmissoesRoute = AdminAdminSubmissoesRouteImport.update({
@@ -106,6 +144,11 @@ const AdminAdminInstagramRoute = AdminAdminInstagramRouteImport.update({
   path: '/instagram',
   getParentRoute: () => AdminAdminRoute,
 } as any)
+const AdminAdminHomeRoute = AdminAdminHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
 const AdminAdminEventosRoute = AdminAdminEventosRouteImport.update({
   id: '/eventos',
   path: '/eventos',
@@ -119,6 +162,11 @@ const AdminAdminConfiguracoesRoute = AdminAdminConfiguracoesRouteImport.update({
 const AdminAdminCalendarioRoute = AdminAdminCalendarioRouteImport.update({
   id: '/calendario',
   path: '/calendario',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
+const AdminAdminAtracoesRoute = AdminAdminAtracoesRouteImport.update({
+  id: '/atracoes',
+  path: '/atracoes',
   getParentRoute: () => AdminAdminRoute,
 } as any)
 const AdminAdminReservasIndexRoute = AdminAdminReservasIndexRouteImport.update({
@@ -158,15 +206,23 @@ export interface FileRoutesByFullPath {
   '/propriedades': typeof PublicPropriedadesRoute
   '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/atracoes': typeof AdminAdminAtracoesRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
   '/admin/eventos': typeof AdminAdminEventosRoute
+  '/admin/home': typeof AdminAdminHomeRoute
   '/admin/instagram': typeof AdminAdminInstagramRoute
   '/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/admin/submissoes': typeof AdminAdminSubmissoesRoute
+  '/atracoes/$slug': typeof PublicAtracoesSlugRoute
   '/imovel/$slug': typeof PublicImovelSlugRoute
+  '/passeios/$slug': typeof PublicPasseiosSlugRoute
+  '/restaurantes/$slug': typeof PublicRestaurantesSlugRoute
   '/admin/': typeof AdminAdminIndexRoute
+  '/atracoes/': typeof PublicAtracoesIndexRoute
+  '/passeios/': typeof PublicPasseiosIndexRoute
+  '/restaurantes/': typeof PublicRestaurantesIndexRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
   '/admin/propriedades/': typeof AdminAdminPropriedadesIndexRoute
@@ -180,13 +236,21 @@ export interface FileRoutesByTo {
   '/propriedades': typeof PublicPropriedadesRoute
   '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/atracoes': typeof AdminAdminAtracoesRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
   '/admin/eventos': typeof AdminAdminEventosRoute
+  '/admin/home': typeof AdminAdminHomeRoute
   '/admin/instagram': typeof AdminAdminInstagramRoute
   '/admin/submissoes': typeof AdminAdminSubmissoesRoute
+  '/atracoes/$slug': typeof PublicAtracoesSlugRoute
   '/imovel/$slug': typeof PublicImovelSlugRoute
+  '/passeios/$slug': typeof PublicPasseiosSlugRoute
+  '/restaurantes/$slug': typeof PublicRestaurantesSlugRoute
   '/admin': typeof AdminAdminIndexRoute
+  '/atracoes': typeof PublicAtracoesIndexRoute
+  '/passeios': typeof PublicPasseiosIndexRoute
+  '/restaurantes': typeof PublicRestaurantesIndexRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
   '/admin/propriedades': typeof AdminAdminPropriedadesIndexRoute
@@ -204,15 +268,23 @@ export interface FileRoutesById {
   '/_public/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
   '/_public/': typeof PublicIndexRoute
+  '/_admin/admin/atracoes': typeof AdminAdminAtracoesRoute
   '/_admin/admin/calendario': typeof AdminAdminCalendarioRoute
   '/_admin/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
   '/_admin/admin/eventos': typeof AdminAdminEventosRoute
+  '/_admin/admin/home': typeof AdminAdminHomeRoute
   '/_admin/admin/instagram': typeof AdminAdminInstagramRoute
   '/_admin/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/_admin/admin/reservas': typeof AdminAdminReservasRouteWithChildren
   '/_admin/admin/submissoes': typeof AdminAdminSubmissoesRoute
+  '/_public/atracoes/$slug': typeof PublicAtracoesSlugRoute
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
+  '/_public/passeios/$slug': typeof PublicPasseiosSlugRoute
+  '/_public/restaurantes/$slug': typeof PublicRestaurantesSlugRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
+  '/_public/atracoes/': typeof PublicAtracoesIndexRoute
+  '/_public/passeios/': typeof PublicPasseiosIndexRoute
+  '/_public/restaurantes/': typeof PublicRestaurantesIndexRoute
   '/_admin/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/_admin/admin/reservas/$id': typeof AdminAdminReservasIdRoute
   '/_admin/admin/propriedades/': typeof AdminAdminPropriedadesIndexRoute
@@ -229,15 +301,23 @@ export interface FileRouteTypes {
     | '/propriedades'
     | '/sobre'
     | '/admin/login'
+    | '/admin/atracoes'
     | '/admin/calendario'
     | '/admin/configuracoes'
     | '/admin/eventos'
+    | '/admin/home'
     | '/admin/instagram'
     | '/admin/propriedades'
     | '/admin/reservas'
     | '/admin/submissoes'
+    | '/atracoes/$slug'
     | '/imovel/$slug'
+    | '/passeios/$slug'
+    | '/restaurantes/$slug'
     | '/admin/'
+    | '/atracoes/'
+    | '/passeios/'
+    | '/restaurantes/'
     | '/admin/propriedades/nova'
     | '/admin/reservas/$id'
     | '/admin/propriedades/'
@@ -251,13 +331,21 @@ export interface FileRouteTypes {
     | '/propriedades'
     | '/sobre'
     | '/admin/login'
+    | '/admin/atracoes'
     | '/admin/calendario'
     | '/admin/configuracoes'
     | '/admin/eventos'
+    | '/admin/home'
     | '/admin/instagram'
     | '/admin/submissoes'
+    | '/atracoes/$slug'
     | '/imovel/$slug'
+    | '/passeios/$slug'
+    | '/restaurantes/$slug'
     | '/admin'
+    | '/atracoes'
+    | '/passeios'
+    | '/restaurantes'
     | '/admin/propriedades/nova'
     | '/admin/reservas/$id'
     | '/admin/propriedades'
@@ -274,15 +362,23 @@ export interface FileRouteTypes {
     | '/_public/sobre'
     | '/admin/login'
     | '/_public/'
+    | '/_admin/admin/atracoes'
     | '/_admin/admin/calendario'
     | '/_admin/admin/configuracoes'
     | '/_admin/admin/eventos'
+    | '/_admin/admin/home'
     | '/_admin/admin/instagram'
     | '/_admin/admin/propriedades'
     | '/_admin/admin/reservas'
     | '/_admin/admin/submissoes'
+    | '/_public/atracoes/$slug'
     | '/_public/imovel/$slug'
+    | '/_public/passeios/$slug'
+    | '/_public/restaurantes/$slug'
     | '/_admin/admin/'
+    | '/_public/atracoes/'
+    | '/_public/passeios/'
+    | '/_public/restaurantes/'
     | '/_admin/admin/propriedades/nova'
     | '/_admin/admin/reservas/$id'
     | '/_admin/admin/propriedades/'
@@ -361,6 +457,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_public/restaurantes/': {
+      id: '/_public/restaurantes/'
+      path: '/restaurantes'
+      fullPath: '/restaurantes/'
+      preLoaderRoute: typeof PublicRestaurantesIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/passeios/': {
+      id: '/_public/passeios/'
+      path: '/passeios'
+      fullPath: '/passeios/'
+      preLoaderRoute: typeof PublicPasseiosIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/atracoes/': {
+      id: '/_public/atracoes/'
+      path: '/atracoes'
+      fullPath: '/atracoes/'
+      preLoaderRoute: typeof PublicAtracoesIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_admin/admin/': {
       id: '/_admin/admin/'
       path: '/'
@@ -368,11 +485,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminIndexRouteImport
       parentRoute: typeof AdminAdminRoute
     }
+    '/_public/restaurantes/$slug': {
+      id: '/_public/restaurantes/$slug'
+      path: '/restaurantes/$slug'
+      fullPath: '/restaurantes/$slug'
+      preLoaderRoute: typeof PublicRestaurantesSlugRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/passeios/$slug': {
+      id: '/_public/passeios/$slug'
+      path: '/passeios/$slug'
+      fullPath: '/passeios/$slug'
+      preLoaderRoute: typeof PublicPasseiosSlugRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_public/imovel/$slug': {
       id: '/_public/imovel/$slug'
       path: '/imovel/$slug'
       fullPath: '/imovel/$slug'
       preLoaderRoute: typeof PublicImovelSlugRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/atracoes/$slug': {
+      id: '/_public/atracoes/$slug'
+      path: '/atracoes/$slug'
+      fullPath: '/atracoes/$slug'
+      preLoaderRoute: typeof PublicAtracoesSlugRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_admin/admin/submissoes': {
@@ -403,6 +541,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminInstagramRouteImport
       parentRoute: typeof AdminAdminRoute
     }
+    '/_admin/admin/home': {
+      id: '/_admin/admin/home'
+      path: '/home'
+      fullPath: '/admin/home'
+      preLoaderRoute: typeof AdminAdminHomeRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
     '/_admin/admin/eventos': {
       id: '/_admin/admin/eventos'
       path: '/eventos'
@@ -422,6 +567,13 @@ declare module '@tanstack/react-router' {
       path: '/calendario'
       fullPath: '/admin/calendario'
       preLoaderRoute: typeof AdminAdminCalendarioRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
+    '/_admin/admin/atracoes': {
+      id: '/_admin/admin/atracoes'
+      path: '/atracoes'
+      fullPath: '/admin/atracoes'
+      preLoaderRoute: typeof AdminAdminAtracoesRouteImport
       parentRoute: typeof AdminAdminRoute
     }
     '/_admin/admin/reservas/': {
@@ -494,9 +646,11 @@ const AdminAdminReservasRouteWithChildren =
   AdminAdminReservasRoute._addFileChildren(AdminAdminReservasRouteChildren)
 
 interface AdminAdminRouteChildren {
+  AdminAdminAtracoesRoute: typeof AdminAdminAtracoesRoute
   AdminAdminCalendarioRoute: typeof AdminAdminCalendarioRoute
   AdminAdminConfiguracoesRoute: typeof AdminAdminConfiguracoesRoute
   AdminAdminEventosRoute: typeof AdminAdminEventosRoute
+  AdminAdminHomeRoute: typeof AdminAdminHomeRoute
   AdminAdminInstagramRoute: typeof AdminAdminInstagramRoute
   AdminAdminPropriedadesRoute: typeof AdminAdminPropriedadesRouteWithChildren
   AdminAdminReservasRoute: typeof AdminAdminReservasRouteWithChildren
@@ -505,9 +659,11 @@ interface AdminAdminRouteChildren {
 }
 
 const AdminAdminRouteChildren: AdminAdminRouteChildren = {
+  AdminAdminAtracoesRoute: AdminAdminAtracoesRoute,
   AdminAdminCalendarioRoute: AdminAdminCalendarioRoute,
   AdminAdminConfiguracoesRoute: AdminAdminConfiguracoesRoute,
   AdminAdminEventosRoute: AdminAdminEventosRoute,
+  AdminAdminHomeRoute: AdminAdminHomeRoute,
   AdminAdminInstagramRoute: AdminAdminInstagramRoute,
   AdminAdminPropriedadesRoute: AdminAdminPropriedadesRouteWithChildren,
   AdminAdminReservasRoute: AdminAdminReservasRouteWithChildren,
@@ -535,7 +691,13 @@ interface PublicRouteChildren {
   PublicPropriedadesRoute: typeof PublicPropriedadesRoute
   PublicSobreRoute: typeof PublicSobreRoute
   PublicIndexRoute: typeof PublicIndexRoute
+  PublicAtracoesSlugRoute: typeof PublicAtracoesSlugRoute
   PublicImovelSlugRoute: typeof PublicImovelSlugRoute
+  PublicPasseiosSlugRoute: typeof PublicPasseiosSlugRoute
+  PublicRestaurantesSlugRoute: typeof PublicRestaurantesSlugRoute
+  PublicAtracoesIndexRoute: typeof PublicAtracoesIndexRoute
+  PublicPasseiosIndexRoute: typeof PublicPasseiosIndexRoute
+  PublicRestaurantesIndexRoute: typeof PublicRestaurantesIndexRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
@@ -544,7 +706,13 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicPropriedadesRoute: PublicPropriedadesRoute,
   PublicSobreRoute: PublicSobreRoute,
   PublicIndexRoute: PublicIndexRoute,
+  PublicAtracoesSlugRoute: PublicAtracoesSlugRoute,
   PublicImovelSlugRoute: PublicImovelSlugRoute,
+  PublicPasseiosSlugRoute: PublicPasseiosSlugRoute,
+  PublicRestaurantesSlugRoute: PublicRestaurantesSlugRoute,
+  PublicAtracoesIndexRoute: PublicAtracoesIndexRoute,
+  PublicPasseiosIndexRoute: PublicPasseiosIndexRoute,
+  PublicRestaurantesIndexRoute: PublicRestaurantesIndexRoute,
 }
 
 const PublicRouteWithChildren =
