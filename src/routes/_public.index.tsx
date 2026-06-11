@@ -9,6 +9,7 @@ import { PropertyCardSkeleton } from "@/components/home/PropertyCardSkeleton";
 import { Button } from "@/components/Button";
 import { searchProperties } from "@/lib/properties.functions";
 import { InstagramCarousel } from "@/components/home/InstagramCarousel";
+import { EventsSection } from "@/components/home/EventsSection";
 
 const CITY_VALUES = [
   "Domingos Martins",
@@ -188,6 +189,8 @@ function HomePage() {
       </section>
 
       <InstagramCarousel />
+
+      <EventsSection />
     </>
   );
 }
