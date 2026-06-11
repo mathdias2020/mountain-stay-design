@@ -65,7 +65,7 @@ export function InstagramCarousel() {
         <Carousel
           opts={{ align: "start", loop: true }}
           plugins={[autoplay.current]}
-          className="relative"
+          className="relative px-10 sm:px-12"
         >
           <CarouselContent className="-ml-4">
             {posts.map((post) => {
@@ -112,11 +112,11 @@ export function InstagramCarousel() {
             })}
           </CarouselContent>
           <CarouselPrevious
-            className="left-2 sm:-left-6 bg-white"
+            className="left-0 sm:-left-2 bg-white"
             aria-label="Post anterior"
           />
           <CarouselNext
-            className="right-2 sm:-right-6 bg-white"
+            className="right-0 sm:-right-2 bg-white"
             aria-label="Próximo post"
           />
         </Carousel>
