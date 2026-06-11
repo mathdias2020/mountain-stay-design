@@ -15,6 +15,7 @@ import { Route as PublicIndexRouteImport } from './routes/_public.index'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as PublicSobreRouteImport } from './routes/_public.sobre'
 import { Route as PublicPropriedadesRouteImport } from './routes/_public.propriedades'
+import { Route as PublicEventosRouteImport } from './routes/_public.eventos'
 import { Route as PublicAnuncieRouteImport } from './routes/_public.anuncie'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
@@ -23,6 +24,7 @@ import { Route as AdminAdminSubmissoesRouteImport } from './routes/_admin.admin.
 import { Route as AdminAdminReservasRouteImport } from './routes/_admin.admin.reservas'
 import { Route as AdminAdminPropriedadesRouteImport } from './routes/_admin.admin.propriedades'
 import { Route as AdminAdminInstagramRouteImport } from './routes/_admin.admin.instagram'
+import { Route as AdminAdminEventosRouteImport } from './routes/_admin.admin.eventos'
 import { Route as AdminAdminConfiguracoesRouteImport } from './routes/_admin.admin.configuracoes'
 import { Route as AdminAdminCalendarioRouteImport } from './routes/_admin.admin.calendario'
 import { Route as AdminAdminReservasIndexRouteImport } from './routes/_admin.admin.reservas.index'
@@ -57,6 +59,11 @@ const PublicSobreRoute = PublicSobreRouteImport.update({
 const PublicPropriedadesRoute = PublicPropriedadesRouteImport.update({
   id: '/propriedades',
   path: '/propriedades',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicEventosRoute = PublicEventosRouteImport.update({
+  id: '/eventos',
+  path: '/eventos',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicAnuncieRoute = PublicAnuncieRouteImport.update({
@@ -97,6 +104,11 @@ const AdminAdminPropriedadesRoute = AdminAdminPropriedadesRouteImport.update({
 const AdminAdminInstagramRoute = AdminAdminInstagramRouteImport.update({
   id: '/instagram',
   path: '/instagram',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
+const AdminAdminEventosRoute = AdminAdminEventosRouteImport.update({
+  id: '/eventos',
+  path: '/eventos',
   getParentRoute: () => AdminAdminRoute,
 } as any)
 const AdminAdminConfiguracoesRoute = AdminAdminConfiguracoesRouteImport.update({
@@ -142,11 +154,13 @@ export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/admin': typeof AdminAdminRouteWithChildren
   '/anuncie': typeof PublicAnuncieRoute
+  '/eventos': typeof PublicEventosRoute
   '/propriedades': typeof PublicPropriedadesRoute
   '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
+  '/admin/eventos': typeof AdminAdminEventosRoute
   '/admin/instagram': typeof AdminAdminInstagramRoute
   '/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
@@ -162,11 +176,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/anuncie': typeof PublicAnuncieRoute
+  '/eventos': typeof PublicEventosRoute
   '/propriedades': typeof PublicPropriedadesRoute
   '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/calendario': typeof AdminAdminCalendarioRoute
   '/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
+  '/admin/eventos': typeof AdminAdminEventosRoute
   '/admin/instagram': typeof AdminAdminInstagramRoute
   '/admin/submissoes': typeof AdminAdminSubmissoesRoute
   '/imovel/$slug': typeof PublicImovelSlugRoute
@@ -183,12 +199,14 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_admin/admin': typeof AdminAdminRouteWithChildren
   '/_public/anuncie': typeof PublicAnuncieRoute
+  '/_public/eventos': typeof PublicEventosRoute
   '/_public/propriedades': typeof PublicPropriedadesRoute
   '/_public/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
   '/_public/': typeof PublicIndexRoute
   '/_admin/admin/calendario': typeof AdminAdminCalendarioRoute
   '/_admin/admin/configuracoes': typeof AdminAdminConfiguracoesRoute
+  '/_admin/admin/eventos': typeof AdminAdminEventosRoute
   '/_admin/admin/instagram': typeof AdminAdminInstagramRoute
   '/_admin/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/_admin/admin/reservas': typeof AdminAdminReservasRouteWithChildren
@@ -207,11 +225,13 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/anuncie'
+    | '/eventos'
     | '/propriedades'
     | '/sobre'
     | '/admin/login'
     | '/admin/calendario'
     | '/admin/configuracoes'
+    | '/admin/eventos'
     | '/admin/instagram'
     | '/admin/propriedades'
     | '/admin/reservas'
@@ -227,11 +247,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/anuncie'
+    | '/eventos'
     | '/propriedades'
     | '/sobre'
     | '/admin/login'
     | '/admin/calendario'
     | '/admin/configuracoes'
+    | '/admin/eventos'
     | '/admin/instagram'
     | '/admin/submissoes'
     | '/imovel/$slug'
@@ -247,12 +269,14 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_admin/admin'
     | '/_public/anuncie'
+    | '/_public/eventos'
     | '/_public/propriedades'
     | '/_public/sobre'
     | '/admin/login'
     | '/_public/'
     | '/_admin/admin/calendario'
     | '/_admin/admin/configuracoes'
+    | '/_admin/admin/eventos'
     | '/_admin/admin/instagram'
     | '/_admin/admin/propriedades'
     | '/_admin/admin/reservas'
@@ -316,6 +340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicPropriedadesRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_public/eventos': {
+      id: '/_public/eventos'
+      path: '/eventos'
+      fullPath: '/eventos'
+      preLoaderRoute: typeof PublicEventosRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_public/anuncie': {
       id: '/_public/anuncie'
       path: '/anuncie'
@@ -370,6 +401,13 @@ declare module '@tanstack/react-router' {
       path: '/instagram'
       fullPath: '/admin/instagram'
       preLoaderRoute: typeof AdminAdminInstagramRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
+    '/_admin/admin/eventos': {
+      id: '/_admin/admin/eventos'
+      path: '/eventos'
+      fullPath: '/admin/eventos'
+      preLoaderRoute: typeof AdminAdminEventosRouteImport
       parentRoute: typeof AdminAdminRoute
     }
     '/_admin/admin/configuracoes': {
@@ -458,6 +496,7 @@ const AdminAdminReservasRouteWithChildren =
 interface AdminAdminRouteChildren {
   AdminAdminCalendarioRoute: typeof AdminAdminCalendarioRoute
   AdminAdminConfiguracoesRoute: typeof AdminAdminConfiguracoesRoute
+  AdminAdminEventosRoute: typeof AdminAdminEventosRoute
   AdminAdminInstagramRoute: typeof AdminAdminInstagramRoute
   AdminAdminPropriedadesRoute: typeof AdminAdminPropriedadesRouteWithChildren
   AdminAdminReservasRoute: typeof AdminAdminReservasRouteWithChildren
@@ -468,6 +507,7 @@ interface AdminAdminRouteChildren {
 const AdminAdminRouteChildren: AdminAdminRouteChildren = {
   AdminAdminCalendarioRoute: AdminAdminCalendarioRoute,
   AdminAdminConfiguracoesRoute: AdminAdminConfiguracoesRoute,
+  AdminAdminEventosRoute: AdminAdminEventosRoute,
   AdminAdminInstagramRoute: AdminAdminInstagramRoute,
   AdminAdminPropriedadesRoute: AdminAdminPropriedadesRouteWithChildren,
   AdminAdminReservasRoute: AdminAdminReservasRouteWithChildren,
@@ -491,6 +531,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PublicRouteChildren {
   PublicAnuncieRoute: typeof PublicAnuncieRoute
+  PublicEventosRoute: typeof PublicEventosRoute
   PublicPropriedadesRoute: typeof PublicPropriedadesRoute
   PublicSobreRoute: typeof PublicSobreRoute
   PublicIndexRoute: typeof PublicIndexRoute
@@ -499,6 +540,7 @@ interface PublicRouteChildren {
 
 const PublicRouteChildren: PublicRouteChildren = {
   PublicAnuncieRoute: PublicAnuncieRoute,
+  PublicEventosRoute: PublicEventosRoute,
   PublicPropriedadesRoute: PublicPropriedadesRoute,
   PublicSobreRoute: PublicSobreRoute,
   PublicIndexRoute: PublicIndexRoute,
@@ -516,3 +558,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -12,6 +12,7 @@ import {
   LogOut,
   Inbox,
   Instagram,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,7 @@ const items = [
   { title: "Propriedades", url: "/admin/propriedades", icon: Home },
   { title: "Submissões", url: "/admin/submissoes", icon: Inbox, badge: "submissions" as const },
   { title: "Instagram", url: "/admin/instagram", icon: Instagram },
+  { title: "Eventos", url: "/admin/eventos", icon: CalendarDays },
   { title: "Calendário", url: "/admin/calendario", icon: Calendar },
   { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
 ] as const;
