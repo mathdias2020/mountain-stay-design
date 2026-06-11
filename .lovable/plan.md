@@ -1,40 +1,66 @@
-## Slideshow de propriedades — refinamento
+## Termos de Uso e Política de Privacidade
 
-### Diagnóstico do que já existe
+Admin sobe PDFs no painel; site mostra links que abrem em nova aba; mantém histórico de versões.
 
-- O slideshow na home já mostra propriedades em **uma linha com 3 colunas** (desktop), com **autoplay de 7 segundos**, loop infinito, pause no hover.
-- O admin **já tem** a tela `Admin → Home` com os 3 modos de curadoria: **Manual** (ordem específica completa), **Aleatório** e **Fixos + Aleatório** (1º, 2º e 3º fixos e o restante varia). Não precisa nem refazer nem duplicar.
-- A ordem das seções na home **já está exatamente como pediu**: Propriedades → Sobre → Instagram → Eventos → O que fazer. Nada a mover.
+### 1. Banco de dados (nova migração)
 
-### Único ajuste real necessário
+Nova tabela `legal_documents`:
+- `id` (uuid, pk)
+- `doc_type` (enum/text: `terms` | `privacy`)
+- `version` (int, auto-incremento por `doc_type`)
+- `storage_path` (text — caminho no bucket)
+- `file_size` (int), `original_filename` (text)
+- `is_current` (bool — só uma versão "atual" por tipo)
+- `uploaded_by` (uuid), `created_at` (timestamptz)
+- Índice em `(doc_type, is_current)` e `(doc_type, version)`
 
-Hoje o carrossel avança **uma página de 3 por vez** (slide 1 = props 1‑3, slide 2 = props 4‑6...). Vou trocar para o comportamento que descreveu: **avança 1 propriedade por vez** a cada 7 s, mantendo sempre 3 visíveis.
+RLS:
+- `SELECT` para `anon` e `authenticated` apenas onde `is_current = true` (para gerar URL pública)
+- `INSERT/UPDATE/DELETE` apenas admin (`has_role(auth.uid(), 'admin')`)
+- GRANTs explícitos conforme padrão
 
-Exemplo com 5 propriedades [A, B, C, D, E]:
-```text
-t=0s   [A B C]
-t=7s   [B C D]
-t=14s  [C D E]
-t=21s  [D E A]   ← loop infinito
-t=28s  [E A B]
-...
-```
+Novo bucket de Storage **`legal-documents`** (privado):
+- Caminho: `{terms|privacy}/v{N}-{timestamp}.pdf`
+- Policies em `storage.objects`: leitura aberta (anon + authenticated) só nesse bucket; escrita só admin
+- URL pública: ao clicar, gera **signed URL** de 1h via serverFn e abre em nova aba (mantém bucket privado, mas acessível por link temporário)
 
-### Implementação (sem remendos)
+### 2. Server functions (`src/lib/legal.functions.ts`)
 
-Arquivo único: `src/components/home/PropertiesSlideshow.tsx`.
+- `getCurrentLegalDoc({ docType })` — público; retorna `{ version, storage_path, signed_url, updated_at } | null`
+- `listLegalDocVersions({ docType })` — admin; lista histórico
+- `uploadLegalDoc({ docType, file })` — admin; valida MIME `application/pdf` e tamanho ≤ 10 MB, faz upload, cria registro com `version = max+1` e marca como `is_current` (transação que desmarca a anterior)
+- `setCurrentLegalDoc({ id })` — admin; permite reverter para versão anterior
+- `deleteLegalDocVersion({ id })` — admin; bloqueia exclusão da versão atual
 
-- Remover a função `chunk` e o conceito de "páginas".
-- `CarouselItem` passa a ser **uma propriedade** com `basis-1/3` no desktop (3 visíveis) e `basis-full` no mobile.
-- `opts={{ align: "start", loop: ordered.length > 3, slidesToScroll: 1 }}` — avança de 1 em 1.
-- Mantém: autoplay 7 s, pause no hover, reset do timer quando a lista muda, curadoria via `applyCuration`, respeito a filtros ativos.
-- Setas só aparecem quando `ordered.length > 3` (mesma regra de loop).
-- Unifica desktop/mobile no mesmo `<Carousel>` usando `basis-full sm:basis-1/2 lg:basis-1/3` — elimina a duplicação atual de dois carrosséis (um para mobile, outro para desktop).
+Todas usam `requireSupabaseAuth` + verificação `has_role('admin')` exceto `getCurrentLegalDoc`.
 
-### Fora do escopo (mas quero confirmar antes)
+### 3. Admin — nova aba dentro de `/admin/configuracoes`
 
-- **Manter o botão "Ver todas as propriedades"** abaixo do slideshow quando houver mais de 3? (hoje aparece — sugiro manter)
-- **Limite duro de 3 visíveis no desktop**, mesmo em telas muito largas? (sim, conforme pedido)
-- **Mobile**: 1 visível por vez, avançando de 1 em 1 a cada 7 s — OK?
+Adicionar um Card "Termos de Uso e Política de Privacidade" no fim da página (não criar rota nova, mantém tudo agrupado):
+- Duas seções (Termos / Privacidade), cada uma com:
+  - Versão atual exibida (nº, data, nome do arquivo) + botão "Abrir PDF atual"
+  - Input de upload (aceita só `.pdf`)
+  - Lista colapsável "Versões anteriores" com botões "Abrir", "Tornar atual", "Excluir"
+- Confirmação antes de "Tornar atual" e "Excluir"
+- Toasts de sucesso/erro
 
-Se aprovar, vou para build mode e faço só a edição do `PropertiesSlideshow.tsx`.
+### 4. Frontend público
+
+**Rodapé (`PublicFooter.tsx`)**: adicionar dois links "Termos de Uso" e "Política de Privacidade" abaixo do copyright. Cada link chama uma função que busca a signed URL via `getCurrentLegalDoc` e abre em `window.open(url, "_blank", "noopener,noreferrer")`. Se não houver doc cadastrado, link fica desabilitado/oculto.
+
+**Checkbox da reserva (`ReservationModal.tsx`)**: substituir o texto plano "Li e aceito os termos de uso e a política de reservas..." por:
+> "Li e aceito os [termos de uso](#) e a [política de privacidade](#) da RotainStay."
+
+Cada link abre o PDF correspondente em nova aba (mesma função do rodapé). Sem alteração na lógica de aceite.
+
+### 5. Detalhes técnicos
+
+- Componente reutilizável `<LegalLink docType="terms"|"privacy" className="..." children="..."/>` em `src/components/legal/LegalLink.tsx` — encapsula a busca + open
+- Signed URL gerada sob demanda no clique (não pré-buscar para todas as páginas) com cache de 5min via `useQuery` por `docType`
+- Validação no servidor: header MIME + magic bytes do PDF (`%PDF-`) para evitar uploads disfarçados
+
+### 6. Fora de escopo
+
+- Editor de texto rico / página HTML dedicada (`/termos`, `/privacidade`)
+- Notificação a usuários quando termos mudam
+- Registro de qual versão cada reserva aceitou (a coluna `terms_accepted` existente continua boolean simples)

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL, type PriceBreakdown } from "@/lib/pricing";
 import { createReservation } from "@/lib/reservations.functions";
 import type { PropertyDetail } from "@/lib/properties.functions";
+import { LegalLink } from "@/components/legal/LegalLink";
 
 interface Props {
   open: boolean;
@@ -366,8 +367,15 @@ export function ReservationModal({
                     className="mt-1"
                   />
                   <span>
-                    Li e aceito os termos de uso e a política de reservas da
-                    RotainStay.
+                    Li e aceito os{" "}
+                    <LegalLink docType="terms" className="text-primary">
+                      termos de uso
+                    </LegalLink>{" "}
+                    e a{" "}
+                    <LegalLink docType="privacy" className="text-primary">
+                      política de privacidade
+                    </LegalLink>{" "}
+                    da RotainStay.
                   </span>
                 </label>
                 {errors.terms && (

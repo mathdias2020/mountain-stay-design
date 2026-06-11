@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LegalDocsCard } from "@/components/admin/LegalDocsCard";
 
 export const Route = createFileRoute("/_admin/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — RotainStay" }] }),
@@ -224,6 +225,8 @@ function SettingsPage() {
           </p>
         </CardContent>
       </Card>
+
+      <LegalDocsCard />
 
       <div
         className="rounded-lg p-6"
