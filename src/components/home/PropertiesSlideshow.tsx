@@ -66,7 +66,7 @@ export function PropertiesSlideshow({
   return (
     <div className="relative">
       {/* Desktop / tablet: pages of up to 3 */}
-      <div className="hidden sm:block">
+      <div className="hidden sm:block sm:px-12">
         <Carousel
           opts={{ align: "start", loop }}
           plugins={loop ? [autoplay.current] : []}
@@ -90,8 +90,14 @@ export function PropertiesSlideshow({
           </CarouselContent>
           {loop && (
             <>
-              <CarouselPrevious className="-left-2 bg-white" aria-label="Anterior" />
-              <CarouselNext className="-right-2 bg-white" aria-label="Próximo" />
+              <CarouselPrevious
+                className="-left-12 bg-white shadow-sm"
+                aria-label="Anterior"
+              />
+              <CarouselNext
+                className="-right-12 bg-white shadow-sm"
+                aria-label="Próximo"
+              />
             </>
           )}
         </Carousel>
