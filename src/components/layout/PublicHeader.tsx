@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +34,12 @@ const NAV: NavItem[] = [
   { label: "Anuncie sua casa", to: "/anuncie" },
 ];
 
+const WHAT_TO_DO: { label: string; to: string }[] = [
+  { label: "Atrações", to: "/atracoes" },
+  { label: "Restaurantes", to: "/restaurantes" },
+  { label: "Passeios", to: "/passeios" },
+];
+
 export function PublicHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [scrolled, setScrolled] = useState(false);
@@ -60,6 +66,8 @@ export function PublicHeader() {
   }, [mobileOpen]);
 
   const isActive = (to: string) => pathname === to;
+  const whatToDoActive = WHAT_TO_DO.some((i) => pathname.startsWith(i.to));
+  const [whatToDoOpen, setWhatToDoOpen] = useState(false);
 
   return (
     <header
@@ -110,6 +118,50 @@ export function PublicHeader() {
               </Link>
             );
           })}
+          <div
+            className="relative"
+            onMouseEnter={() => setWhatToDoOpen(true)}
+            onMouseLeave={() => setWhatToDoOpen(false)}
+          >
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 transition-colors duration-200"
+              style={{
+                fontWeight: 500,
+                fontSize: 14,
+                color: whatToDoActive ? "#6B7052" : "#1C1C1A",
+                borderBottom: whatToDoActive
+                  ? "2px solid #6B7052"
+                  : "2px solid transparent",
+                paddingBottom: 4,
+              }}
+              aria-expanded={whatToDoOpen}
+            >
+              O que fazer
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {whatToDoOpen && (
+              <div
+                className="absolute left-1/2 top-full z-50 -translate-x-1/2 pt-2"
+              >
+                <div
+                  className="min-w-[180px] overflow-hidden rounded-md border bg-white shadow-lg"
+                  style={{ borderColor: "#E2E1DD" }}
+                >
+                  {WHAT_TO_DO.map((it) => (
+                    <Link
+                      key={it.to}
+                      to={it.to}
+                      className="block px-4 py-2.5 text-sm transition-colors hover:bg-secondary"
+                      style={{ color: "#1C1C1A" }}
+                    >
+                      {it.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -164,6 +216,34 @@ export function PublicHeader() {
                     fontSize: 15,
                     color: isActive(item.to) ? "#6B7052" : "#1C1C1A",
                     padding: 16,
+                    borderBottom: "1px solid #E2E1DD",
+                  }}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <div
+                style={{
+                  padding: "12px 16px 6px",
+                  fontSize: 12,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "#9A9890",
+                }}
+              >
+                O que fazer
+              </div>
+              {WHAT_TO_DO.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="block"
+                  onClick={() => setMobileOpen(false)}
+                  style={{
+                    fontWeight: 500,
+                    fontSize: 15,
+                    color: pathname.startsWith(item.to) ? "#6B7052" : "#1C1C1A",
+                    padding: "12px 24px",
                     borderBottom: "1px solid #E2E1DD",
                   }}
                 >
