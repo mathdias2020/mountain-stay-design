@@ -49,6 +49,54 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          button_label: string
+          button_url: string | null
+          city: string
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          image_path: string
+          is_active: boolean
+          sort_order: number
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          button_label?: string
+          button_url?: string | null
+          city: string
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          image_path: string
+          is_active?: boolean
+          sort_order?: number
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          button_label?: string
+          button_url?: string | null
+          city?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          image_path?: string
+          is_active?: boolean
+          sort_order?: number
+          start_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instagram_posts: {
         Row: {
           caption: string | null
