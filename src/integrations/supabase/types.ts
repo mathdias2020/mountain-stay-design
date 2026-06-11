@@ -49,6 +49,39 @@ export type Database = {
           },
         ]
       }
+      instagram_posts: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          image_path: string
+          is_active: boolean
+          post_url: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_path: string
+          is_active?: boolean
+          post_url?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_path?: string
+          is_active?: boolean
+          post_url?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       properties: {
         Row: {
           accepts_pets: boolean
