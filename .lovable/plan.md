@@ -1,86 +1,102 @@
-# Plano: RLS admin-only + storage hardening
+## Objetivo
 
-## 1. Função `public.is_admin()`
+1. Limitar a seção "Propriedades disponíveis" da home a **6 cards** (2 linhas × 3 colunas no desktop).
+2. Adicionar abaixo uma nova seção **"Siga no Instagram"** em formato de carrossel (setas + auto-play).
+3. Criar área no admin para cadastrar manualmente os posts do Instagram exibidos no carrossel.
 
-SECURITY DEFINER, STABLE, `search_path = public`, reaproveita `user_roles`:
+---
 
-```sql
-create or replace function public.is_admin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1 from public.user_roles
-    where user_id = auth.uid() and role = 'admin'
-  )
-$$;
-revoke all on function public.is_admin() from public;
-grant execute on function public.is_admin() to anon, authenticated;
-```
+## 1. Banco de dados
 
-Reaproveita o mesmo padrão do `has_role` já existente — não duplica lógica, só encurta o call site nas policies.
+Nova tabela `public.instagram_posts`:
 
-## 2. Policies por tabela
+| Campo         | Tipo         | Observação                                  |
+|---------------|--------------|---------------------------------------------|
+| image_path    | text         | path no bucket `instagram-photos`           |
+| caption       | text         | legenda curta, opcional                     |
+| post_url      | text         | link público do post no Instagram (opcional)|
+| sort_order    | int          | controla ordem de exibição                  |
+| is_active     | boolean      | admin pode ocultar sem deletar              |
 
-Padrão: DROP das policies `*_auth_*` atuais (USING true) e recriação restrita a `public.is_admin()`. Mantém o que é legitimamente público.
+- Bucket de Storage privado novo: `instagram-photos`.
+- RLS:
+  - Leitura pública (anon + authenticated) apenas de posts com `is_active = true`.
+  - INSERT/UPDATE/DELETE só para `is_admin()`.
+- Policies de Storage no bucket: SELECT público (anon, via signed URL renderizada server-side ou bucket público — usaremos signed URL no client, igual já feito em `submission-photos`, para manter padrão). Upload/Delete só admin.
 
-### properties
-- KEEP: `properties_public_read` (SELECT anon/auth, USING true) — vitrine pública.
-- REPLACE: `properties_auth_insert/update/delete` → exigir `is_admin()`.
+---
 
-### property_photos
-- KEEP: `photos_public_read`.
-- REPLACE: insert/update/delete → `is_admin()`.
+## 2. Home — limite de 6 propriedades
 
-### blocked_dates
-- KEEP: `blocked_public_read` — `expandBlockedDates`/`searchProperties` leem como anon.
-- REPLACE: insert/update/delete → `is_admin()`.
+Em `src/routes/_public.index.tsx`:
 
-### reservations
-- KEEP: `reservations_public_insert` (anon/auth, WITH CHECK true) — formulário público de reserva depende disso.
-- REPLACE: select/update/delete → `is_admin()`.
-- NÃO adicionar SELECT público (códigos de reserva não devem vazar).
+- Após buscar via `searchProperties`, exibir `properties.slice(0, 6)`.
+- Manter contagem total mostrada ao lado do título com base no array completo.
+- Adicionar abaixo do grid um botão **"Ver todas as propriedades"** linkando para `/propriedades` preservando os search params atuais (checkin/checkout/guests/city). O botão só aparece quando `total > 6`.
+- Grid já é `sm:grid-cols-2 lg:grid-cols-3`; com 6 itens dá exatamente 2×3 no desktop.
 
-### reservation_documents
-- REPLACE policy ALL → split em select/insert/update/delete restritos a `is_admin()`.
+Mobile fica com a coluna única atual (3 cards visíveis empilhados, depois mais 3) — sem mudança estrutural.
 
-### reservation_status_history
-- Trigger `reservations_log_status_change` roda em contexto da sessão → precisa que `authenticated` consiga INSERT. Como o trigger é disparado por UPDATE/INSERT em `reservations` (que já são admin-only para UPDATE; INSERT é público), e INSERT público em `reservations` também dispara o log inicial → INSERT precisa permanecer permissivo a `anon, authenticated` (WITH CHECK true) para não quebrar criação de reserva. SELECT/UPDATE/DELETE → `is_admin()`.
+---
 
-### site_settings
-- REPLACE ALL → split, todos exigem `is_admin()`. Sem leitura pública (nada no frontend público lê isso hoje).
+## 3. Nova seção pública "Siga no Instagram"
 
-### user_roles
-- KEEP: `user_roles_self_read` (usuário lê suas próprias roles — necessário para o gate do `_admin.tsx`).
-- ADD: insert/update/delete restritos a `is_admin()` (hoje não há policy → bloqueado, mas tornar explícito).
+Novo componente `src/components/home/InstagramCarousel.tsx`:
 
-## 3. Storage
+- Renderizado **abaixo** da seção de propriedades na home (`_public.index.tsx`).
+- Fetch via novo server fn público `getInstagramPosts` em `src/lib/instagram.functions.ts` (usa `supabaseAdmin` carregado dentro do handler; retorna apenas posts ativos, ordenados por `sort_order`, limit configurável).
+- Para cada post, gera signed URL da imagem (válida ~1h) no server fn e devolve no DTO.
+- Carrossel usa o `Carousel` do shadcn (Embla) já presente no projeto.
+  - Desktop: 4 cards visíveis por slide.
+  - Tablet: 2 cards.
+  - Mobile: 1 card.
+- Auto-play a cada 5s + setas (`CarouselPrevious` / `CarouselNext`). Plugin `embla-carousel-autoplay` (instalar) com pause-on-hover.
+- Cada card é quadrado (aspect-square), arredondado, mostra a imagem. Ao clicar abre `post_url` em nova aba se existir; caso contrário, sem ação.
+- Cabeçalho da seção: título "Siga no Instagram", subtítulo "Acompanhe nosso dia a dia em @rotainstay" (handle configurável depois) e link "Ver no Instagram".
+- Se não houver posts ativos, a seção não é renderizada.
 
-Buckets atuais: `property-photos` (privado), `reservation-docs` (privado).
+Acessibilidade: `aria-label` no carrossel, navegação por teclado (já suportada pelo componente).
 
-- `property-photos`: precisa de leitura pública (cards/galeria usam `public_url`). Como o bucket é privado, os `public_url` armazenados na tabela só funcionam se houver policy de SELECT pública em `storage.objects` para esse bucket. Adicionar:
-  - SELECT anon/auth WHERE `bucket_id = 'property-photos'`.
-  - INSERT/UPDATE/DELETE → `is_admin()`.
-- `reservation-docs`: tudo restrito a `is_admin()` (SELECT/INSERT/UPDATE/DELETE).
+---
 
-Observação: se as fotos já carregam hoje com bucket privado, é porque há policy permissiva pré-existente em `storage.objects`. Vou listar policies atuais antes de aplicar para não duplicar/quebrar — se já existir SELECT pública para `property-photos`, mantenho.
+## 4. Admin — CRUD de posts
 
-## 4. Validação após migration
+Nova rota: `src/routes/_admin.admin.instagram.tsx`.
 
-- Build automático do harness.
-- Rodar `supabase--linter` e reportar warnings (separando os relacionados à migration vs pré-existentes).
-- Smoke manual (mental, sem browser): vitrine pública (`properties_public_read` + `photos_public_read` + `blocked_public_read` permanecem), criação de reserva pública (`reservations_public_insert` + trigger history INSERT permissivo), admin (login + role) consegue CRUD via `is_admin()`.
+- Listagem em tabela: thumbnail, legenda, link, ordem, ativo (toggle), ações (editar/excluir).
+- Botão "Novo post" abre modal/form com:
+  - Upload de imagem (JPG/PNG/WEBP, até 10MB) para bucket `instagram-photos`.
+  - Campo legenda (textarea, opcional, até 280 chars).
+  - Campo URL do post (opcional, validação de URL).
+  - Campo ordem (number).
+  - Switch ativo.
+- Editar reusa o mesmo form.
+- Excluir: confirmação + remove arquivo do storage e linha do banco.
+- Item de menu novo no `AdminSidebar` chamado "Instagram".
 
-## 5. Fora do escopo
+---
 
-- Não vou tocar em `pricing.ts`, `properties.functions.ts`, `reservations.functions.ts` — esses já usam `supabaseAdmin` (service role) e ignoram RLS.
-- Não vou alterar checagem de role no React (continua como defesa em profundidade).
+## 5. Arquivos a criar/editar
 
-## Riscos
+**Criar**
+- `supabase/migrations/<timestamp>_instagram_posts.sql` — tabela, grants, RLS, bucket + policies.
+- `src/lib/instagram.functions.ts` — `getInstagramPosts` (público), `listInstagramPostsAdmin`, `createInstagramPost`, `updateInstagramPost`, `deleteInstagramPost`.
+- `src/components/home/InstagramCarousel.tsx`.
+- `src/routes/_admin.admin.instagram.tsx`.
 
-- Se o frontend público fizer SELECT em `reservations` (ex.: confirmação por código), vai parar de funcionar — preciso confirmar. Pela leitura do código atual, criação de reserva retorna dados via server function com `supabaseAdmin`, então não há leitura pública direta. **Confirme se existe alguma tela pública que lê reservations diretamente do client.**
+**Editar**
+- `src/routes/_public.index.tsx` — slice em 6, botão "Ver todas", montar `<InstagramCarousel />`.
+- `src/components/layout/AdminSidebar.tsx` — novo item "Instagram".
+- `package.json` — adicionar `embla-carousel-autoplay`.
 
-Posso aplicar?
+---
+
+## 6. Pontos não cobertos (intencional)
+
+- **Sem integração automática com Instagram Graph API**. Se no futuro quiser, plugamos por cima sem refazer a UI (mesma tabela, fonte de dados muda).
+- **Handle do Instagram** (`@rotainstay`) fica hardcoded no componente por enquanto; se quiser configurável via `site_settings`, posso incluir num próximo passo.
+- Não mudaremos `/propriedades`, `/sobre`, `/anuncie` nem nada do detalhe do imóvel.
+
+---
+
+Posso seguir com a implementação?
