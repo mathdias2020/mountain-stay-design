@@ -132,7 +132,7 @@ function HomePage() {
     <>
       <div
         className="bg-primary"
-        style={{ paddingBottom: (photoHeight ?? 280) + 32 + 4 }}
+        style={{ paddingBottom: (photoHeight ?? 280) + 32 + 3 }}
       >
         <Hero />
 
@@ -163,7 +163,7 @@ function HomePage() {
       <section
         ref={sectionRef}
         className="mx-auto max-w-7xl px-6 pb-12"
-        style={{ marginTop: -((photoHeight ?? 280) + 4) }}
+        style={{ marginTop: -((photoHeight ?? 280) + 3) }}
       >
 
         {isLoading ? (
