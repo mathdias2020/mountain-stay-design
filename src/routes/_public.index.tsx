@@ -114,29 +114,34 @@ function HomePage() {
 
   return (
     <>
-      <Hero />
+      <div className="bg-primary pb-40 md:pb-56">
+        <Hero />
 
-      <FiltersCard
-        initial={{
-          checkin: search.checkin,
-          checkout: search.checkout,
-          guests: search.guests,
-          city: search.city,
-        }}
-        onSearch={handleSearch}
-      />
+        <FiltersCard
+          initial={{
+            checkin: search.checkin,
+            checkout: search.checkout,
+            guests: search.guests,
+            city: search.city,
+          }}
+          onSearch={handleSearch}
+        />
 
-      <section className="mx-auto max-w-7xl px-6 py-12">
-        <div className="mb-6 flex items-baseline justify-center gap-2 text-center">
-          <h2 className="text-xl font-semibold text-text-primary">
-            Propriedades disponíveis
-          </h2>
-          {!isLoading && !isError && (
-            <span className="text-sm text-text-muted">
-              ({count} {count === 1 ? "casa encontrada" : "casas encontradas"})
-            </span>
-          )}
+        <div className="mx-auto max-w-7xl px-6 pt-12">
+          <div className="flex items-baseline justify-center gap-2 text-center">
+            <h2 className="text-xl font-semibold text-white">
+              Propriedades disponíveis
+            </h2>
+            {!isLoading && !isError && (
+              <span className="text-sm text-white/70">
+                ({count} {count === 1 ? "casa encontrada" : "casas encontradas"})
+              </span>
+            )}
+          </div>
         </div>
+      </div>
+
+      <section className="mx-auto max-w-7xl px-6 pb-12 -mt-40 md:-mt-56">
 
         {isLoading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
