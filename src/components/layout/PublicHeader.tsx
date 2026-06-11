@@ -29,6 +29,7 @@ type NavItem = { label: string; to: string };
 
 const NAV: NavItem[] = [
   { label: "Todas as propriedades", to: "/propriedades" },
+  { label: "Eventos", to: "/eventos" },
   { label: "Sobre", to: "/sobre" },
   { label: "Anuncie sua casa", to: "/anuncie" },
 ];
