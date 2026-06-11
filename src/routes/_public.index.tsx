@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
+import { useEffect, useRef, useState } from "react";
 import { Hero } from "@/components/home/Hero";
 import { FiltersCard, type HomeFilters } from "@/components/home/FiltersCard";
 import { PropertyCardSkeleton } from "@/components/home/PropertyCardSkeleton";
@@ -85,6 +86,21 @@ function HomePage() {
   const properties = data?.properties ?? [];
   const count = properties.length;
 
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [photoHeight, setPhotoHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const photo = section.querySelector<HTMLElement>("[data-card-photo]");
+    if (!photo) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setPhotoHeight(entry.contentRect.height);
+    });
+    ro.observe(photo);
+    return () => ro.disconnect();
+  }, [properties.length, isLoading]);
+
   const { data: curation } = useQuery({
     queryKey: ["home-curation"],
     queryFn: () => getHomeCuration(),
@@ -114,7 +130,10 @@ function HomePage() {
 
   return (
     <>
-      <div className="bg-primary pb-40 md:pb-56">
+      <div
+        className="bg-primary"
+        style={{ paddingBottom: (photoHeight ?? 280) + 32 }}
+      >
         <Hero />
 
         <FiltersCard
@@ -141,7 +160,11 @@ function HomePage() {
         </div>
       </div>
 
-      <section className="mx-auto max-w-7xl px-6 pb-12 -mt-32 md:-mt-48">
+      <section
+        ref={sectionRef}
+        className="mx-auto max-w-7xl px-6 pb-12"
+        style={{ marginTop: -(photoHeight ?? 280) }}
+      >
 
         {isLoading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

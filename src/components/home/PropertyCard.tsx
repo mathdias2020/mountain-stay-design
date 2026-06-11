@@ -32,7 +32,7 @@ export function PropertyCard({ property, showAvailability, searchParams }: Props
       )}
     >
       {/* Cover */}
-      <div className="relative aspect-[4/3] w-full bg-secondary">
+      <div data-card-photo className="relative aspect-[4/3] w-full bg-secondary">
         {hasImg ? (
           <img
             src={property.cover_url!}

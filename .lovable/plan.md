@@ -1,66 +1,37 @@
-## Termos de Uso e Política de Privacidade
+## Objetivo
 
-Admin sobe PDFs no painel; site mostra links que abrem em nova aba; mantém histórico de versões.
+Fazer o bloco verde da home terminar exatamente na linha que separa a foto do card e a área branca de informações, em qualquer tela.
 
-### 1. Banco de dados (nova migração)
+## Mudanças
 
-Nova tabela `legal_documents`:
-- `id` (uuid, pk)
-- `doc_type` (enum/text: `terms` | `privacy`)
-- `version` (int, auto-incremento por `doc_type`)
-- `storage_path` (text — caminho no bucket)
-- `file_size` (int), `original_filename` (text)
-- `is_current` (bool — só uma versão "atual" por tipo)
-- `uploaded_by` (uuid), `created_at` (timestamptz)
-- Índice em `(doc_type, is_current)` e `(doc_type, version)`
+Tudo em `src/routes/_public.index.tsx`. Nenhuma alteração em componentes, design system ou arquitetura.
 
-RLS:
-- `SELECT` para `anon` e `authenticated` apenas onde `is_current = true` (para gerar URL pública)
-- `INSERT/UPDATE/DELETE` apenas admin (`has_role(auth.uid(), 'admin')`)
-- GRANTs explícitos conforme padrão
+1. Adicionar um `ref` no primeiro card de foto do slideshow (via prop opcional `firstPhotoRef` no `PropertiesSlideshow`, ou — alternativa mais isolada — um `ref` no wrapper `<section>` e um `querySelector` para `[data-card-photo]`). Decisão: usar `data-card-photo` no `PropertyCard` (atributo de marcação, zero impacto) + `ref` no wrapper da section, e medir o primeiro elemento com esse atributo.
+2. Em `_public.index.tsx`: `useState<number | null>(null)` para guardar a altura da foto. Um `useEffect` cria um `ResizeObserver` que observa o primeiro `[data-card-photo]` e atualiza o state quando a altura muda.
+3. Substituir o `pb-40 md:pb-56` fixo do wrapper verde por um `paddingBottom` inline calculado: `alturaDaFoto + offsetDoTopoDoCardAteOSlideshow`. O offset é a distância entre o topo do `<section>` e o topo do card (que vem do `-mt` atual + qualquer espaçamento). Mais simples: usar `position: relative` no `<section>` e medir `card.offsetTop` dentro da section; o verde precisa cobrir até `sectionTop + cardOffsetTop + photoHeight`.
 
-Novo bucket de Storage **`legal-documents`** (privado):
-- Caminho: `{terms|privacy}/v{N}-{timestamp}.pdf`
-- Policies em `storage.objects`: leitura aberta (anon + authenticated) só nesse bucket; escrita só admin
-- URL pública: ao clicar, gera **signed URL** de 1h via serverFn e abre em nova aba (mantém bucket privado, mas acessível por link temporário)
+### Abordagem mais limpa
 
-### 2. Server functions (`src/lib/legal.functions.ts`)
+Em vez de calcular o padding do verde, inverter a lógica:
 
-- `getCurrentLegalDoc({ docType })` — público; retorna `{ version, storage_path, signed_url, updated_at } | null`
-- `listLegalDocVersions({ docType })` — admin; lista histórico
-- `uploadLegalDoc({ docType, file })` — admin; valida MIME `application/pdf` e tamanho ≤ 10 MB, faz upload, cria registro com `version = max+1` e marca como `is_current` (transação que desmarca a anterior)
-- `setCurrentLegalDoc({ id })` — admin; permite reverter para versão anterior
-- `deleteLegalDocVersion({ id })` — admin; bloqueia exclusão da versão atual
+- Verde vira `position: absolute` num wrapper `relative` que engloba Hero + Filters + título + parte do slideshow.
+- Altura do verde = `tituloBottom + gap + photoHeight` medidos via refs e `ResizeObserver`.
 
-Todas usam `requireSupabaseAuth` + verificação `has_role('admin')` exceto `getCurrentLegalDoc`.
+Mas isso muda mais coisa. Manter abordagem direta:
 
-### 3. Admin — nova aba dentro de `/admin/configuracoes`
+- Manter estrutura atual (wrapper verde com `pb` + section com `-mt`).
+- Trocar `pb-40 md:pb-56` por `style={{ paddingBottom: photoHeight + GAP }}` onde `GAP` é o espaço atual entre título e foto (~32px que já calibramos).
+- Trocar `-mt-32 md:-mt-48` por `style={{ marginTop: -(photoHeight + GAP - TITLE_TO_PHOTO_GAP) }}`... fica confuso.
 
-Adicionar um Card "Termos de Uso e Política de Privacidade" no fim da página (não criar rota nova, mantém tudo agrupado):
-- Duas seções (Termos / Privacidade), cada uma com:
-  - Versão atual exibida (nº, data, nome do arquivo) + botão "Abrir PDF atual"
-  - Input de upload (aceita só `.pdf`)
-  - Lista colapsável "Versões anteriores" com botões "Abrir", "Tornar atual", "Excluir"
-- Confirmação antes de "Tornar atual" e "Excluir"
-- Toasts de sucesso/erro
+### Simplificação final
 
-### 4. Frontend público
+Reescrever só este trecho assim:
+- Wrapper verde sem `pb` fixo; em vez disso, `pb` = altura da foto + 32px (gap atual desejado abaixo do título).
+- `<section>` com `-mt` = altura da foto (puxa o card pra cima exatamente o tanto da foto, deixando o verde terminar na divisória foto/info).
+- Fallback inicial (antes da medição): usar `pb-[420px]` / `-mt-[300px]` aproximados pra não dar flash visual.
 
-**Rodapé (`PublicFooter.tsx`)**: adicionar dois links "Termos de Uso" e "Política de Privacidade" abaixo do copyright. Cada link chama uma função que busca a signed URL via `getCurrentLegalDoc` e abre em `window.open(url, "_blank", "noopener,noreferrer")`. Se não houver doc cadastrado, link fica desabilitado/oculto.
+## Fora do escopo
 
-**Checkbox da reserva (`ReservationModal.tsx`)**: substituir o texto plano "Li e aceito os termos de uso e a política de reservas..." por:
-> "Li e aceito os [termos de uso](#) e a [política de privacidade](#) da RotainStay."
-
-Cada link abre o PDF correspondente em nova aba (mesma função do rodapé). Sem alteração na lógica de aceite.
-
-### 5. Detalhes técnicos
-
-- Componente reutilizável `<LegalLink docType="terms"|"privacy" className="..." children="..."/>` em `src/components/legal/LegalLink.tsx` — encapsula a busca + open
-- Signed URL gerada sob demanda no clique (não pré-buscar para todas as páginas) com cache de 5min via `useQuery` por `docType`
-- Validação no servidor: header MIME + magic bytes do PDF (`%PDF-`) para evitar uploads disfarçados
-
-### 6. Fora de escopo
-
-- Editor de texto rico / página HTML dedicada (`/termos`, `/privacidade`)
-- Notificação a usuários quando termos mudam
-- Registro de qual versão cada reserva aceitou (a coluna `terms_accepted` existente continua boolean simples)
+- Não mudar `PropertyCard` além de adicionar `data-card-photo` na div da imagem.
+- Não mudar `PropertiesSlideshow`, design system, ou outras seções.
+- Sem animação na transição do padding (atualização instantânea no resize).
