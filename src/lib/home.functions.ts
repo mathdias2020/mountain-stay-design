@@ -128,6 +128,18 @@ export const getHomeAbout = createServerFn({ method: "GET" }).handler(
   },
 );
 
+export const getWhatsappNumber = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ number: string | null }> => {
+    setResponseHeader(
+      "cache-control",
+      "public, max-age=60, s-maxage=120, stale-while-revalidate=600",
+    );
+    const raw = await readSetting("admin_whatsapp");
+    const digits = (raw ?? "").replace(/\D/g, "");
+    return { number: digits.length >= 8 ? digits : null };
+  },
+);
+
 // ---------- Admin ----------
 
 export const setHomeCuration = createServerFn({ method: "POST" })
