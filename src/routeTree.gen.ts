@@ -19,6 +19,7 @@ import { Route as PublicEventosRouteImport } from './routes/_public.eventos'
 import { Route as PublicAnuncieRouteImport } from './routes/_public.anuncie'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as PublicRestaurantesIndexRouteImport } from './routes/_public.restaurantes.index'
+import { Route as PublicPasseiosIndexRouteImport } from './routes/_public.passeios.index'
 import { Route as PublicAtracoesIndexRouteImport } from './routes/_public.atracoes.index'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
@@ -81,6 +82,11 @@ const AdminAdminRoute = AdminAdminRouteImport.update({
 const PublicRestaurantesIndexRoute = PublicRestaurantesIndexRouteImport.update({
   id: '/restaurantes/',
   path: '/restaurantes/',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicPasseiosIndexRoute = PublicPasseiosIndexRouteImport.update({
+  id: '/passeios/',
+  path: '/passeios/',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicAtracoesIndexRoute = PublicAtracoesIndexRouteImport.update({
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/imovel/$slug': typeof PublicImovelSlugRoute
   '/admin/': typeof AdminAdminIndexRoute
   '/atracoes/': typeof PublicAtracoesIndexRoute
+  '/passeios/': typeof PublicPasseiosIndexRoute
   '/restaurantes/': typeof PublicRestaurantesIndexRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/imovel/$slug': typeof PublicImovelSlugRoute
   '/admin': typeof AdminAdminIndexRoute
   '/atracoes': typeof PublicAtracoesIndexRoute
+  '/passeios': typeof PublicPasseiosIndexRoute
   '/restaurantes': typeof PublicRestaurantesIndexRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/admin/reservas/$id': typeof AdminAdminReservasIdRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_public/atracoes/': typeof PublicAtracoesIndexRoute
+  '/_public/passeios/': typeof PublicPasseiosIndexRoute
   '/_public/restaurantes/': typeof PublicRestaurantesIndexRoute
   '/_admin/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
   '/_admin/admin/reservas/$id': typeof AdminAdminReservasIdRoute
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/imovel/$slug'
     | '/admin/'
     | '/atracoes/'
+    | '/passeios/'
     | '/restaurantes/'
     | '/admin/propriedades/nova'
     | '/admin/reservas/$id'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/imovel/$slug'
     | '/admin'
     | '/atracoes'
+    | '/passeios'
     | '/restaurantes'
     | '/admin/propriedades/nova'
     | '/admin/reservas/$id'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/_public/imovel/$slug'
     | '/_admin/admin/'
     | '/_public/atracoes/'
+    | '/_public/passeios/'
     | '/_public/restaurantes/'
     | '/_admin/admin/propriedades/nova'
     | '/_admin/admin/reservas/$id'
@@ -390,6 +402,13 @@ declare module '@tanstack/react-router' {
       path: '/restaurantes'
       fullPath: '/restaurantes/'
       preLoaderRoute: typeof PublicRestaurantesIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/passeios/': {
+      id: '/_public/passeios/'
+      path: '/passeios'
+      fullPath: '/passeios/'
+      preLoaderRoute: typeof PublicPasseiosIndexRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_public/atracoes/': {
@@ -575,6 +594,7 @@ interface PublicRouteChildren {
   PublicIndexRoute: typeof PublicIndexRoute
   PublicImovelSlugRoute: typeof PublicImovelSlugRoute
   PublicAtracoesIndexRoute: typeof PublicAtracoesIndexRoute
+  PublicPasseiosIndexRoute: typeof PublicPasseiosIndexRoute
   PublicRestaurantesIndexRoute: typeof PublicRestaurantesIndexRoute
 }
 
@@ -586,6 +606,7 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicIndexRoute: PublicIndexRoute,
   PublicImovelSlugRoute: PublicImovelSlugRoute,
   PublicAtracoesIndexRoute: PublicAtracoesIndexRoute,
+  PublicPasseiosIndexRoute: PublicPasseiosIndexRoute,
   PublicRestaurantesIndexRoute: PublicRestaurantesIndexRoute,
 }
 
