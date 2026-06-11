@@ -22,9 +22,7 @@ async function loadEvents(limit?: number): Promise<EventPublic[]> {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  let query = supabaseAdmin
-    // @ts-expect-error events table not yet in generated types
-    .from("events")
+  let query = (supabaseAdmin.from as unknown as (t: string) => ReturnType<typeof supabaseAdmin.from>)("events")
     .select(
       "id, image_path, title, description, city, start_date, end_date, button_label, button_url",
     )
