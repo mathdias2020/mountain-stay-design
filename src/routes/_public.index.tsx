@@ -132,7 +132,7 @@ function HomePage() {
     <>
       <div
         className="bg-primary"
-        style={{ paddingBottom: (photoHeight ?? 280) + 32 }}
+        style={{ paddingBottom: (photoHeight ?? 280) + 33 }}
       >
         <Hero />
 
