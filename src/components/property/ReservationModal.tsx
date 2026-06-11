@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, Minus, Plus, X } from "lucide-react";
@@ -481,6 +481,41 @@ function SuccessView({
   whatsapp: string | null;
   onClose: () => void;
 }) {
+  const hasWhatsapp = !!whatsapp;
+  const waUrl = hasWhatsapp
+    ? `https://wa.me/${whatsapp!.replace(/\D/g, "")}?text=${encodeURIComponent(
+        `Acabei de solicitar uma reserva no site. O código da reserva é ${code}.`,
+      )}`
+    : null;
+
+  const [countdown, setCountdown] = useState(hasWhatsapp ? 3 : 0);
+  const [blocked, setBlocked] = useState(false);
+  const firedRef = useRef(false);
+
+  const openWhatsApp = () => {
+    if (!waUrl) return;
+    const win = window.open(waUrl, "_blank", "noopener,noreferrer");
+    if (!win) {
+      setBlocked(true);
+      return;
+    }
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!hasWhatsapp) return;
+    if (countdown <= 0) {
+      if (!firedRef.current) {
+        firedRef.current = true;
+        openWhatsApp();
+      }
+      return;
+    }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdown, hasWhatsapp]);
+
   return (
     <div className="py-4 text-center">
       <DialogTitle className="sr-only">Solicitação enviada</DialogTitle>
@@ -506,9 +541,31 @@ function SuccessView({
           <> Entraremos em contato pelo WhatsApp em breve para confirmar os detalhes.</>
         )}
       </p>
-      <Button variant="primary" className="mt-6 w-full" onClick={onClose}>
-        Fechar
-      </Button>
+      {hasWhatsapp ? (
+        <>
+          {blocked && (
+            <p className="mt-4 text-xs text-danger">
+              Seu navegador bloqueou a abertura automática. Clique no botão abaixo para continuar.
+            </p>
+          )}
+          <Button
+            variant="primary"
+            className="mt-6 w-full"
+            onClick={() => {
+              firedRef.current = true;
+              openWhatsApp();
+            }}
+          >
+            {countdown > 0
+              ? `Confirmar no WhatsApp (${countdown}…)`
+              : "Confirmar no WhatsApp"}
+          </Button>
+        </>
+      ) : (
+        <Button variant="primary" className="mt-6 w-full" onClick={onClose}>
+          Fechar
+        </Button>
+      )}
     </div>
   );
 }
