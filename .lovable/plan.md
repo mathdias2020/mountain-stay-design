@@ -1,31 +1,40 @@
-## Botão flutuante de WhatsApp
+## Slideshow de propriedades — refinamento
 
-### O que ficará pronto
+### Diagnóstico do que já existe
 
-- Uma "bolinha" verde flutuante fixa no canto inferior direito de todas as páginas públicas (home, propriedades, eventos, atrações etc.).
-- Ao clicar, abre o WhatsApp **em uma nova aba** com a mensagem pré-preenchida: `Vim do site e tenho uma dúvida`.
-- O número usado vem da configuração que o admin já edita em **Admin → Configurações → WhatsApp**. Se o campo estiver vazio, o botão simplesmente não aparece (nada quebrado).
+- O slideshow na home já mostra propriedades em **uma linha com 3 colunas** (desktop), com **autoplay de 7 segundos**, loop infinito, pause no hover.
+- O admin **já tem** a tela `Admin → Home` com os 3 modos de curadoria: **Manual** (ordem específica completa), **Aleatório** e **Fixos + Aleatório** (1º, 2º e 3º fixos e o restante varia). Não precisa nem refazer nem duplicar.
+- A ordem das seções na home **já está exatamente como pediu**: Propriedades → Sobre → Instagram → Eventos → O que fazer. Nada a mover.
 
-### O que NÃO muda
+### Único ajuste real necessário
 
-- A página de admin de Configurações **já existe** e o campo do número do WhatsApp **já está lá** (`admin_whatsapp` em `site_settings`). Não vou duplicar tela nem mexer nesse fluxo.
-- Nada na home, no header, no rodapé ou nas demais páginas é alterado — só é adicionado o widget.
+Hoje o carrossel avança **uma página de 3 por vez** (slide 1 = props 1‑3, slide 2 = props 4‑6...). Vou trocar para o comportamento que descreveu: **avança 1 propriedade por vez** a cada 7 s, mantendo sempre 3 visíveis.
 
-### Implementação técnica
+Exemplo com 5 propriedades [A, B, C, D, E]:
+```text
+t=0s   [A B C]
+t=7s   [B C D]
+t=14s  [C D E]
+t=21s  [D E A]   ← loop infinito
+t=28s  [E A B]
+...
+```
 
-1. **Server function pública** (em `src/lib/home.functions.ts`):
-   - `getWhatsappNumber()` — leitura cacheada (60s) do `site_settings.admin_whatsapp`, retornando `{ number: string | null }` já normalizado (só dígitos, sem `+`, espaços ou parênteses).
-2. **Componente** `src/components/layout/FloatingWhatsApp.tsx`:
-   - Usa `useQuery` para buscar o número.
-   - Renderiza um `<a href="https://wa.me/<numero>?text=<msg encodada>" target="_blank" rel="noopener noreferrer">` com ícone (`MessageCircle` ou ícone do WhatsApp via SVG inline).
-   - Estilo: bolinha verde do WhatsApp (`#25D366`), 56px, fixed bottom-right, sombra, leve hover scale, acessível (`aria-label="Falar no WhatsApp"`).
-3. **Montagem**: incluir `<FloatingWhatsApp />` dentro do `PublicLayout` em `src/routes/_public.tsx` (fora do `<main>`, no nível raiz), assim aparece em qualquer rota pública.
-4. **Sem mudanças no admin**, sem migração nova, sem secret novo.
+### Implementação (sem remendos)
 
-### Detalhes pequenos a confirmar
+Arquivo único: `src/components/home/PropertiesSlideshow.tsx`.
 
-- **Mensagem fixa**: `Vim do site e tenho uma dúvida` — confirmado pelo briefing.
-- **Onde aparece**: todas as páginas públicas. (Posso esconder no admin se quiser — vou esconder por padrão já que admin está em layout separado.)
-- **Mobile**: bolinha continua no canto inferior direito; em mobile ela pode subir um pouco (~24px do fundo) para não cobrir botões nativos. OK assim?
+- Remover a função `chunk` e o conceito de "páginas".
+- `CarouselItem` passa a ser **uma propriedade** com `basis-1/3` no desktop (3 visíveis) e `basis-full` no mobile.
+- `opts={{ align: "start", loop: ordered.length > 3, slidesToScroll: 1 }}` — avança de 1 em 1.
+- Mantém: autoplay 7 s, pause no hover, reset do timer quando a lista muda, curadoria via `applyCuration`, respeito a filtros ativos.
+- Setas só aparecem quando `ordered.length > 3` (mesma regra de loop).
+- Unifica desktop/mobile no mesmo `<Carousel>` usando `basis-full sm:basis-1/2 lg:basis-1/3` — elimina a duplicação atual de dois carrosséis (um para mobile, outro para desktop).
 
-Se aprovar, troco para build mode e implemento.
+### Fora do escopo (mas quero confirmar antes)
+
+- **Manter o botão "Ver todas as propriedades"** abaixo do slideshow quando houver mais de 3? (hoje aparece — sugiro manter)
+- **Limite duro de 3 visíveis no desktop**, mesmo em telas muito largas? (sim, conforme pedido)
+- **Mobile**: 1 visível por vez, avançando de 1 em 1 a cada 7 s — OK?
+
+Se aprovar, vou para build mode e faço só a edição do `PropertiesSlideshow.tsx`.
