@@ -127,7 +127,7 @@ function HomePage() {
       />
 
       <section className="mx-auto max-w-7xl px-6 py-12">
-        <div className="mb-6 flex items-baseline gap-2">
+        <div className="mb-6 flex items-baseline justify-center gap-2 text-center">
           <h2 className="text-xl font-semibold text-text-primary">
             Propriedades disponíveis
           </h2>
