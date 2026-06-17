@@ -13,7 +13,7 @@ import { EventsSection } from "@/components/home/EventsSection";
 import { PropertiesSlideshow } from "@/components/home/PropertiesSlideshow";
 import { AboutSection } from "@/components/home/AboutSection";
 import { WhatToDoSection } from "@/components/home/WhatToDoSection";
-import { getHomeCuration } from "@/lib/home.functions";
+import { getHomeCuration, getHomeHero } from "@/lib/home.functions";
 
 const CITY_VALUES = [
   "Domingos Martins",
@@ -55,6 +55,12 @@ export const Route = createFileRoute("/_public/")({
 function HomePage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+
+  const { data: hero } = useQuery({
+    queryKey: ["home-hero"],
+    queryFn: () => getHomeHero(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const hasDateRange = Boolean(search.checkin && search.checkout);
   const hasFilters = Boolean(
@@ -134,7 +140,7 @@ function HomePage() {
         className="bg-primary"
         style={{ paddingBottom: (photoHeight ?? 280) + 32 + 1 }}
       >
-        <Hero />
+        <Hero imageUrl={hero?.image_url} overlayOpacity={hero?.overlay_opacity ?? 35} />
 
         <FiltersCard
           initial={{
