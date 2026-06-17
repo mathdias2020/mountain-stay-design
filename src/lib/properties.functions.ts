@@ -255,7 +255,7 @@ export type PropertyDetail = {
   checkin_time: string;
   checkout_time: string;
   accepts_pets: boolean;
-  amenities: string[];
+  amenities: { slug: string; label: string; category: string }[];
   house_rules: string | null;
   photos: PropertyPhoto[];
   blocked_ranges: BlockedRange[];
@@ -320,6 +320,57 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
         .in("status", blockingStatuses)
         .gte("checkout_date", today),
     ]);
+
+    // Resolve amenity slugs -> label + category
+    const slugList = Array.isArray(prop.amenities)
+      ? (prop.amenities as unknown[]).filter(
+          (s): s is string => typeof s === "string",
+        )
+      : [];
+    let amenityRows: {
+      slug: string;
+      label: string;
+      category: string;
+      sort_cat: number;
+      sort_item: number;
+    }[] = [];
+    if (slugList.length) {
+      const { data: amData } = await supabaseAdmin
+        .from("amenities")
+        .select(
+          "slug, name, sort_order, amenity_categories!inner(name, sort_order)",
+        )
+        .in("slug", slugList);
+      type Row = {
+        slug: string;
+        name: string;
+        sort_order: number;
+        amenity_categories:
+          | { name: string; sort_order: number }
+          | { name: string; sort_order: number }[]
+          | null;
+      };
+      const rows = (amData ?? []) as Row[];
+      amenityRows = rows.map((r) => {
+        const cat = Array.isArray(r.amenity_categories)
+          ? r.amenity_categories[0]
+          : r.amenity_categories;
+        return {
+          slug: r.slug,
+          label: r.name,
+          category: cat?.name ?? "",
+          sort_cat: cat?.sort_order ?? 9999,
+          sort_item: r.sort_order ?? 9999,
+        };
+      });
+      amenityRows.sort(
+        (a, b) =>
+          a.sort_cat - b.sort_cat ||
+          a.category.localeCompare(b.category) ||
+          a.sort_item - b.sort_item ||
+          a.label.localeCompare(b.label),
+      );
+    }
     const photoRows = photosRes.data;
     const blocks = blocksRes.data;
     const reservs = reservsRes.data;
@@ -382,9 +433,11 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
       checkin_time: prop.checkin_time,
       checkout_time: prop.checkout_time,
       accepts_pets: prop.accepts_pets,
-      amenities: Array.isArray(prop.amenities)
-        ? (prop.amenities as string[])
-        : [],
+      amenities: amenityRows.map((a) => ({
+        slug: a.slug,
+        label: a.label,
+        category: a.category,
+      })),
       house_rules: prop.house_rules,
       photos,
       blocked_ranges,
