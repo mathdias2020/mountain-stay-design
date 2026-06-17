@@ -1,77 +1,34 @@
-## Objetivo
+## Problema
 
-Criar no painel admin uma área para gerenciar o catálogo de comodidades (famílias + itens). Depois, no cadastro/edição de propriedades, a lista de checkboxes passa a vir desse catálogo (não mais da constante fixa em `src/lib/property-form.ts`).
+Depois de adicionar a imagem de fundo no Hero, o card de busca (Check-in / Check-out / Hóspedes / Região / Buscar) está sendo coberto pela faixa verde / overlay do Hero no topo, como mostra o print. O card precisa ficar **acima** do Hero (ele já sobrepõe o Hero por design — `-mt-8`), e a faixa verde/imagem do Hero precisa ficar **atrás**.
 
-## Estrutura de dados (banco)
+## Causa
 
-Duas tabelas novas em `public`:
+O `<Hero>` agora tem `position: relative` com uma `<img>` e um `<div>` de overlay (`absolute inset-0`) dentro dele. O `<FiltersCard>` é irmão posterior, mas o wrapper externo do card (`<div className="mx-auto -mt-8 max-w-5xl px-6">`) não tem `position` nem `z-index`, então em alguns cenários (com a presença do overlay absoluto + `overflow-hidden` no Hero) o card termina visualmente abaixo da faixa final do Hero.
 
-`**amenity_categories**` (famílias, ex: "Área Externa", "Cozinha Completa")
+## Correção (mínima, só visual)
 
-- `id` (uuid), `name` (text, único), `sort_order` (int), `is_active` (bool), timestamps
+Arquivo: `src/components/home/FiltersCard.tsx`
 
-`**amenities**` (itens individuais)
+- Alterar o wrapper externo de:
+  ```
+  <div className="mx-auto -mt-8 max-w-5xl px-6">
+  ```
+  para:
+  ```
+  <div className="relative z-10 mx-auto -mt-8 max-w-5xl px-6">
+  ```
 
-- `id` (uuid), `category_id` (fk → amenity_categories), `name` (text), `slug` (text, único — usado para gravar em `properties.amenities`), `sort_order` (int), `is_active` (bool), timestamps
-- Unique (`category_id`, `name`)
+Isso garante que o card crie um contexto de empilhamento próprio e fique pintado **por cima** da imagem + overlay do Hero, mantendo o efeito de "card flutuando sobre o hero verde/foto" que já era a intenção.
 
-RLS:
+## Fora do escopo
 
-- Leitura pública (`anon` + `authenticated`) somente de itens com `is_active = true` — a home/página da propriedade precisa renderizar os labels.
-- Escrita (insert/update/delete) só para admins (via `has_role(auth.uid(), 'admin')`).
+- Não mexer no layout do Hero (altura, padding, opacidade, imagem) — só ajustar a sobreposição.
+- Não mexer em business logic, dados, ou em outras seções da home.
 
-Seed: migração popula com toda a lista que você mandou (famílias + itens, na ordem que você enviou).
+## Verificação
 
-**Propriedades existentes:** o campo `properties.amenities` (text[]) continua igual. Vamos gravar `slug` dos itens nele. Uma migração de dados mapeia os valores antigos ("Piscina", "Wi-Fi", etc.) para os novos slugs equivalentes; itens antigos sem correspondência viram um item novo "legado" ou são preservados como string livre (a decidir — ver pergunta abaixo).
-
-## Backend (server functions)
-
-Novo arquivo `src/lib/amenities.functions.ts`:
-
-- `listAmenityCatalog()` — público, retorna famílias ativas com seus itens ativos, ordenados. Usado pelo form de propriedade e pela página pública.
-- `listAmenityCatalogAdmin()` — admin, retorna tudo (inclusive inativos) para a tela de gestão.
-- `createCategory`, `updateCategory`, `deleteCategory` — admin.
-- `createAmenity`, `updateAmenity`, `deleteAmenity` — admin.
-- `reorderCategories`, `reorderAmenities` — admin (atualizam `sort_order`).
-
-Todas as mutações usam `requireSupabaseAuth` + checagem `has_role('admin')`.
-
-## Frontend admin
-
-Nova rota: `src/routes/_admin.admin.comodidades.tsx`
-
-- Lista famílias (colapsáveis) com seus itens.
-- Botões: nova família, novo item, editar, ativar/desativar, excluir, reordenar (drag ou setas ↑↓).
-- Link no `AdminSidebar` ("Comodidades", abaixo de "Propriedades" ou em "Configurações" — ver pergunta).
-
-## Frontend cadastro de propriedade
-
-`src/components/admin/PropertyForm.tsx`:
-
-- Substituir a constante `AMENITY_OPTIONS` por uma query ao catálogo (`listAmenityCatalog`).
-- Renderizar checkboxes agrupados por família (hoje é uma lista flat).
-- `accepts_pets` continua como flag separada (não vira amenity), igual hoje.
-
-`src/lib/property-form.ts`:
-
-- Remover `AMENITY_OPTIONS` e `PETS_AMENITY` (ou manter `PETS_AMENITY` se ainda usado).
-- `amenities` no schema continua `z.array(z.string())` — guarda slugs.
-
-## Frontend público (página da propriedade)
-
-`src/components/property/AmenitiesList.tsx`:
-
-- Hoje resolve label via mapa local fixo + ícones do `lucide-react`.
-- Mudar para receber labels já resolvidos (ou buscar do catálogo). Ícones: ver pergunta abaixo.
-
-## Migração de dados
-
-Uma migração SQL faz o de-para dos valores atuais em `properties.amenities` (ex: "Piscina" → `piscina-privativa` ou novo slug genérico) para os slugs do novo catálogo. Itens sem match: opção A — criar item "legado" e manter; opção B — descartar; opção C — preservar string original.
-
-## Perguntas respondidads:
-
-1. **Ícones**: ícone padrão (check) para tudo.
-2. **Onde colocar no menu admin**: dentro de `/admin/configuracoes` como uma aba
-3. **Migração dos dados existentes** (propriedades já cadastradas com amenities antigas): tentar mapear automaticamente para os novos slugs equivalentes e descartar o que não bater
-4. **Famílias/itens**: pode seguir exatamente a lista que mandei 
-  &nbsp;
+Abrir `/` no preview e confirmar:
+- O card de busca aparece inteiro, branco, com cantos arredondados visíveis.
+- A faixa verde / foto do Hero fica atrás do card (não mais cobrindo o topo dele).
+- Em mobile, o card continua centralizado e sem ser cortado.
