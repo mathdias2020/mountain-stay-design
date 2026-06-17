@@ -144,7 +144,11 @@ export const updateAmenityCategory = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import(
       "@/integrations/supabase/client.server"
     );
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      name?: string;
+      sort_order?: number;
+      is_active?: boolean;
+    } = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.sort_order !== undefined) patch.sort_order = data.sort_order;
     if (data.is_active !== undefined) patch.is_active = data.is_active;
@@ -239,7 +243,12 @@ export const updateAmenity = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import(
       "@/integrations/supabase/client.server"
     );
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      name?: string;
+      category_id?: string;
+      sort_order?: number;
+      is_active?: boolean;
+    } = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.category_id !== undefined) patch.category_id = data.category_id;
     if (data.sort_order !== undefined) patch.sort_order = data.sort_order;
