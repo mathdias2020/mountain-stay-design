@@ -60,7 +60,7 @@ export function FiltersCard({ initial, onSearch }: Props) {
   };
 
   return (
-    <div className="mx-auto -mt-8 max-w-5xl px-6">
+    <div className="relative z-10 mx-auto -mt-8 max-w-5xl px-6">
       <div
         className="rounded-[14px] bg-white p-5"
         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}
