@@ -14,11 +14,12 @@ export type ImageCropDialogProps = {
   open: boolean;
   source: Source | null;
   title?: string;
+  aspect?: number;
   onCancel: () => void;
   onConfirm: (cropped: File) => void;
 };
 
-export function ImageCropDialog({ open, source, title = "Recortar foto", onCancel, onConfirm }: ImageCropDialogProps) {
+export function ImageCropDialog({ open, source, title = "Recortar foto", aspect = CROP_ASPECT, onCancel, onConfirm }: ImageCropDialogProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -89,7 +90,7 @@ export function ImageCropDialog({ open, source, title = "Recortar foto", onCance
               image={imageUrl}
               crop={crop}
               zoom={zoom}
-              aspect={CROP_ASPECT}
+              aspect={aspect}
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onCropComplete={onComplete}
@@ -101,7 +102,7 @@ export function ImageCropDialog({ open, source, title = "Recortar foto", onCance
           <div style={{ fontSize: 12, color: "#5C5B57", marginBottom: 6 }}>Zoom</div>
           <Slider value={[zoom]} min={1} max={4} step={0.05} onValueChange={(v) => setZoom(v[0])} />
           <p style={{ fontSize: 12, color: "#9A9890", marginTop: 10 }}>
-            Proporção fixa 4:3 — arraste para enquadrar.
+            Arraste para enquadrar — proporção fixa.
           </p>
         </div>
         <DialogFooter>

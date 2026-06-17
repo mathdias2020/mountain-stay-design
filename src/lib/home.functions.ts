@@ -32,6 +32,29 @@ const aboutSchema = z.object({
   cta_label: z.string().min(1).max(60),
 });
 
+export type HomeHero = {
+  image_path: string;
+  overlay_opacity: number; // 0-100
+};
+
+const heroSchema = z.object({
+  image_path: z.string(),
+  overlay_opacity: z.number().int().min(0).max(100),
+});
+
+function defaultHero(): HomeHero {
+  return { image_path: "", overlay_opacity: 35 };
+}
+
+function parseHero(raw: unknown): HomeHero {
+  try {
+    const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return heroSchema.parse(obj);
+  } catch {
+    return defaultHero();
+  }
+}
+
 function defaultCuration(): PropertiesCuration {
   return { mode: "random", pinned_ids: [null, null, null], manual_order: [] };
 }
@@ -128,6 +151,21 @@ export const getHomeAbout = createServerFn({ method: "GET" }).handler(
   },
 );
 
+export const getHomeHero = createServerFn({ method: "GET" }).handler(
+  async (): Promise<HomeHero & { image_url: string | null }> => {
+    setResponseHeader(
+      "cache-control",
+      "public, max-age=60, s-maxage=120, stale-while-revalidate=600",
+    );
+    const raw = await readSetting("home_hero");
+    const hero = parseHero(raw);
+    const image_url = hero.image_path
+      ? await signOne("home-assets", hero.image_path)
+      : null;
+    return { ...hero, image_url };
+  },
+);
+
 export const getWhatsappNumber = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ number: string | null }> => {
     setResponseHeader(
@@ -157,6 +195,15 @@ export const setHomeAbout = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     await writeSetting("home_about", data);
+    return { ok: true };
+  });
+
+export const setHomeHero = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: HomeHero) => heroSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    await writeSetting("home_hero", data);
     return { ok: true };
   });
 
