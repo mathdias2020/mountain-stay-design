@@ -20,10 +20,15 @@ import {
   getHomeAbout,
   setHomeCuration,
   setHomeAbout,
+  getHomeHero,
+  setHomeHero,
   type CurationMode,
   type PropertiesCuration,
   type HomeAbout,
+  type HomeHero,
 } from "@/lib/home.functions";
+import { ImageCropDialog } from "@/components/admin/ImageCropDialog";
+import { Slider } from "@/components/ui/slider";
 
 export const Route = createFileRoute("/_admin/admin/home")({
   head: () => ({ meta: [{ title: "Home — RotainStay" }] }),
@@ -34,6 +39,9 @@ type PropOption = { id: string; name: string; city: string };
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 10 * 1024 * 1024;
+const HERO_ASPECT = 1920 / 720; // 8:3
+const HERO_MIN_W = 1920;
+const HERO_MIN_H = 720;
 
 function HomeAdmin() {
   const qc = useQueryClient();
@@ -130,6 +138,92 @@ function HomeAdmin() {
     }
   };
 
+  // ---- Hero ----
+  const { data: heroRemote } = useQuery({
+    queryKey: ["admin", "home", "hero"],
+    queryFn: () => getHomeHero(),
+  });
+  const [hero, setHero] = useState<HomeHero | null>(null);
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  const [heroPendingFile, setHeroPendingFile] = useState<File | null>(null);
+  const [heroUploading, setHeroUploading] = useState(false);
+
+  useEffect(() => {
+    if (heroRemote && !hero) {
+      const { image_url, ...rest } = heroRemote;
+      setHero(rest);
+      setHeroImageUrl(image_url);
+    }
+  }, [heroRemote, hero]);
+
+  const onHeroFileSelected = async (file: File) => {
+    if (!ALLOWED.includes(file.type)) {
+      toast.error("Formato inválido. Use JPG, PNG ou WebP.");
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      toast.error("Imagem muito grande (máx 10 MB).");
+      return;
+    }
+    // Validate min dimensions
+    const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Não foi possível ler a imagem."));
+      };
+      img.src = url;
+    }).catch((e) => {
+      toast.error(e instanceof Error ? e.message : "Erro ao ler imagem");
+      return null;
+    });
+    if (!dims) return;
+    if (dims.w < HERO_MIN_W || dims.h < HERO_MIN_H) {
+      toast.error(
+        `A imagem precisa ter no mínimo ${HERO_MIN_W}×${HERO_MIN_H}px (atual: ${dims.w}×${dims.h}).`,
+      );
+      return;
+    }
+    setHeroPendingFile(file);
+  };
+
+  const onHeroCropConfirmed = async (cropped: File) => {
+    setHeroPendingFile(null);
+    setHeroUploading(true);
+    try {
+      const path = `hero/${crypto.randomUUID()}.jpg`;
+      const { error } = await supabase.storage
+        .from("home-assets")
+        .upload(path, cropped, { contentType: "image/jpeg" });
+      if (error) throw error;
+      setHero((h) => (h ? { ...h, image_path: path } : h));
+      const { data } = await supabase.storage
+        .from("home-assets")
+        .createSignedUrl(path, 60 * 60);
+      setHeroImageUrl(data?.signedUrl ?? null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao subir imagem");
+    } finally {
+      setHeroUploading(false);
+    }
+  };
+
+  const saveHero = async () => {
+    if (!hero) return;
+    try {
+      await setHomeHero({ data: hero });
+      toast.success("Hero da home salvo");
+      qc.invalidateQueries({ queryKey: ["home-hero"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    }
+  };
+
   if (!curation || !about) {
     return (
       <div className="p-8 flex items-center gap-2 text-text-secondary">
@@ -163,6 +257,105 @@ function HomeAdmin() {
 
   return (
     <div className="space-y-10 p-6 md:p-8">
+      {/* Hero image */}
+      {hero && (
+        <section className="rounded-[14px] border border-border bg-white p-6">
+          <header className="mb-4">
+            <h2 className="text-xl font-semibold text-text-primary">
+              Imagem de fundo do hero
+            </h2>
+            <p className="text-sm text-text-secondary">
+              Aparece atrás do título principal na home, do final do menu até o
+              card de busca. Tamanho recomendado: <strong>1920×720px</strong>{" "}
+              (mínimo). Proporção fixa 8:3 — você poderá ajustar o enquadramento
+              após o upload.
+            </p>
+          </header>
+
+          <div
+            className="overflow-hidden rounded-[14px] border border-border"
+            style={{ aspectRatio: "8 / 3", background: "#f5f4f0", position: "relative" }}
+          >
+            {heroImageUrl ? (
+              <>
+                <img
+                  src={heroImageUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{ background: `rgba(0,0,0,${hero.overlay_opacity / 100})` }}
+                />
+              </>
+            ) : (
+              <div className="flex h-full items-center justify-center text-text-muted text-sm">
+                Sem imagem — a home usa o gradiente verde padrão
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <label className="inline-flex items-center gap-2 cursor-pointer rounded-md border border-border px-3 py-2 text-sm hover:bg-secondary">
+              <Upload className="h-4 w-4" />
+              {heroUploading ? "Subindo…" : heroImageUrl ? "Trocar imagem" : "Enviar imagem"}
+              <input
+                type="file"
+                accept={ALLOWED.join(",")}
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onHeroFileSelected(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {hero.image_path && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setHero({ ...hero, image_path: "" });
+                  setHeroImageUrl(null);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1" /> Remover
+              </Button>
+            )}
+          </div>
+
+          <div className="mt-5 max-w-md">
+            <Label>Opacidade do overlay escuro: {hero.overlay_opacity}%</Label>
+            <Slider
+              value={[hero.overlay_opacity]}
+              min={0}
+              max={80}
+              step={5}
+              onValueChange={(v) => setHero({ ...hero, overlay_opacity: v[0] })}
+              className="mt-2"
+            />
+            <p className="mt-1 text-[12px] text-text-muted">
+              Mais opacidade = texto mais legível, foto menos vibrante. Padrão 35%.
+            </p>
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <Button onClick={saveHero}>
+              <Save className="h-4 w-4 mr-2" /> Salvar hero
+            </Button>
+          </div>
+
+          <ImageCropDialog
+            open={!!heroPendingFile}
+            source={heroPendingFile ? { kind: "file", file: heroPendingFile } : null}
+            aspect={HERO_ASPECT}
+            title="Recortar imagem do hero (8:3)"
+            onCancel={() => setHeroPendingFile(null)}
+            onConfirm={onHeroCropConfirmed}
+          />
+        </section>
+      )}
+
       {/* Slideshow curation */}
       <section className="rounded-[14px] border border-border bg-white p-6">
         <header className="mb-4">
