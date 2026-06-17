@@ -1,37 +1,77 @@
 ## Objetivo
 
-Fazer o bloco verde da home terminar exatamente na linha que separa a foto do card e a área branca de informações, em qualquer tela.
+Criar no painel admin uma área para gerenciar o catálogo de comodidades (famílias + itens). Depois, no cadastro/edição de propriedades, a lista de checkboxes passa a vir desse catálogo (não mais da constante fixa em `src/lib/property-form.ts`).
 
-## Mudanças
+## Estrutura de dados (banco)
 
-Tudo em `src/routes/_public.index.tsx`. Nenhuma alteração em componentes, design system ou arquitetura.
+Duas tabelas novas em `public`:
 
-1. Adicionar um `ref` no primeiro card de foto do slideshow (via prop opcional `firstPhotoRef` no `PropertiesSlideshow`, ou — alternativa mais isolada — um `ref` no wrapper `<section>` e um `querySelector` para `[data-card-photo]`). Decisão: usar `data-card-photo` no `PropertyCard` (atributo de marcação, zero impacto) + `ref` no wrapper da section, e medir o primeiro elemento com esse atributo.
-2. Em `_public.index.tsx`: `useState<number | null>(null)` para guardar a altura da foto. Um `useEffect` cria um `ResizeObserver` que observa o primeiro `[data-card-photo]` e atualiza o state quando a altura muda.
-3. Substituir o `pb-40 md:pb-56` fixo do wrapper verde por um `paddingBottom` inline calculado: `alturaDaFoto + offsetDoTopoDoCardAteOSlideshow`. O offset é a distância entre o topo do `<section>` e o topo do card (que vem do `-mt` atual + qualquer espaçamento). Mais simples: usar `position: relative` no `<section>` e medir `card.offsetTop` dentro da section; o verde precisa cobrir até `sectionTop + cardOffsetTop + photoHeight`.
+`**amenity_categories**` (famílias, ex: "Área Externa", "Cozinha Completa")
 
-### Abordagem mais limpa
+- `id` (uuid), `name` (text, único), `sort_order` (int), `is_active` (bool), timestamps
 
-Em vez de calcular o padding do verde, inverter a lógica:
+`**amenities**` (itens individuais)
 
-- Verde vira `position: absolute` num wrapper `relative` que engloba Hero + Filters + título + parte do slideshow.
-- Altura do verde = `tituloBottom + gap + photoHeight` medidos via refs e `ResizeObserver`.
+- `id` (uuid), `category_id` (fk → amenity_categories), `name` (text), `slug` (text, único — usado para gravar em `properties.amenities`), `sort_order` (int), `is_active` (bool), timestamps
+- Unique (`category_id`, `name`)
 
-Mas isso muda mais coisa. Manter abordagem direta:
+RLS:
 
-- Manter estrutura atual (wrapper verde com `pb` + section com `-mt`).
-- Trocar `pb-40 md:pb-56` por `style={{ paddingBottom: photoHeight + GAP }}` onde `GAP` é o espaço atual entre título e foto (~32px que já calibramos).
-- Trocar `-mt-32 md:-mt-48` por `style={{ marginTop: -(photoHeight + GAP - TITLE_TO_PHOTO_GAP) }}`... fica confuso.
+- Leitura pública (`anon` + `authenticated`) somente de itens com `is_active = true` — a home/página da propriedade precisa renderizar os labels.
+- Escrita (insert/update/delete) só para admins (via `has_role(auth.uid(), 'admin')`).
 
-### Simplificação final
+Seed: migração popula com toda a lista que você mandou (famílias + itens, na ordem que você enviou).
 
-Reescrever só este trecho assim:
-- Wrapper verde sem `pb` fixo; em vez disso, `pb` = altura da foto + 32px (gap atual desejado abaixo do título).
-- `<section>` com `-mt` = altura da foto (puxa o card pra cima exatamente o tanto da foto, deixando o verde terminar na divisória foto/info).
-- Fallback inicial (antes da medição): usar `pb-[420px]` / `-mt-[300px]` aproximados pra não dar flash visual.
+**Propriedades existentes:** o campo `properties.amenities` (text[]) continua igual. Vamos gravar `slug` dos itens nele. Uma migração de dados mapeia os valores antigos ("Piscina", "Wi-Fi", etc.) para os novos slugs equivalentes; itens antigos sem correspondência viram um item novo "legado" ou são preservados como string livre (a decidir — ver pergunta abaixo).
 
-## Fora do escopo
+## Backend (server functions)
 
-- Não mudar `PropertyCard` além de adicionar `data-card-photo` na div da imagem.
-- Não mudar `PropertiesSlideshow`, design system, ou outras seções.
-- Sem animação na transição do padding (atualização instantânea no resize).
+Novo arquivo `src/lib/amenities.functions.ts`:
+
+- `listAmenityCatalog()` — público, retorna famílias ativas com seus itens ativos, ordenados. Usado pelo form de propriedade e pela página pública.
+- `listAmenityCatalogAdmin()` — admin, retorna tudo (inclusive inativos) para a tela de gestão.
+- `createCategory`, `updateCategory`, `deleteCategory` — admin.
+- `createAmenity`, `updateAmenity`, `deleteAmenity` — admin.
+- `reorderCategories`, `reorderAmenities` — admin (atualizam `sort_order`).
+
+Todas as mutações usam `requireSupabaseAuth` + checagem `has_role('admin')`.
+
+## Frontend admin
+
+Nova rota: `src/routes/_admin.admin.comodidades.tsx`
+
+- Lista famílias (colapsáveis) com seus itens.
+- Botões: nova família, novo item, editar, ativar/desativar, excluir, reordenar (drag ou setas ↑↓).
+- Link no `AdminSidebar` ("Comodidades", abaixo de "Propriedades" ou em "Configurações" — ver pergunta).
+
+## Frontend cadastro de propriedade
+
+`src/components/admin/PropertyForm.tsx`:
+
+- Substituir a constante `AMENITY_OPTIONS` por uma query ao catálogo (`listAmenityCatalog`).
+- Renderizar checkboxes agrupados por família (hoje é uma lista flat).
+- `accepts_pets` continua como flag separada (não vira amenity), igual hoje.
+
+`src/lib/property-form.ts`:
+
+- Remover `AMENITY_OPTIONS` e `PETS_AMENITY` (ou manter `PETS_AMENITY` se ainda usado).
+- `amenities` no schema continua `z.array(z.string())` — guarda slugs.
+
+## Frontend público (página da propriedade)
+
+`src/components/property/AmenitiesList.tsx`:
+
+- Hoje resolve label via mapa local fixo + ícones do `lucide-react`.
+- Mudar para receber labels já resolvidos (ou buscar do catálogo). Ícones: ver pergunta abaixo.
+
+## Migração de dados
+
+Uma migração SQL faz o de-para dos valores atuais em `properties.amenities` (ex: "Piscina" → `piscina-privativa` ou novo slug genérico) para os slugs do novo catálogo. Itens sem match: opção A — criar item "legado" e manter; opção B — descartar; opção C — preservar string original.
+
+## Perguntas respondidads:
+
+1. **Ícones**: ícone padrão (check) para tudo.
+2. **Onde colocar no menu admin**: dentro de `/admin/configuracoes` como uma aba
+3. **Migração dos dados existentes** (propriedades já cadastradas com amenities antigas): tentar mapear automaticamente para os novos slugs equivalentes e descartar o que não bater
+4. **Famílias/itens**: pode seguir exatamente a lista que mandei 
+  &nbsp;
