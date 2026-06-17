@@ -5,7 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Plus, Star, Trash2, Upload, X } from "lucide-react";
+import { Crop, Plus, Star, Trash2, Upload, X } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -45,6 +45,7 @@ import {
   type PropertyFormValues,
 } from "@/lib/property-form";
 import { listAmenityCatalog } from "@/lib/amenities.functions";
+import { ImageCropDialog } from "@/components/admin/ImageCropDialog";
 
 type ExistingPhoto = {
   id: string;
@@ -149,6 +150,14 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
       .map((p) => ({ kind: "existing" as const, data: p }))
   );
 
+  // Crop queue (new uploads) and single-photo recrop
+  const [cropQueue, setCropQueue] = useState<File[]>([]);
+  const [recropTarget, setRecropTarget] = useState<
+    | { kind: "new"; tempId: string; file: File }
+    | { kind: "existing"; id: string; url: string }
+    | null
+  >(null);
+
   useEffect(() => {
     return () => {
       photos.forEach((p) => {
@@ -175,7 +184,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
       return;
     }
     const arr = Array.from(files).slice(0, remaining);
-    const valid: PhotoItem[] = [];
+    const valid: File[] = [];
     for (const file of arr) {
       if (!ACCEPTED_TYPES.includes(file.type)) {
         toast.error(`${file.name}: tipo não suportado`);
@@ -185,15 +194,87 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
         toast.error(`${file.name}: maior que 5MB`);
         continue;
       }
-      valid.push({
+      valid.push(file);
+    }
+    if (valid.length) setCropQueue((q) => [...q, ...valid]);
+  }
+
+  function handleCropConfirm(croppedFile: File) {
+    if (recropTarget) {
+      const target = recropTarget;
+      setRecropTarget(null);
+      if (target.kind === "new") {
+        setPhotos((prev) =>
+          prev.map((p) => {
+            if (p.kind === "new" && p.tempId === target.tempId) {
+              URL.revokeObjectURL(p.previewUrl);
+              return {
+                ...p,
+                file: croppedFile,
+                previewUrl: URL.createObjectURL(croppedFile),
+              };
+            }
+            return p;
+          }),
+        );
+      } else {
+        // Replace existing: mark old for deletion, add new
+        setPhotos((prev) => {
+          const next: PhotoItem[] = [];
+          let wasCover = false;
+          for (const p of prev) {
+            if (p.kind === "existing" && p.data.id === target.id) {
+              wasCover = p.data.is_cover;
+              next.push({ ...p, markedForDeletion: true });
+            } else {
+              next.push(p);
+            }
+          }
+          next.push({
+            kind: "new",
+            tempId: crypto.randomUUID(),
+            file: croppedFile,
+            previewUrl: URL.createObjectURL(croppedFile),
+            isCover: wasCover,
+          });
+          return next;
+        });
+      }
+      return;
+    }
+    // Coming from the new-upload queue
+    setCropQueue((q) => q.slice(1));
+    setPhotos((prev) => [
+      ...prev,
+      {
         kind: "new",
         tempId: crypto.randomUUID(),
-        file,
-        previewUrl: URL.createObjectURL(file),
+        file: croppedFile,
+        previewUrl: URL.createObjectURL(croppedFile),
         isCover: false,
-      });
+      },
+    ]);
+  }
+
+  function handleCropCancel() {
+    if (recropTarget) {
+      setRecropTarget(null);
+      return;
     }
-    setPhotos((prev) => [...prev, ...valid]);
+    // Skip current file in queue
+    setCropQueue((q) => q.slice(1));
+  }
+
+  function requestRecrop(key: string) {
+    const item = photos.find(
+      (p) => (p.kind === "existing" ? p.data.id : p.tempId) === key,
+    );
+    if (!item) return;
+    if (item.kind === "new") {
+      setRecropTarget({ kind: "new", tempId: item.tempId, file: item.file });
+    } else {
+      setRecropTarget({ kind: "existing", id: item.data.id, url: item.data.public_url });
+    }
   }
 
   function removePhoto(key: string) {
@@ -702,6 +783,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
                         isCover={isCover}
                         onRemove={() => removePhoto(key)}
                         onSetCover={() => setCover(key)}
+                        onRecrop={() => requestRecrop(key)}
                       />
                     );
                   })}
@@ -711,6 +793,22 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
           </div>
         )}
       </section>
+
+      <ImageCropDialog
+        open={!!recropTarget || cropQueue.length > 0}
+        source={
+          recropTarget
+            ? recropTarget.kind === "new"
+              ? { kind: "file", file: recropTarget.file }
+              : { kind: "url", url: recropTarget.url }
+            : cropQueue[0]
+              ? { kind: "file", file: cropQueue[0] }
+              : null
+        }
+        title={recropTarget ? "Recortar foto" : `Recortar foto (${cropQueue.length} restante${cropQueue.length === 1 ? "" : "s"})`}
+        onCancel={handleCropCancel}
+        onConfirm={handleCropConfirm}
+      />
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3">
@@ -868,12 +966,14 @@ function PhotoThumb({
   isCover,
   onRemove,
   onSetCover,
+  onRecrop,
 }: {
   id: string;
   url: string;
   isCover: boolean;
   onRemove: () => void;
   onSetCover: () => void;
+  onRecrop: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
@@ -949,6 +1049,33 @@ function PhotoThumb({
         }}
       >
         <Star size={14} color="#B07D2E" fill={isCover ? "#B07D2E" : "transparent"} />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRecrop();
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        aria-label="Recortar"
+        title="Recortar"
+        style={{
+          position: "absolute",
+          bottom: 4,
+          right: 4,
+          width: 24,
+          height: 24,
+          borderRadius: 999,
+          background: "rgba(0,0,0,0.6)",
+          color: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: 0,
+          cursor: "pointer",
+        }}
+      >
+        <Crop size={13} />
       </button>
     </div>
   );
