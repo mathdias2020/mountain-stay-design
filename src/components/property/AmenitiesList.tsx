@@ -1,77 +1,53 @@
-import {
-  Waves,
-  Flame,
-  Wifi,
-  Snowflake,
-  Tv,
-  ChefHat,
-  WashingMachine,
-  Car,
-  PawPrint,
-  Accessibility,
-  Mountain,
-  Droplets,
-  Gamepad2,
-  Check,
-  type LucideIcon,
-} from "lucide-react";
+import { Check } from "lucide-react";
 
-type AmenityDef = { key: string; label: string; icon: LucideIcon };
+export type AmenityListItem = {
+  slug: string;
+  label: string;
+  category: string;
+};
 
-export const AMENITIES: AmenityDef[] = [
-  { key: "pool", label: "Piscina", icon: Waves },
-  { key: "bbq", label: "Churrasqueira", icon: Flame },
-  { key: "wifi", label: "Wi-Fi", icon: Wifi },
-  { key: "fireplace", label: "Lareira", icon: Flame },
-  { key: "ac", label: "Ar-condicionado", icon: Snowflake },
-  { key: "tv", label: "TV Smart", icon: Tv },
-  { key: "kitchen", label: "Cozinha equipada", icon: ChefHat },
-  { key: "washer", label: "Máquina de lavar", icon: WashingMachine },
-  { key: "parking", label: "Estacionamento", icon: Car },
-  { key: "pets", label: "Aceita pets", icon: PawPrint },
-  { key: "accessibility", label: "Acessibilidade", icon: Accessibility },
-  { key: "mountain_view", label: "Vista para montanha", icon: Mountain },
-  { key: "waterfall", label: "Beira de cachoeira", icon: Droplets },
-  { key: "games", label: "Área de jogos", icon: Gamepad2 },
-];
-
-const BY_KEY = new Map(AMENITIES.map((a) => [a.key, a]));
-const BY_LABEL = new Map(
-  AMENITIES.map((a) => [a.label.toLowerCase(), a]),
-);
-
-function resolveAmenity(raw: string): AmenityDef {
-  const k = raw.toLowerCase().trim();
-  return (
-    BY_KEY.get(k) ??
-    BY_LABEL.get(k) ??
-    { key: raw, label: raw, icon: Check }
-  );
-}
-
-export function AmenitiesList({ items }: { items: string[] }) {
+export function AmenitiesList({ items }: { items: AmenityListItem[] }) {
   if (!items || items.length === 0) {
     return (
-      <p className="text-sm text-text-muted">
-        Nenhuma comodidade informada.
-      </p>
+      <p className="text-sm text-text-muted">Nenhuma comodidade informada.</p>
     );
   }
+
+  // Group by category preserving incoming order
+  const groups: { category: string; items: AmenityListItem[] }[] = [];
+  const idx = new Map<string, number>();
+  for (const it of items) {
+    const key = it.category || "Outros";
+    if (!idx.has(key)) {
+      idx.set(key, groups.length);
+      groups.push({ category: key, items: [] });
+    }
+    groups[idx.get(key)!].items.push(it);
+  }
+
   return (
-    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {items.map((raw) => {
-        const a = resolveAmenity(raw);
-        const Icon = a.icon;
-        return (
-          <li
-            key={raw}
-            className="flex items-center gap-2 text-sm text-text-secondary"
-          >
-            <Icon className="h-4 w-4 text-primary" strokeWidth={1.75} />
-            {a.label}
-          </li>
-        );
-      })}
-    </ul>
+    <div className="space-y-5">
+      {groups.map((g) => (
+        <div key={g.category}>
+          <h3 className="mb-2 text-sm font-semibold text-text-primary">
+            {g.category}
+          </h3>
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {g.items.map((a) => (
+              <li
+                key={a.slug}
+                className="flex items-center gap-2 text-sm text-text-secondary"
+              >
+                <Check
+                  className="h-4 w-4 text-primary"
+                  strokeWidth={1.75}
+                />
+                {a.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
   );
 }

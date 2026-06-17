@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Plus, Star, Trash2, Upload, X } from "lucide-react";
 import {
@@ -36,14 +38,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  AMENITY_OPTIONS,
   CITY_OPTIONS,
-  PETS_AMENITY,
   defaultPropertyValues,
   propertyFormSchema,
   slugify,
   type PropertyFormValues,
 } from "@/lib/property-form";
+import { listAmenityCatalog } from "@/lib/amenities.functions";
 
 type ExistingPhoto = {
   id: string;
@@ -127,6 +128,14 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
   const tier = watch("tier");
   const slug = useMemo(() => slugify(name || ""), [name]);
 
+  // Amenity catalog (admin selects from)
+  const listCatalog = useServerFn(listAmenityCatalog);
+  const { data: catalog } = useQuery({
+    queryKey: ["amenity-catalog"],
+    queryFn: () => listCatalog(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { fields: hsFields, append: hsAppend, remove: hsRemove } = useFieldArray({
     control,
     name: "high_season_dates",
@@ -148,20 +157,6 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Keep accepts_pets and amenities['Aceita pets'] in sync (toggle is the source).
-  useEffect(() => {
-    const has = amenities.includes(PETS_AMENITY);
-    if (acceptsPets && !has) {
-      setValue("amenities", [...amenities, PETS_AMENITY]);
-    } else if (!acceptsPets && has) {
-      setValue(
-        "amenities",
-        amenities.filter((a) => a !== PETS_AMENITY)
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [acceptsPets]);
 
   function toggleAmenity(name: string, checked: boolean) {
     const cur = watch("amenities") || [];
@@ -602,19 +597,49 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
       {/* Comodidades */}
       <section style={sectionStyle}>
         <h2 style={sectionTitleStyle}>Comodidades</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {AMENITY_OPTIONS.filter((a) => a !== PETS_AMENITY).map((a) => {
-            const checked = amenities.includes(a);
-            return (
-              <label key={a} className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={(v) => toggleAmenity(a, !!v)}
-                />
-                <span style={{ fontSize: 14, color: "#2F2E2A" }}>{a}</span>
-              </label>
-            );
-          })}
+        {!catalog && (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        )}
+        {catalog && catalog.categories.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Nenhuma comodidade cadastrada. Cadastre famílias e itens em
+            Configurações &gt; Comodidades.
+          </p>
+        )}
+        <div className="space-y-5">
+          {(catalog?.categories ?? []).map((cat) => (
+            <div key={cat.id}>
+              <h3
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#5C5B57",
+                  marginBottom: 8,
+                }}
+              >
+                {cat.name}
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {cat.items.map((it) => {
+                  const checked = amenities.includes(it.slug);
+                  return (
+                    <label
+                      key={it.slug}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => toggleAmenity(it.slug, !!v)}
+                      />
+                      <span style={{ fontSize: 14, color: "#2F2E2A" }}>
+                        {it.name}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
         <div className="mt-4 pt-4 border-t flex items-center justify-between">
           <Label>Aceita animais de estimação</Label>
