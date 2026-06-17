@@ -9,25 +9,6 @@ export const CITY_OPTIONS = [
   "Outro",
 ] as const;
 
-export const AMENITY_OPTIONS = [
-  "Piscina",
-  "Churrasqueira",
-  "Wi-Fi",
-  "Lareira",
-  "Ar-condicionado",
-  "TV Smart",
-  "Cozinha equipada",
-  "Máquina de lavar",
-  "Estacionamento",
-  "Aceita pets",
-  "Acessibilidade",
-  "Vista para montanha",
-  "Beira de cachoeira",
-  "Área de jogos",
-] as const;
-
-export const PETS_AMENITY = "Aceita pets";
-
 export function slugify(input: string): string {
   return (input || "")
     .toString()
