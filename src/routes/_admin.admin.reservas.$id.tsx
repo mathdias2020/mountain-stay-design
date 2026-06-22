@@ -65,6 +65,7 @@ type Reservation = {
   admin_notes: string | null;
   property_id: string;
   property_name: string | null;
+  payment_method: string | null;
 };
 
 function statusColor(status: string) {
@@ -121,7 +122,7 @@ function ReservationDetailPage() {
       const { data: r } = await supabase
         .from("reservations")
         .select(
-          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id"
+          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id, payment_method"
         )
         .eq("id", id)
         .maybeSingle();
@@ -250,6 +251,16 @@ function InformationCard({ r }: { r: Reservation }) {
         />
         <Field label="Pets" value={r.num_pets > 0 ? `${r.num_pets}` : "Não"} />
         <Field label="Veículos" value={`${r.num_vehicles}`} />
+        <Field
+          label="Método de pagamento"
+          value={
+            r.payment_method === "pix"
+              ? "Pix"
+              : r.payment_method === "card"
+                ? "Cartão"
+                : "Não informado"
+          }
+        />
       </div>
     </Card>
   );

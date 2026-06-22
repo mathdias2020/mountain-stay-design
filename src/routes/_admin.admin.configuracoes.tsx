@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LegalDocsCard } from "@/components/admin/LegalDocsCard";
 import { AmenitiesManager } from "@/components/admin/AmenitiesManager";
+import { getPixSettings, setPixSettings } from "@/lib/payment.functions";
 
 export const Route = createFileRoute("/_admin/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — RotainStay" }] }),
@@ -183,6 +184,8 @@ function SettingsPage() {
         </CardContent>
       </Card>
 
+      <PixSettingsCard />
+
       <Card>
         <CardHeader>
           <CardTitle>Minha conta</CardTitle>
@@ -254,5 +257,135 @@ function SettingsPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+function PixSettingsCard() {
+  const qc = useQueryClient();
+  const { data, refetch } = useQuery({
+    queryKey: ["pix-settings"],
+    queryFn: () => getPixSettings(),
+  });
+
+  const [key, setKey] = useState("");
+  const [beneficiary, setBeneficiary] = useState("");
+  const [path, setPath] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (data) {
+      setKey(data.pix_key);
+      setBeneficiary(data.pix_beneficiary);
+      setPath(data.pix_qr_code_path);
+    }
+  }, [data]);
+
+  async function handleUpload(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem (PNG ou JPG).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem maior que 5MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const newPath = `pix/qr-code-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("home-assets")
+        .upload(newPath, file, { contentType: file.type, upsert: false });
+      if (error) throw error;
+      setPath(newPath);
+      toast.success("Imagem carregada. Clique em Salvar para confirmar.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha no upload.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await setPixSettings({
+        data: {
+          pix_key: key.trim(),
+          pix_beneficiary: beneficiary.trim(),
+          pix_qr_code_path: path.trim(),
+        },
+      });
+      await qc.invalidateQueries({ queryKey: ["pix-settings"] });
+      await refetch();
+      toast.success("Configurações Pix salvas.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao salvar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Pagamento Pix</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1">
+          <Label htmlFor="pix-key">Chave Pix</Label>
+          <Input
+            id="pix-key"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            placeholder="CNPJ, CPF, e-mail, telefone ou chave aleatória"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="pix-beneficiary">Nome do beneficiário</Label>
+          <Input
+            id="pix-beneficiary"
+            value={beneficiary}
+            onChange={(e) => setBeneficiary(e.target.value)}
+            placeholder="Nome que aparece no recibo"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label>Imagem do QR Code</Label>
+          {data?.qr_code_url && path === data.pix_qr_code_path ? (
+            <img
+              src={data.qr_code_url}
+              alt="QR Code Pix atual"
+              className="h-40 w-40 rounded-md border border-input bg-white object-contain p-2"
+            />
+          ) : path ? (
+            <p className="text-xs text-muted-foreground">
+              Nova imagem em <code>{path}</code>. Salve para aplicar.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Nenhuma imagem definida.
+            </p>
+          )}
+          <Input
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
+            disabled={uploading}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleUpload(f);
+              e.target.value = "";
+            }}
+          />
+          {uploading && (
+            <p className="text-xs text-muted-foreground">Enviando...</p>
+          )}
+        </div>
+        <Button onClick={save} disabled={saving || uploading}>
+          {saving ? "Salvando..." : "Salvar"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

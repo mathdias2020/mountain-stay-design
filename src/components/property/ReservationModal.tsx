@@ -1,13 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Minus, Plus, X } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, Copy, CreditCard, Minus, Plus, QrCode, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import { formatBRL, type PriceBreakdown } from "@/lib/pricing";
 import { createReservation } from "@/lib/reservations.functions";
+import {
+  getPixSettings,
+  setReservationPaymentMethod,
+} from "@/lib/payment.functions";
 import type { PropertyDetail } from "@/lib/properties.functions";
 import { LegalLink } from "@/components/legal/LegalLink";
 
@@ -71,9 +75,13 @@ export function ReservationModal({
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
+    id: string;
     code: string;
     whatsapp: string | null;
   } | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "card" | null>(
+    null,
+  );
 
   // Reset on open
   useEffect(() => {
@@ -87,7 +95,12 @@ export function ReservationModal({
   const mutation = useMutation({
     mutationFn: createReservation,
     onSuccess: (res) => {
-      setSuccess({ code: res.reservation_code, whatsapp: res.admin_whatsapp });
+      setSuccess({
+        id: res.reservation_id,
+        code: res.reservation_code,
+        whatsapp: res.admin_whatsapp,
+      });
+      setPaymentMethod(null);
       queryClient.invalidateQueries({ queryKey: ["property", property.slug] });
     },
     onError: (err: unknown) => {
@@ -115,6 +128,7 @@ export function ReservationModal({
         setMessage("");
         setTerms(false);
         setSuccess(null);
+        setPaymentMethod(null);
         setErrors({});
         setServerError(null);
         mutation.reset();
@@ -188,11 +202,25 @@ export function ReservationModal({
         </button>
 
         {success ? (
-          <SuccessView
-            code={success.code}
-            whatsapp={success.whatsapp}
-            onClose={() => handleClose(false)}
-          />
+          paymentMethod === null ? (
+            <PaymentChoiceView
+              reservationId={success.id}
+              reservationCode={success.code}
+              onPick={setPaymentMethod}
+            />
+          ) : paymentMethod === "pix" ? (
+            <PixView
+              code={success.code}
+              onClose={() => handleClose(false)}
+              onBack={() => setPaymentMethod(null)}
+            />
+          ) : (
+            <SuccessView
+              code={success.code}
+              whatsapp={success.whatsapp}
+              onClose={() => handleClose(false)}
+            />
+          )
         ) : (
           <>
             <DialogTitle className="text-[20px] font-semibold text-text-primary">
@@ -574,6 +602,226 @@ function SuccessView({
           Fechar
         </Button>
       )}
+    </div>
+  );
+}
+
+function PaymentChoiceView({
+  reservationId,
+  reservationCode,
+  onPick,
+}: {
+  reservationId: string;
+  reservationCode: string;
+  onPick: (m: "pix" | "card") => void;
+}) {
+  const [submitting, setSubmitting] = useState<"pix" | "card" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const choose = async (m: "pix" | "card") => {
+    setSubmitting(m);
+    setError(null);
+    try {
+      await setReservationPaymentMethod({
+        data: {
+          reservation_id: reservationId,
+          reservation_code: reservationCode,
+          payment_method: m,
+        },
+      });
+      onPick(m);
+    } catch (e) {
+      // Even if persisting fails, allow the user to proceed visually.
+      onPick(m);
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Não foi possível registrar a escolha, mas você pode continuar.",
+      );
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  return (
+    <div className="py-2">
+      <DialogTitle className="text-center text-[20px] font-semibold text-text-primary">
+        Solicitação enviada! Como deseja pagar?
+      </DialogTitle>
+      <p className="mt-2 text-center text-sm text-text-secondary">
+        Seu código de reserva é{" "}
+        <strong className="text-text-primary">{reservationCode}</strong>.
+      </p>
+      <div className="mt-6 grid gap-3">
+        <button
+          type="button"
+          disabled={!!submitting}
+          onClick={() => choose("pix")}
+          className={cn(
+            "flex w-full items-center gap-4 rounded-[12px] border border-input bg-surface p-4 text-left transition hover:border-primary hover:bg-primary/5",
+            submitting === "pix" && "opacity-60",
+          )}
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <QrCode className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[15px] font-semibold text-text-primary">
+              Pix (à vista)
+            </div>
+            <div className="text-xs text-text-secondary">
+              Pague na hora pelo QR Code ou chave Pix. Sem taxas.
+            </div>
+          </div>
+        </button>
+        <button
+          type="button"
+          disabled={!!submitting}
+          onClick={() => choose("card")}
+          className={cn(
+            "flex w-full items-center gap-4 rounded-[12px] border border-input bg-surface p-4 text-left transition hover:border-primary hover:bg-primary/5",
+            submitting === "card" && "opacity-60",
+          )}
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <CreditCard className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[15px] font-semibold text-text-primary">
+              Cartão (parcelamento com juros)
+            </div>
+            <div className="text-xs text-text-secondary">
+              Finalizamos com você pelo WhatsApp. O parcelamento tem juros.
+            </div>
+          </div>
+        </button>
+      </div>
+      {error && (
+        <p className="mt-3 text-center text-xs text-danger">{error}</p>
+      )}
+    </div>
+  );
+}
+
+function PixView({
+  code,
+  onClose,
+  onBack,
+}: {
+  code: string;
+  onClose: () => void;
+  onBack: () => void;
+}) {
+  const pix = useQuery({
+    queryKey: ["pix-settings"],
+    queryFn: () => getPixSettings(),
+    staleTime: 60_000,
+  });
+  const [copied, setCopied] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const copyKey = async () => {
+    if (!pix.data?.pix_key) return;
+    try {
+      await navigator.clipboard.writeText(pix.data.pix_key);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // noop
+    }
+  };
+
+  if (confirmed) {
+    return (
+      <div className="py-4 text-center">
+        <DialogTitle className="sr-only">Pagamento informado</DialogTitle>
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#D4EDDA]">
+          <CheckCircle2 className="h-10 w-10 text-[#1A5C2A]" strokeWidth={2} />
+        </div>
+        <h2 className="mt-4 text-[20px] font-semibold text-text-primary">
+          Recebido!
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+          Em até <strong className="text-text-primary">24 horas</strong> nosso
+          time entrará em contato confirmando o pagamento e enviando detalhes
+          sobre sua reserva e estadia.
+        </p>
+        <p className="mt-2 text-xs text-text-muted">
+          Código da reserva:{" "}
+          <strong className="text-text-secondary">{code}</strong>
+        </p>
+        <Button variant="primary" className="mt-6 w-full" onClick={onClose}>
+          Fechar
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-2">
+      <DialogTitle className="text-center text-[20px] font-semibold text-text-primary">
+        Pagamento via Pix
+      </DialogTitle>
+      <p className="mt-2 text-center text-sm text-text-secondary">
+        Reserva <strong className="text-text-primary">{code}</strong>
+      </p>
+
+      {pix.isLoading ? (
+        <div className="mt-6 h-56 animate-pulse rounded-[10px] bg-background" />
+      ) : pix.data?.qr_code_url ? (
+        <div className="mt-5 flex justify-center">
+          <img
+            src={pix.data.qr_code_url}
+            alt="QR Code Pix"
+            className="h-64 w-64 rounded-[10px] border border-input bg-white object-contain p-2"
+          />
+        </div>
+      ) : (
+        <p className="mt-5 text-center text-sm text-text-muted">
+          QR Code não disponível.
+        </p>
+      )}
+
+      <div className="mt-5 space-y-2 rounded-[10px] bg-background p-4 text-sm">
+        <div className="text-xs uppercase tracking-wide text-text-muted">
+          Chave Pix (CNPJ)
+        </div>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 truncate rounded-md border border-input bg-surface px-3 py-2 text-sm text-text-primary">
+            {pix.data?.pix_key || "—"}
+          </code>
+          <button
+            type="button"
+            onClick={copyKey}
+            className="inline-flex items-center gap-1 rounded-md border border-input bg-surface px-3 py-2 text-xs font-medium text-text-primary hover:bg-secondary"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {copied ? "Copiado!" : "Copiar"}
+          </button>
+        </div>
+        {pix.data?.pix_beneficiary && (
+          <div className="pt-1 text-xs text-text-secondary">
+            Beneficiário:{" "}
+            <strong className="text-text-primary">
+              {pix.data.pix_beneficiary}
+            </strong>
+          </div>
+        )}
+      </div>
+
+      <p className="mt-4 text-center text-xs text-text-secondary">
+        Após pagar, clique em <strong>"Já paguei"</strong>. Nosso time confirma
+        e envia os detalhes da reserva pelo WhatsApp.
+      </p>
+
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <Button variant="secondary" onClick={onBack}>
+          Voltar
+        </Button>
+        <Button variant="primary" onClick={() => setConfirmed(true)}>
+          Já paguei
+        </Button>
+      </div>
     </div>
   );
 }

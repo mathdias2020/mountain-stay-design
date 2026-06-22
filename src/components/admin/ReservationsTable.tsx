@@ -20,6 +20,7 @@ export type ReservationRow = {
   checkout_date: string;
   total_price: number | string;
   status: string;
+  payment_method?: string | null;
 };
 
 function statusVariant(status: string) {
@@ -50,6 +51,26 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
+function PaymentPill({ method }: { method?: string | null }) {
+  if (!method) {
+    return (
+      <span className="text-xs text-muted-foreground">—</span>
+    );
+  }
+  const label = method === "pix" ? "Pix" : "Cartão";
+  const bg = method === "pix" ? "#E3F1EC" : "#E6E7F1";
+  const fg = method === "pix" ? "#1F6F50" : "#3F3F7A";
+  return (
+    <Badge
+      variant="outline"
+      className="border-0 font-medium"
+      style={{ backgroundColor: bg, color: fg, fontSize: 12 }}
+    >
+      {label}
+    </Badge>
+  );
+}
+
 export function ReservationsTable({
   rows,
   loading,
@@ -74,15 +95,16 @@ export function ReservationsTable({
               <th className="hidden px-4 py-3 font-medium md:table-cell">Período</th>
               <th className="hidden px-4 py-3 font-medium md:table-cell">Total</th>
               <th className="px-4 py-3 font-medium">Status</th>
+              <th className="hidden px-4 py-3 font-medium md:table-cell">Pagamento</th>
               <th className="px-4 py-3 font-medium text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <TableRowSkeleton rows={5} cols={7} />
+              <TableRowSkeleton rows={5} cols={8} />
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                   {emptyMessage}
                 </td>
               </tr>
@@ -118,6 +140,9 @@ export function ReservationsTable({
                     </td>
                     <td className="px-4 py-3">
                       <StatusPill status={r.status} />
+                    </td>
+                    <td className="hidden px-4 py-3 md:table-cell">
+                      <PaymentPill method={r.payment_method} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">

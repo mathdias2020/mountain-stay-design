@@ -565,6 +565,7 @@ export type Database = {
           num_children: number
           num_pets: number
           num_vehicles: number
+          payment_method: string | null
           price_breakdown: Json | null
           property_id: string
           reservation_code: string
@@ -589,6 +590,7 @@ export type Database = {
           num_children?: number
           num_pets?: number
           num_vehicles?: number
+          payment_method?: string | null
           price_breakdown?: Json | null
           property_id: string
           reservation_code: string
@@ -613,6 +615,7 @@ export type Database = {
           num_children?: number
           num_pets?: number
           num_vehicles?: number
+          payment_method?: string | null
           price_breakdown?: Json | null
           property_id?: string
           reservation_code?: string

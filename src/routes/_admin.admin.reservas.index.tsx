@@ -121,7 +121,7 @@ function ReservationsPage() {
       let q = supabase
         .from("reservations")
         .select(
-          "id, reservation_code, property_id, guest_name, guest_whatsapp, checkin_date, checkout_date, total_price, status",
+          "id, reservation_code, property_id, guest_name, guest_whatsapp, checkin_date, checkout_date, total_price, status, payment_method",
           { count: "exact" }
         )
         .order("created_at", { ascending: false })
@@ -160,6 +160,7 @@ function ReservationsPage() {
         checkout_date: r.checkout_date,
         total_price: r.total_price,
         status: r.status,
+        payment_method: r.payment_method ?? null,
         property_name: nameMap.get(r.property_id) ?? null,
       }));
       return { rows, count: count ?? 0 };
