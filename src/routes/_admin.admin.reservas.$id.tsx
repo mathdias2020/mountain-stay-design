@@ -66,6 +66,9 @@ type Reservation = {
   property_id: string;
   property_name: string | null;
   payment_method: string | null;
+  coupon_code: string | null;
+  coupon_discount_percent: number | string | null;
+  coupon_discount_amount: number | string | null;
 };
 
 function statusColor(status: string) {
@@ -122,7 +125,7 @@ function ReservationDetailPage() {
       const { data: r } = await supabase
         .from("reservations")
         .select(
-          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id, payment_method"
+          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id, payment_method, coupon_code, coupon_discount_percent, coupon_discount_amount"
         )
         .eq("id", id)
         .maybeSingle();
@@ -217,7 +220,13 @@ function ReservationDetailPage() {
 
         <div className="space-y-4">
           <StatusCard reservation={r} onChanged={invalidateAll} />
-          <PriceCard breakdown={r.price_breakdown} total={r.total_price} />
+          <PriceCard
+            breakdown={r.price_breakdown}
+            total={r.total_price}
+            couponCode={r.coupon_code}
+            couponPercent={r.coupon_discount_percent}
+            couponAmount={r.coupon_discount_amount}
+          />
           <NotesCard reservation={r} onSaved={invalidateAll} />
         </div>
       </div>
