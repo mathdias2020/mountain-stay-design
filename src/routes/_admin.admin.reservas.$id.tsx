@@ -781,3 +781,77 @@ function NotesCard({
     </Card>
   );
 }
+
+function DeleteReservationButton({
+  reservationId,
+  reservationCode,
+  guestName,
+  onDeleted,
+}: {
+  reservationId: string;
+  reservationCode: string;
+  guestName: string;
+  onDeleted: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const deleteFn = useServerFn(deleteReservation);
+
+  async function confirm() {
+    setDeleting(true);
+    try {
+      await deleteFn({ data: { reservationId } });
+      toast.success(`Reserva ${reservationCode} excluída.`);
+      setOpen(false);
+      onDeleted();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao excluir reserva.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+      >
+        <Trash2 className="mr-2 h-4 w-4" />
+        Excluir reserva
+      </Button>
+      <AlertDialog
+        open={open}
+        onOpenChange={(o) => !deleting && setOpen(o)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir reserva?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente. A reserva{" "}
+              <strong>{reservationCode}</strong> de{" "}
+              <strong>{guestName}</strong> e todos os dados relacionados
+              (documentos, histórico de status e bloqueios de datas) serão
+              removidos. Não é possível desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirm();
+              }}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleting ? "Excluindo..." : "Excluir reserva"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
