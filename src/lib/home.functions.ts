@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { setResponseHeader } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { signOne } from "@/lib/storage-signing";
+import { signOne, signMany } from "@/lib/storage-signing";
 
 export type CurationMode = "manual" | "random" | "pinned";
 
@@ -32,24 +32,68 @@ const aboutSchema = z.object({
   cta_label: z.string().min(1).max(60),
 });
 
+export const HERO_MAX_IMAGES = 5;
+
 export type HomeHero = {
-  image_path: string;
+  title: string;
+  subtitle: string;
   overlay_opacity: number; // 0-100
+  images: string[]; // storage paths, max 5
 };
 
 const heroSchema = z.object({
-  image_path: z.string(),
+  title: z.string().min(1).max(120),
+  subtitle: z.string().min(1).max(200),
   overlay_opacity: z.number().int().min(0).max(100),
+  images: z.array(z.string().min(1)).max(HERO_MAX_IMAGES),
 });
 
+const DEFAULT_HERO_TITLE =
+  "Sua próxima escapada nas montanhas do Espírito Santo";
+const DEFAULT_HERO_SUBTITLE =
+  "Casas e chalés para temporada em Domingos Martins, Pedra Azul e região serrana.";
+
 function defaultHero(): HomeHero {
-  return { image_path: "", overlay_opacity: 35 };
+  return {
+    title: DEFAULT_HERO_TITLE,
+    subtitle: DEFAULT_HERO_SUBTITLE,
+    overlay_opacity: 35,
+    images: [],
+  };
 }
 
 function parseHero(raw: unknown): HomeHero {
   try {
-    const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
-    return heroSchema.parse(obj);
+    const obj =
+      typeof raw === "string"
+        ? (JSON.parse(raw) as Record<string, unknown>)
+        : ((raw ?? {}) as Record<string, unknown>);
+    // Backward compat: legacy { image_path, overlay_opacity }
+    const legacyPath =
+      typeof obj.image_path === "string" && obj.image_path
+        ? (obj.image_path as string)
+        : null;
+    const images = Array.isArray(obj.images)
+      ? (obj.images as unknown[]).filter(
+          (x): x is string => typeof x === "string" && x.length > 0,
+        )
+      : legacyPath
+        ? [legacyPath]
+        : [];
+    const merged = {
+      title:
+        typeof obj.title === "string" && obj.title.trim()
+          ? obj.title
+          : DEFAULT_HERO_TITLE,
+      subtitle:
+        typeof obj.subtitle === "string" && obj.subtitle.trim()
+          ? obj.subtitle
+          : DEFAULT_HERO_SUBTITLE,
+      overlay_opacity:
+        typeof obj.overlay_opacity === "number" ? obj.overlay_opacity : 35,
+      images: images.slice(0, HERO_MAX_IMAGES),
+    };
+    return heroSchema.parse(merged);
   } catch {
     return defaultHero();
   }
@@ -152,17 +196,21 @@ export const getHomeAbout = createServerFn({ method: "GET" }).handler(
 );
 
 export const getHomeHero = createServerFn({ method: "GET" }).handler(
-  async (): Promise<HomeHero & { image_url: string | null }> => {
+  async (): Promise<HomeHero & { image_urls: string[] }> => {
     setResponseHeader(
       "cache-control",
       "public, max-age=60, s-maxage=120, stale-while-revalidate=600",
     );
     const raw = await readSetting("home_hero");
     const hero = parseHero(raw);
-    const image_url = hero.image_path
-      ? await signOne("home-assets", hero.image_path)
-      : null;
-    return { ...hero, image_url };
+    const signed =
+      hero.images.length > 0
+        ? await signMany("home-assets", hero.images)
+        : new Map<string, string>();
+    const image_urls = hero.images
+      .map((p) => signed.get(p))
+      .filter((u): u is string => !!u);
+    return { ...hero, image_urls };
   },
 );
 
