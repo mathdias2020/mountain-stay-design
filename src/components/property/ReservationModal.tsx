@@ -524,7 +524,7 @@ function CardRedirectView({
       )}`
     : null;
 
-  const [countdown, setCountdown] = useState(hasWhatsapp ? 3 : 0);
+  const [countdown, setCountdown] = useState(hasWhatsapp ? 6 : 0);
   const [blocked, setBlocked] = useState(false);
   const firedRef = useRef(false);
 
