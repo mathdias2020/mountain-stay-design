@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LegalDocsCard } from "@/components/admin/LegalDocsCard";
 import { AmenitiesManager } from "@/components/admin/AmenitiesManager";
+import { getPixSettings, setPixSettings } from "@/lib/payment.functions";
 
 export const Route = createFileRoute("/_admin/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — RotainStay" }] }),
@@ -182,6 +183,8 @@ function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <PixSettingsCard />
 
       <Card>
         <CardHeader>
