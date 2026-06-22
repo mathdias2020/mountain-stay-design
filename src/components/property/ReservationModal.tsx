@@ -1,13 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Minus, Plus, X } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, Copy, CreditCard, Minus, Plus, QrCode, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import { formatBRL, type PriceBreakdown } from "@/lib/pricing";
 import { createReservation } from "@/lib/reservations.functions";
+import {
+  getPixSettings,
+  setReservationPaymentMethod,
+} from "@/lib/payment.functions";
 import type { PropertyDetail } from "@/lib/properties.functions";
 import { LegalLink } from "@/components/legal/LegalLink";
 
@@ -71,9 +75,13 @@ export function ReservationModal({
   const [errors, setErrors] = useState<Errors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
+    id: string;
     code: string;
     whatsapp: string | null;
   } | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "card" | null>(
+    null,
+  );
 
   // Reset on open
   useEffect(() => {
@@ -87,7 +95,12 @@ export function ReservationModal({
   const mutation = useMutation({
     mutationFn: createReservation,
     onSuccess: (res) => {
-      setSuccess({ code: res.reservation_code, whatsapp: res.admin_whatsapp });
+      setSuccess({
+        id: res.reservation_id,
+        code: res.reservation_code,
+        whatsapp: res.admin_whatsapp,
+      });
+      setPaymentMethod(null);
       queryClient.invalidateQueries({ queryKey: ["property", property.slug] });
     },
     onError: (err: unknown) => {
@@ -115,6 +128,7 @@ export function ReservationModal({
         setMessage("");
         setTerms(false);
         setSuccess(null);
+        setPaymentMethod(null);
         setErrors({});
         setServerError(null);
         mutation.reset();
@@ -188,11 +202,25 @@ export function ReservationModal({
         </button>
 
         {success ? (
-          <SuccessView
-            code={success.code}
-            whatsapp={success.whatsapp}
-            onClose={() => handleClose(false)}
-          />
+          paymentMethod === null ? (
+            <PaymentChoiceView
+              reservationId={success.id}
+              reservationCode={success.code}
+              onPick={setPaymentMethod}
+            />
+          ) : paymentMethod === "pix" ? (
+            <PixView
+              code={success.code}
+              onClose={() => handleClose(false)}
+              onBack={() => setPaymentMethod(null)}
+            />
+          ) : (
+            <SuccessView
+              code={success.code}
+              whatsapp={success.whatsapp}
+              onClose={() => handleClose(false)}
+            />
+          )
         ) : (
           <>
             <DialogTitle className="text-[20px] font-semibold text-text-primary">
