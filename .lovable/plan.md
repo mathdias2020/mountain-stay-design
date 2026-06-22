@@ -1,63 +1,73 @@
 ## Objetivo
 
-No painel `admin/home`, permitir editar o **título** e **subtítulo** que aparecem sobre o hero, e gerenciar **até 5 imagens de fundo** que rodam em slideshow automático (6s, fade) na home pública.
+Após o cliente clicar em "Enviar solicitação", em vez de ir direto para o WhatsApp, abrir um popup perguntando se o pagamento será via **Pix** ou **Cartão**. A reserva continua sendo criada no banco (aparece no admin como hoje).
 
-## Mudanças no schema de dados
+## Fluxo novo
 
-Hoje `site_settings.key = 'home_hero'` guarda `{ image_path, overlay_opacity }`. Vou expandir o JSON para:
+1. Cliente preenche o formulário e clica em **Enviar solicitação** → reserva é criada no banco (igual hoje, status `pending`).
+2. Popup de sucesso muda: mostra "Solicitação enviada! Como deseja pagar?" com dois botões:
+   - **Pix (à vista)**
+   - **Cartão (parcelamento com juros)**
+3. **Pix** → tela com:
+   - Imagem do QR Code
+   - Chave Pix com botão "Copiar"
+   - Nome do beneficiário
+   - Aviso "Após o pagamento, entraremos em contato pelo WhatsApp para confirmar"
+4. **Cartão** → tela atual de redirecionamento ("Estamos te redirecionando para o WhatsApp para finalizar o pagamento via cartão") com contagem de 3s e link para `wa.me/...`.
 
-```json
-{
-  "title": "Sua próxima escapada nas montanhas do Espírito Santo",
-  "subtitle": "Casas e chalés para temporada em Domingos Martins, Pedra Azul e região serrana.",
-  "overlay_opacity": 35,
-  "images": ["hero/abc.jpg", "hero/def.jpg"]
-}
-```
+Quando o cliente seleciona um método, esse método é gravado na reserva (PATCH no registro recém-criado).
 
-**Migração da imagem existente:** ao ler, se vier o formato antigo (`image_path` preenchido, sem `images`), promover automaticamente `image_path` para `images[0]`. Sem SQL — tratado no parser do `home.functions.ts`.
+## Mudanças no banco
 
-Sem mudança de tabela, sem migration.
+Migração adicionando:
 
-## Backend (`src/lib/home.functions.ts`)
+- Coluna `payment_method` em `public.reservations` (texto: `pix` | `card` | `null`).
+- Em `public.site_settings`, novas chaves:
+  - `pix_key` (texto)
+  - `pix_beneficiary` (texto, ex: "SARAH PETERLI KUNERT")
+  - `pix_qr_code_path` (caminho no bucket `home-assets`)
 
-- Atualizar `HomeHero` / `heroSchema` para o novo shape (title, subtitle obrigatórios; `images` array de 0–5 strings; `overlay_opacity` 0–100).
-- `parseHero` aceita formato novo e antigo (faz a migração em memória).
-- `getHomeHero` retorna `{ title, subtitle, overlay_opacity, image_urls: string[] }` — assinando cada path do array (mantém comportamento atual do bucket privado `home-assets`).
-- `setHomeHero` valida e grava o novo JSON.
+Valores iniciais já populados via `insert`:
+- `pix_key` = `37.412.135/0001-74`
+- `pix_beneficiary` = `SARAH PETERLI KUNERT`
+- `pix_qr_code_path` = imagem que você enviou, subida para `home-assets/pix/qr-code.jpg`
 
-## Hero público (`src/components/home/Hero.tsx`)
+## Mudanças no admin
 
-- Trocar prop `imageUrl` por `imageUrls: string[]`, adicionar `title` e `subtitle`.
-- Render: empilhar todas as `<img>` em `absolute inset-0`; controlar opacidade via state (`activeIndex`) com transição CSS `opacity 1000ms ease`.
-- `setInterval` de 6000ms avança o índice; pausa quando `images.length <= 1`; limpa no unmount; respeita `prefers-reduced-motion` (sem auto-advance).
-- Overlay escuro e textos ficam acima das imagens (z-index).
-- Sem setas/bolinhas (conforme escolha do usuário).
+Em `/admin/configuracoes`:
+- Novo card **"Pagamento Pix"** com campos para chave Pix, nome do beneficiário e uploader da imagem do QR Code (com pré-visualização).
 
-## Home (`src/routes/_public.index.tsx`)
+Em `/admin/reservas` (lista e detalhe):
+- Mostrar a coluna/linha **Método de pagamento** com badge (Pix / Cartão / Não informado).
 
-- Passar `imageUrls`, `title`, `subtitle`, `overlayOpacity` lidos de `getHomeHero` para `<Hero />`.
+## Mudanças no fluxo público
 
-## Admin (`src/routes/_admin.admin.home.tsx`)
+`src/components/property/ReservationModal.tsx`:
+- Remover o `SuccessView` atual (que redireciona pra WhatsApp em 3s).
+- Após `createReservation` retornar sucesso, mostrar tela **PaymentChoiceView** com as duas opções.
+- Ao escolher: chamar nova server fn `setReservationPaymentMethod({ reservation_id, method })` que atualiza a coluna.
+- Renderizar `PixView` ou `CardRedirectView` (essa última é o `SuccessView` atual reaproveitado).
 
-Seção "Hero" reformulada:
+Novas server functions em `src/lib/reservations.functions.ts`:
+- `setReservationPaymentMethod` (POST) — atualiza `payment_method` da reserva pelo `id` (sem auth, mas validado pelo `reservation_code` retornado para evitar abuso simples).
 
-1. **Textos**
-   - `Input` para Título (máx 120 chars).
-   - `Textarea` para Subtítulo (máx 200 chars).
-2. **Imagens (até 5)**
-   - Grid com até 5 slots; cada slot mostra preview, botão remover, e setas ↑/↓ para reordenar.
-   - Botão "Adicionar imagem" abre file picker → valida JPG/PNG/WebP, máx 10MB, mín 1920×720 → abre `ImageCropDialog` com `aspect = 1920/720` → upload em `home-assets/hero/<uuid>.jpg` → adiciona ao array.
-   - Desabilita "Adicionar" quando já houver 5.
-3. **Opacidade do overlay** (slider existente, mantém).
-4. **Preview** do hero com a primeira imagem + textos digitados + overlay aplicado.
-5. Botão "Salvar" chama `setHomeHero` com `{ title, subtitle, overlay_opacity, images }`.
+Nova server fn em `src/lib/home.functions.ts` (ou novo `payment.functions.ts`):
+- `getPixSettings` — retorna `{ pix_key, pix_beneficiary, qr_code_url (signed) }` lendo `site_settings` via cliente publishable.
+
+`createReservation` passa a retornar também `reservation_id` (além de `reservation_code` e `admin_whatsapp`) para que o cliente consiga atualizar o método.
 
 ## Arquivos tocados
 
-- `src/lib/home.functions.ts` — schema, parser, get/set.
-- `src/components/home/Hero.tsx` — slideshow + textos via props.
-- `src/routes/_public.index.tsx` — passar novos props.
-- `src/routes/_admin.admin.home.tsx` — UI de textos + lista de imagens.
+- `supabase/migrations/...` (nova migração)
+- `src/lib/reservations.functions.ts` (nova fn + ajuste de retorno)
+- `src/lib/payment.functions.ts` (novo: `getPixSettings`)
+- `src/components/property/ReservationModal.tsx` (novas views Pix/Cartão/escolha)
+- `src/routes/_admin.admin.configuracoes.tsx` (card Pix)
+- `src/routes/_admin.admin.reservas.index.tsx` e `_admin.admin.reservas.$id.tsx` (mostrar método)
+- `src/components/admin/ReservationsTable.tsx` (coluna método)
 
-Nenhuma alteração em outros componentes, rotas, ou banco.
+## Pontos a confirmar
+
+1. **Texto exato** do popup de escolha — está OK: "Solicitação enviada! Como deseja pagar?" + dois botões?
+2. Manter o redirect automático de 3s no caminho Cartão, ou só botão manual "Abrir WhatsApp"?
+3. No caminho Pix, deve haver um botão "Já paguei, abrir WhatsApp para confirmar" que leve ao WhatsApp do admin?
