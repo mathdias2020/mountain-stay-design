@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { updateReservationStatus } from "@/lib/reservation-status.functions";
+import { deleteReservation } from "@/lib/reservation-delete.functions";
 import {
   formatBRL,
   formatDateBR,
@@ -185,13 +186,25 @@ function ReservationDetailPage() {
     queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "recent"] });
   };
-  void navigate;
 
   return (
     <div className="space-y-4">
-      <Link to="/admin/reservas" className="text-sm hover:underline" style={{ color: "#6B7052" }}>
-        ← Voltar para reservas
-      </Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link to="/admin/reservas" className="text-sm hover:underline" style={{ color: "#6B7052" }}>
+          ← Voltar para reservas
+        </Link>
+        <DeleteReservationButton
+          reservationId={r.id}
+          reservationCode={r.reservation_code}
+          guestName={r.guest_name}
+          onDeleted={() => {
+            queryClient.invalidateQueries({ queryKey: ["admin", "reservations"] });
+            queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
+            queryClient.invalidateQueries({ queryKey: ["admin", "recent"] });
+            navigate({ to: "/admin/reservas" });
+          }}
+        />
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr] xl:grid-cols-[65fr_35fr]">
         <div className="space-y-4">
