@@ -1,7 +1,22 @@
 import { Link } from "@tanstack/react-router";
-import { Eye, MessageCircle } from "lucide-react";
+import { Eye, MessageCircle, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { deleteReservation } from "@/lib/reservation-delete.functions";
 import { Badge } from "@/components/ui/badge";
 import { TableRowSkeleton } from "@/components/skeletons/TableRowSkeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   formatBRL,
   formatDateBR,
@@ -82,6 +97,28 @@ export function ReservationsTable({
   loading?: boolean;
   emptyMessage?: string;
 }) {
+  const queryClient = useQueryClient();
+  const deleteFn = useServerFn(deleteReservation);
+  const [pendingDelete, setPendingDelete] = useState<ReservationRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await deleteFn({ data: { reservationId: pendingDelete.id } });
+      toast.success(`Reserva ${pendingDelete.reservation_code} excluída.`);
+      setPendingDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "recent"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao excluir reserva.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div
       className="overflow-hidden rounded-[14px] bg-white"
@@ -176,6 +213,14 @@ export function ReservationsTable({
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => setPendingDelete(r)}
+                          aria-label="Excluir reserva"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -185,6 +230,37 @@ export function ReservationsTable({
           </tbody>
         </table>
       </div>
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && !deleting && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir reserva?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente. A reserva{" "}
+              <strong>{pendingDelete?.reservation_code}</strong> de{" "}
+              <strong>{pendingDelete?.guest_name}</strong> e todos os dados
+              relacionados (documentos, histórico de status e bloqueios de
+              datas) serão removidos. Não é possível desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleting ? "Excluindo..." : "Excluir reserva"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
