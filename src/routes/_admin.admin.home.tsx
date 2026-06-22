@@ -22,6 +22,7 @@ import {
   setHomeAbout,
   getHomeHero,
   setHomeHero,
+  HERO_MAX_IMAGES,
   type CurationMode,
   type PropertiesCuration,
   type HomeAbout,
@@ -144,15 +145,15 @@ function HomeAdmin() {
     queryFn: () => getHomeHero(),
   });
   const [hero, setHero] = useState<HomeHero | null>(null);
-  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  const [heroImageUrls, setHeroImageUrls] = useState<string[]>([]);
   const [heroPendingFile, setHeroPendingFile] = useState<File | null>(null);
   const [heroUploading, setHeroUploading] = useState(false);
 
   useEffect(() => {
     if (heroRemote && !hero) {
-      const { image_url, ...rest } = heroRemote;
+      const { image_urls, ...rest } = heroRemote;
       setHero(rest);
-      setHeroImageUrl(image_url);
+      setHeroImageUrls(image_urls);
     }
   }, [heroRemote, hero]);
 
@@ -201,16 +202,45 @@ function HomeAdmin() {
         .from("home-assets")
         .upload(path, cropped, { contentType: "image/jpeg" });
       if (error) throw error;
-      setHero((h) => (h ? { ...h, image_path: path } : h));
       const { data } = await supabase.storage
         .from("home-assets")
         .createSignedUrl(path, 60 * 60);
-      setHeroImageUrl(data?.signedUrl ?? null);
+      setHero((h) =>
+        h ? { ...h, images: [...h.images, path].slice(0, HERO_MAX_IMAGES) } : h,
+      );
+      setHeroImageUrls((urls) =>
+        [...urls, data?.signedUrl ?? ""].filter(Boolean).slice(0, HERO_MAX_IMAGES),
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao subir imagem");
     } finally {
       setHeroUploading(false);
     }
+  };
+
+  const removeHeroImage = (idx: number) => {
+    setHero((h) =>
+      h ? { ...h, images: h.images.filter((_, i) => i !== idx) } : h,
+    );
+    setHeroImageUrls((urls) => urls.filter((_, i) => i !== idx));
+  };
+
+  const moveHeroImage = (from: number, to: number) => {
+    setHero((h) => {
+      if (!h) return h;
+      if (to < 0 || to >= h.images.length) return h;
+      const arr = [...h.images];
+      const [it] = arr.splice(from, 1);
+      arr.splice(to, 0, it);
+      return { ...h, images: arr };
+    });
+    setHeroImageUrls((urls) => {
+      if (to < 0 || to >= urls.length) return urls;
+      const arr = [...urls];
+      const [it] = arr.splice(from, 1);
+      arr.splice(to, 0, it);
+      return arr;
+    });
   };
 
   const saveHero = async () => {
@@ -262,24 +292,57 @@ function HomeAdmin() {
         <section className="rounded-[14px] border border-border bg-white p-6">
           <header className="mb-4">
             <h2 className="text-xl font-semibold text-text-primary">
-              Imagem de fundo do hero
+              Hero da home
             </h2>
             <p className="text-sm text-text-secondary">
-              Aparece atrás do título principal na home, do final do menu até o
-              card de busca. Tamanho recomendado: <strong>1920×720px</strong>{" "}
-              (mínimo). Proporção fixa 8:3 — você poderá ajustar o enquadramento
-              após o upload.
+              Texto e imagens que aparecem no topo da home, atrás do card de
+              busca. Adicione até <strong>{HERO_MAX_IMAGES} imagens</strong> —
+              quando houver mais de uma, elas alternam automaticamente a cada
+              6s. Tamanho recomendado: <strong>1920×720px</strong> (mínimo),
+              proporção 8:3.
             </p>
           </header>
 
+          {/* Texts */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label htmlFor="hero-title">Título</Label>
+              <Input
+                id="hero-title"
+                value={hero.title}
+                maxLength={120}
+                onChange={(e) => setHero({ ...hero, title: e.target.value })}
+                className="mt-1"
+              />
+              <p className="mt-1 text-[12px] text-text-muted">
+                {hero.title.length}/120
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="hero-subtitle">Subtítulo</Label>
+              <Textarea
+                id="hero-subtitle"
+                value={hero.subtitle}
+                maxLength={200}
+                rows={3}
+                onChange={(e) => setHero({ ...hero, subtitle: e.target.value })}
+                className="mt-1"
+              />
+              <p className="mt-1 text-[12px] text-text-muted">
+                {hero.subtitle.length}/200
+              </p>
+            </div>
+          </div>
+
+          {/* Preview */}
           <div
-            className="overflow-hidden rounded-[14px] border border-border"
+            className="mt-5 overflow-hidden rounded-[14px] border border-border"
             style={{ aspectRatio: "8 / 3", background: "#f5f4f0", position: "relative" }}
           >
-            {heroImageUrl ? (
+            {heroImageUrls.length > 0 ? (
               <>
                 <img
-                  src={heroImageUrl}
+                  src={heroImageUrls[0]}
                   alt=""
                   className="h-full w-full object-cover"
                 />
@@ -287,40 +350,109 @@ function HomeAdmin() {
                   className="pointer-events-none absolute inset-0"
                   style={{ background: `rgba(0,0,0,${hero.overlay_opacity / 100})` }}
                 />
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+                  <div
+                    className="font-semibold text-white text-[18px] md:text-[26px]"
+                    style={{ textShadow: "0 2px 12px rgba(0,0,0,0.45)" }}
+                  >
+                    {hero.title}
+                  </div>
+                  <div
+                    className="mt-1 text-[12px] md:text-[14px]"
+                    style={{ color: "#DDDCD9", textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}
+                  >
+                    {hero.subtitle}
+                  </div>
+                </div>
               </>
             ) : (
               <div className="flex h-full items-center justify-center text-text-muted text-sm">
-                Sem imagem — a home usa o gradiente verde padrão
+                Sem imagens — a home usa o gradiente verde padrão
               </div>
             )}
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <label className="inline-flex items-center gap-2 cursor-pointer rounded-md border border-border px-3 py-2 text-sm hover:bg-secondary">
-              <Upload className="h-4 w-4" />
-              {heroUploading ? "Subindo…" : heroImageUrl ? "Trocar imagem" : "Enviar imagem"}
-              <input
-                type="file"
-                accept={ALLOWED.join(",")}
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) onHeroFileSelected(f);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            {hero.image_path && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setHero({ ...hero, image_path: "" });
-                  setHeroImageUrl(null);
-                }}
+          {/* Image list */}
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between">
+              <Label>
+                Imagens ({hero.images.length}/{HERO_MAX_IMAGES})
+              </Label>
+              <label
+                className={`inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm ${
+                  hero.images.length >= HERO_MAX_IMAGES || heroUploading
+                    ? "cursor-not-allowed opacity-50"
+                    : "cursor-pointer hover:bg-secondary"
+                }`}
               >
-                <Trash2 className="h-4 w-4 mr-1" /> Remover
-              </Button>
+                <Upload className="h-4 w-4" />
+                {heroUploading ? "Subindo…" : "Adicionar imagem"}
+                <input
+                  type="file"
+                  accept={ALLOWED.join(",")}
+                  className="hidden"
+                  disabled={hero.images.length >= HERO_MAX_IMAGES || heroUploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onHeroFileSelected(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+            {hero.images.length === 0 ? (
+              <p className="text-sm text-text-muted">
+                Nenhuma imagem cadastrada.
+              </p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {hero.images.map((path, idx) => (
+                  <div
+                    key={path}
+                    className="relative overflow-hidden rounded-[10px] border border-border"
+                    style={{ aspectRatio: "8 / 3", background: "#f5f4f0" }}
+                  >
+                    {heroImageUrls[idx] && (
+                      <img
+                        src={heroImageUrls[idx]}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                    <div className="absolute left-2 top-2 rounded bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">
+                      {idx + 1}
+                    </div>
+                    <div className="absolute right-2 top-2 flex gap-1">
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() => moveHeroImage(idx, idx - 1)}
+                        className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white disabled:opacity-40"
+                        title="Mover para cima"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx === hero.images.length - 1}
+                        onClick={() => moveHeroImage(idx, idx + 1)}
+                        className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white disabled:opacity-40"
+                        title="Mover para baixo"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeHeroImage(idx)}
+                        className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white hover:bg-red-600/80"
+                        title="Remover"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
