@@ -22,6 +22,7 @@ const inputSchema = z.object({
 export type CreateReservationInput = z.input<typeof inputSchema>;
 
 export type CreateReservationResult = {
+  reservation_id: string;
   reservation_code: string;
   admin_whatsapp: string | null;
 };
@@ -162,7 +163,7 @@ export const createReservation = createServerFn({ method: "POST" })
         guest_message: data.guest_message ?? null,
         terms_accepted: true,
       })
-      .select("reservation_code")
+      .select("id, reservation_code")
       .single();
     if (insErr) throw new Error(insErr.message);
 
@@ -186,6 +187,7 @@ export const createReservation = createServerFn({ method: "POST" })
     // TODO Fase 5+: enviar e-mail de confirmação ao guest_email
 
     return {
+      reservation_id: created.id,
       reservation_code: created.reservation_code,
       admin_whatsapp: waSetting?.value ?? null,
     };
