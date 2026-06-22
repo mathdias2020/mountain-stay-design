@@ -508,7 +508,7 @@ function Stepper({
   );
 }
 
-function SuccessView({
+function CardRedirectView({
   code,
   whatsapp,
   onClose,
@@ -520,7 +520,7 @@ function SuccessView({
   const hasWhatsapp = !!whatsapp;
   const waUrl = hasWhatsapp
     ? `https://wa.me/${whatsapp!.replace(/\D/g, "")}?text=${encodeURIComponent(
-        `Acabei de solicitar uma reserva no site. O código da reserva é ${code}.`,
+        `Olá! Acabei de fazer uma reserva no site (código ${code}) e quero finalizar o pagamento no cartão de crédito (parcelamento com juros). Pode me enviar o link de pagamento?`,
       )}`
     : null;
 
@@ -554,27 +554,25 @@ function SuccessView({
 
   return (
     <div className="py-4 text-center">
-      <DialogTitle className="sr-only">Solicitação enviada</DialogTitle>
+      <DialogTitle className="sr-only">Pagamento no cartão</DialogTitle>
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#D4EDDA]">
         <CheckCircle2 className="h-10 w-10 text-[#1A5C2A]" strokeWidth={2} />
       </div>
       <h2 className="mt-4 text-[20px] font-semibold text-text-primary">
-        Solicitação enviada com sucesso!
+        Redirecionando para o WhatsApp…
       </h2>
       <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-        Seu código de reserva é{" "}
-        <strong className="text-text-primary">{code}</strong>.
+        Reserva <strong className="text-text-primary">{code}</strong> registrada.
         {whatsapp ? (
           <>
-            {" "}
-            Entraremos em contato pelo WhatsApp{" "}
+            {" "}Vamos te levar ao WhatsApp{" "}
             <strong className="text-text-primary">
               {maskAdminWhatsApp(whatsapp)}
             </strong>{" "}
-            em breve para confirmar os detalhes.
+            para finalizar o pagamento no cartão (parcelamento com juros).
           </>
         ) : (
-          <> Entraremos em contato pelo WhatsApp em breve para confirmar os detalhes.</>
+          <> Vamos te levar ao WhatsApp para finalizar o pagamento no cartão (parcelamento com juros).</>
         )}
       </p>
       {hasWhatsapp ? (
@@ -593,8 +591,8 @@ function SuccessView({
             }}
           >
             {countdown > 0
-              ? `Confirmar no WhatsApp (${countdown}…)`
-              : "Confirmar no WhatsApp"}
+              ? `Pagar no cartão pelo WhatsApp (${countdown}…)`
+              : "Pagar no cartão pelo WhatsApp"}
           </Button>
         </>
       ) : (
