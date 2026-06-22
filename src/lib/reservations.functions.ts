@@ -17,6 +17,12 @@ const inputSchema = z.object({
   num_vehicles: z.number().int().min(0).max(20),
   guest_message: z.string().trim().max(500).optional(),
   terms_accepted: z.literal(true),
+  coupon_code: z
+    .string()
+    .trim()
+    .transform((v) => v.toUpperCase())
+    .pipe(z.string().regex(/^[A-Z0-9_-]{3,30}$/))
+    .optional(),
 });
 
 export type CreateReservationInput = z.input<typeof inputSchema>;
@@ -128,6 +134,41 @@ export const createReservation = createServerFn({ method: "POST" })
       );
     }
 
+    // 5b. Validar cupom (servidor é a fonte da verdade)
+    let couponRow: {
+      id: string;
+      code: string;
+      discount_percent: number;
+      uses_count: number;
+    } | null = null;
+    let discountAmount = 0;
+    let finalTotal = breakdown.total;
+    if (data.coupon_code) {
+      const { data: c, error: cErr } = await supabaseAdmin
+        .from("coupons")
+        .select("id, code, discount_percent, active, expires_at, max_uses, uses_count")
+        .eq("code", data.coupon_code)
+        .maybeSingle();
+      if (cErr) throw new Error(cErr.message);
+      if (!c) throw new Error("Cupom não encontrado.");
+      if (!c.active) throw new Error("Cupom inativo.");
+      if (c.expires_at && new Date(c.expires_at) < new Date()) {
+        throw new Error("Cupom expirado.");
+      }
+      if (c.max_uses != null && c.uses_count >= c.max_uses) {
+        throw new Error("Cupom esgotado.");
+      }
+      const pct = Number(c.discount_percent);
+      discountAmount = Math.round(breakdown.total * pct) / 100;
+      finalTotal = Math.max(0, breakdown.total - discountAmount);
+      couponRow = {
+        id: c.id,
+        code: c.code,
+        discount_percent: pct,
+        uses_count: c.uses_count,
+      };
+    }
+
     // 6. Insert (trigger preenche reservation_code)
     const { data: created, error: insErr } = await supabaseAdmin
       .from("reservations")
@@ -156,9 +197,16 @@ export const createReservation = createServerFn({ method: "POST" })
           weekend_subtotal: breakdown.weekendSubtotal,
           high_season_total: breakdown.highSeasonTotal,
           cleaning_fee: breakdown.cleaningFee,
-          total: breakdown.total,
+          subtotal: breakdown.total,
+          coupon_code: couponRow?.code ?? null,
+          coupon_discount_percent: couponRow?.discount_percent ?? null,
+          coupon_discount_amount: discountAmount || null,
+          total: finalTotal,
         },
-        total_price: breakdown.total,
+        total_price: finalTotal,
+        coupon_code: couponRow?.code ?? null,
+        coupon_discount_percent: couponRow?.discount_percent ?? null,
+        coupon_discount_amount: discountAmount || null,
         status: "pending",
         guest_message: data.guest_message ?? null,
         terms_accepted: true,
@@ -166,6 +214,14 @@ export const createReservation = createServerFn({ method: "POST" })
       .select("id, reservation_code")
       .single();
     if (insErr) throw new Error(insErr.message);
+
+    // 6b. Incrementar uso do cupom (best-effort)
+    if (couponRow) {
+      await supabaseAdmin
+        .from("coupons")
+        .update({ uses_count: couponRow.uses_count + 1 })
+        .eq("id", couponRow.id);
+    }
 
     // 7. Bloquear datas se configurado
     if (blockOnRequest) {
