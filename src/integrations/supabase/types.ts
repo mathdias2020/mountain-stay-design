@@ -168,6 +168,42 @@ export type Database = {
           },
         ]
       }
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_percent: number
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_percent: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           button_label: string
@@ -554,6 +590,9 @@ export type Database = {
           admin_notes: string | null
           checkin_date: string
           checkout_date: string
+          coupon_code: string | null
+          coupon_discount_amount: number | null
+          coupon_discount_percent: number | null
           created_at: string
           guest_email: string | null
           guest_message: string | null
@@ -579,6 +618,9 @@ export type Database = {
           admin_notes?: string | null
           checkin_date: string
           checkout_date: string
+          coupon_code?: string | null
+          coupon_discount_amount?: number | null
+          coupon_discount_percent?: number | null
           created_at?: string
           guest_email?: string | null
           guest_message?: string | null
@@ -604,6 +646,9 @@ export type Database = {
           admin_notes?: string | null
           checkin_date?: string
           checkout_date?: string
+          coupon_code?: string | null
+          coupon_discount_amount?: number | null
+          coupon_discount_percent?: number | null
           created_at?: string
           guest_email?: string | null
           guest_message?: string | null

@@ -12,6 +12,7 @@ import {
   getPixSettings,
   setReservationPaymentMethod,
 } from "@/lib/payment.functions";
+import { validateCoupon } from "@/lib/coupons.functions";
 import type { PropertyDetail } from "@/lib/properties.functions";
 import { LegalLink } from "@/components/legal/LegalLink";
 
@@ -82,6 +83,42 @@ export function ReservationModal({
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card" | null>(
     null,
   );
+  // Coupon
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<{
+    code: string;
+    discount_percent: number;
+  } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  async function applyCoupon() {
+    const raw = couponInput.trim().toUpperCase();
+    if (!raw) return;
+    setCouponError(null);
+    setCouponLoading(true);
+    try {
+      const res = await validateCoupon({ data: { code: raw } });
+      if (res.valid) {
+        setCoupon({ code: res.code, discount_percent: res.discount_percent });
+        setCouponInput(res.code);
+      } else {
+        setCoupon(null);
+        setCouponError(res.reason);
+      }
+    } catch (e: any) {
+      setCoupon(null);
+      setCouponError(e?.message ?? "Erro ao validar cupom.");
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function removeCoupon() {
+    setCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  }
 
   // Reset on open
   useEffect(() => {
@@ -131,6 +168,9 @@ export function ReservationModal({
         setPaymentMethod(null);
         setErrors({});
         setServerError(null);
+        setCoupon(null);
+        setCouponInput("");
+        setCouponError(null);
         mutation.reset();
       }, 200);
     }
@@ -172,6 +212,7 @@ export function ReservationModal({
         num_vehicles: property.parking_spots > 0 ? vehicles : 0,
         guest_message: message.trim() || undefined,
         terms_accepted: true,
+        coupon_code: coupon?.code,
       },
     });
   };
@@ -186,6 +227,11 @@ export function ReservationModal({
       : "—";
 
   const totalGuests = adults + children;
+  const subtotal = breakdown?.total ?? 0;
+  const discountAmount = coupon
+    ? Math.round(subtotal * coupon.discount_percent) / 100
+    : 0;
+  const finalTotal = Math.max(0, subtotal - discountAmount);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -232,10 +278,25 @@ export function ReservationModal({
               <Row label="Propriedade" value={property.name} />
               <Row label="Período" value={periodLabel} />
               <Row label="Hóspedes" value={String(totalGuests)} />
-              <Row
-                label="Total estimado"
-                value={breakdown ? formatBRL(breakdown.total) : "—"}
-              />
+              {breakdown && coupon ? (
+                <>
+                  <Row label="Subtotal" value={formatBRL(subtotal)} />
+                  <div className="flex justify-between gap-4">
+                    <span className="text-text-muted">
+                      Desconto ({coupon.discount_percent}%)
+                    </span>
+                    <span className="text-right text-[#1F6F35]">
+                      − {formatBRL(discountAmount)}
+                    </span>
+                  </div>
+                  <Row label="Total estimado" value={formatBRL(finalTotal)} />
+                </>
+              ) : (
+                <Row
+                  label="Total estimado"
+                  value={breakdown ? formatBRL(subtotal) : "—"}
+                />
+              )}
             </div>
 
             <form onSubmit={submit} className="mt-6 space-y-6">
@@ -416,6 +477,55 @@ export function ReservationModal({
                   {serverError}
                 </div>
               )}
+
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-semibold text-text-primary">
+                  Cupom de desconto (opcional)
+                </legend>
+                {coupon ? (
+                  <div className="flex items-center justify-between rounded-md border border-[#1F6F35]/30 bg-[#E6F4EA] px-3 py-2 text-sm">
+                    <span className="text-[#1F6F35]">
+                      ✓ Cupom <strong>{coupon.code}</strong> aplicado —{" "}
+                      {coupon.discount_percent}% de desconto
+                    </span>
+                    <button
+                      type="button"
+                      onClick={removeCoupon}
+                      className="text-xs text-[#1F6F35] underline hover:no-underline"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponInput}
+                      onChange={(e) =>
+                        setCouponInput(
+                          e.target.value
+                            .toUpperCase()
+                            .replace(/[^A-Z0-9_-]/g, "")
+                            .slice(0, 30),
+                        )
+                      }
+                      placeholder="Insira o código"
+                      className={inputClass(false)}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={applyCoupon}
+                      disabled={couponLoading || couponInput.trim().length < 3}
+                    >
+                      {couponLoading ? "..." : "Aplicar"}
+                    </Button>
+                  </div>
+                )}
+                {couponError && (
+                  <p className="text-xs text-danger">{couponError}</p>
+                )}
+              </fieldset>
 
               <Button
                 type="submit"

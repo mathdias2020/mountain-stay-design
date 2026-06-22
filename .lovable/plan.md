@@ -1,73 +1,71 @@
-## Objetivo
+# Cupons de desconto
 
-Após o cliente clicar em "Enviar solicitação", em vez de ir direto para o WhatsApp, abrir um popup perguntando se o pagamento será via **Pix** ou **Cartão**. A reserva continua sendo criada no banco (aparece no admin como hoje).
+## 1. Banco de dados (migration)
 
-## Fluxo novo
+Nova tabela `public.coupons`:
+- `code` — texto único, salvo em CAIXA-ALTA, 3-30 chars (regex `[A-Z0-9_-]`)
+- `discount_percent` — numeric(5,2), 0.01–100
+- `active` — boolean, default true
+- `expires_at` — timestamptz, opcional (validade)
+- `max_uses` — int, opcional (limite de usos; null = ilimitado)
+- `uses_count` — int, default 0 (incrementado a cada reserva criada com o cupom)
+- `id`, `created_at`, `updated_at`
 
-1. Cliente preenche o formulário e clica em **Enviar solicitação** → reserva é criada no banco (igual hoje, status `pending`).
-2. Popup de sucesso muda: mostra "Solicitação enviada! Como deseja pagar?" com dois botões:
-   - **Pix (à vista)**
-   - **Cartão (parcelamento com juros)**
-3. **Pix** → tela com:
-   - Imagem do QR Code
-   - Chave Pix com botão "Copiar"
-   - Nome do beneficiário
-   - Aviso "Após o pagamento, entraremos em contato pelo WhatsApp para confirmar"
-4. **Cartão** → tela atual de redirecionamento ("Estamos te redirecionando para o WhatsApp para finalizar o pagamento via cartão") com contagem de 3s e link para `wa.me/...`.
+RLS / GRANTS:
+- `service_role` total acesso
+- `authenticated` (admin) leitura e gerenciamento via `has_role(auth.uid(),'admin')`
+- Sem acesso para `anon` direto — validação do cupom acontece via server function
 
-Quando o cliente seleciona um método, esse método é gravado na reserva (PATCH no registro recém-criado).
+Alterações em `public.reservations`:
+- `coupon_code` text null
+- `coupon_discount_percent` numeric(5,2) null
+- `coupon_discount_amount` numeric(10,2) null
 
-## Mudanças no banco
+## 2. Backend (server functions)
 
-Migração adicionando:
+`src/lib/coupons.functions.ts` (novo):
+- `validateCoupon({ code })` — público (sem auth). Faz uppercase, busca cupom; retorna `{ valid, code, discount_percent, reason? }`. Falhas: inexistente, inativo, expirado, esgotado.
+- `listCoupons()` — admin (requireSupabaseAuth + checagem `has_role`).
+- `createCoupon`, `updateCoupon`, `deleteCoupon` — admin.
 
-- Coluna `payment_method` em `public.reservations` (texto: `pix` | `card` | `null`).
-- Em `public.site_settings`, novas chaves:
-  - `pix_key` (texto)
-  - `pix_beneficiary` (texto, ex: "SARAH PETERLI KUNERT")
-  - `pix_qr_code_path` (caminho no bucket `home-assets`)
+`src/lib/reservations.functions.ts` (alterar):
+- `inputSchema` ganha `coupon_code: z.string().optional()`.
+- No handler, após calcular `breakdown.total`:
+  - Se `coupon_code` veio: revalidar no servidor (não confiar no cliente). Se inválido → erro.
+  - Calcular `discount_amount = round2(total * percent/100)` e `final_total = total - discount_amount`.
+  - Salvar `coupon_code`, `coupon_discount_percent`, `coupon_discount_amount` e usar `final_total` em `total_price`. `price_breakdown` ganha campos `coupon_*` e `final_total` para histórico.
+  - Incrementar `uses_count` do cupom (update atômico com `eq('id', ...)`).
 
-Valores iniciais já populados via `insert`:
-- `pix_key` = `37.412.135/0001-74`
-- `pix_beneficiary` = `SARAH PETERLI KUNERT`
-- `pix_qr_code_path` = imagem que você enviou, subida para `home-assets/pix/qr-code.jpg`
+## 3. Admin — `/admin/configuracoes`
 
-## Mudanças no admin
+Novo card "Cupons de desconto" abaixo dos existentes:
+- Tabela com colunas: código, %, status (ativo/inativo), validade, usos (`uses_count / max_uses ou ∞`), ações (editar/excluir).
+- Botão "Novo cupom" abre um dialog com campos: código (auto uppercase), %, ativo (switch), validade (date picker opcional), limite de usos (number opcional).
+- Editar usa o mesmo dialog.
 
-Em `/admin/configuracoes`:
-- Novo card **"Pagamento Pix"** com campos para chave Pix, nome do beneficiário e uploader da imagem do QR Code (com pré-visualização).
+## 4. Público — `src/components/property/ReservationModal.tsx`
 
-Em `/admin/reservas` (lista e detalhe):
-- Mostrar a coluna/linha **Método de pagamento** com badge (Pix / Cartão / Não informado).
+Nova seção no formulário, logo antes do bloco de termos/enviar:
+- Label "Cupom de desconto (opcional)"
+- Input de texto + botão "Aplicar"
+- Estados: idle / validando / aplicado (mostra "✓ Cupom CODE — X% de desconto" + botão "Remover") / erro (mensagem em vermelho)
+- Validação ao clicar em "Aplicar" chama `validateCoupon`. Se ok, guarda `{ code, percent }` no estado.
+- Bloco "Resumo" passa a exibir, quando cupom aplicado:
+  - linha "Subtotal" (breakdown.total atual)
+  - linha "Desconto (X%)" em verde com valor negativo
+  - linha "Total" com valor final
+- `submit` envia `coupon_code` apenas se aplicado.
 
-## Mudanças no fluxo público
+## 5. Admin — exibir cupom nas reservas
 
-`src/components/property/ReservationModal.tsx`:
-- Remover o `SuccessView` atual (que redireciona pra WhatsApp em 3s).
-- Após `createReservation` retornar sucesso, mostrar tela **PaymentChoiceView** com as duas opções.
-- Ao escolher: chamar nova server fn `setReservationPaymentMethod({ reservation_id, method })` que atualiza a coluna.
-- Renderizar `PixView` ou `CardRedirectView` (essa última é o `SuccessView` atual reaproveitado).
+- `ReservationsTable.tsx`: pequena badge "Cupom: CODE (-X%)" quando houver.
+- `_admin.admin.reservas.$id.tsx`: na seção de valores, mostrar subtotal, desconto e total final.
 
-Novas server functions em `src/lib/reservations.functions.ts`:
-- `setReservationPaymentMethod` (POST) — atualiza `payment_method` da reserva pelo `id` (sem auth, mas validado pelo `reservation_code` retornado para evitar abuso simples).
+## Detalhes técnicos
 
-Nova server fn em `src/lib/home.functions.ts` (ou novo `payment.functions.ts`):
-- `getPixSettings` — retorna `{ pix_key, pix_beneficiary, qr_code_url (signed) }` lendo `site_settings` via cliente publishable.
+- Códigos normalizados em UPPERCASE no servidor e no banco (constraint `code = upper(code)` opcional via CHECK simples — é imutável).
+- Arredondamento: `Math.round(total * percent) / 100` aplicado ao valor em reais com 2 casas.
+- Sem race condition crítica em `uses_count` (admin-only e volume baixo); update incremental simples.
+- Validações Zod em todos os inputs de admin (código regex, percent 0–100).
 
-`createReservation` passa a retornar também `reservation_id` (além de `reservation_code` e `admin_whatsapp`) para que o cliente consiga atualizar o método.
-
-## Arquivos tocados
-
-- `supabase/migrations/...` (nova migração)
-- `src/lib/reservations.functions.ts` (nova fn + ajuste de retorno)
-- `src/lib/payment.functions.ts` (novo: `getPixSettings`)
-- `src/components/property/ReservationModal.tsx` (novas views Pix/Cartão/escolha)
-- `src/routes/_admin.admin.configuracoes.tsx` (card Pix)
-- `src/routes/_admin.admin.reservas.index.tsx` e `_admin.admin.reservas.$id.tsx` (mostrar método)
-- `src/components/admin/ReservationsTable.tsx` (coluna método)
-
-## Pontos a confirmar
-
-1. **Texto exato** do popup de escolha — está OK: "Solicitação enviada! Como deseja pagar?" + dois botões?
-2. Manter o redirect automático de 3s no caminho Cartão, ou só botão manual "Abrir WhatsApp"?
-3. No caminho Pix, deve haver um botão "Já paguei, abrir WhatsApp para confirmar" que leve ao WhatsApp do admin?
+Confirma para eu executar?

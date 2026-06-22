@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LegalDocsCard } from "@/components/admin/LegalDocsCard";
 import { AmenitiesManager } from "@/components/admin/AmenitiesManager";
 import { getPixSettings, setPixSettings } from "@/lib/payment.functions";
+import { CouponsCard } from "@/components/admin/CouponsCard";
 
 export const Route = createFileRoute("/_admin/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — RotainStay" }] }),
@@ -233,6 +234,8 @@ function SettingsPage() {
       <LegalDocsCard />
 
       <AmenitiesManager />
+
+      <CouponsCard />
 
       <div
         className="rounded-lg p-6"

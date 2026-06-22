@@ -66,6 +66,9 @@ type Reservation = {
   property_id: string;
   property_name: string | null;
   payment_method: string | null;
+  coupon_code: string | null;
+  coupon_discount_percent: number | string | null;
+  coupon_discount_amount: number | string | null;
 };
 
 function statusColor(status: string) {
@@ -122,7 +125,7 @@ function ReservationDetailPage() {
       const { data: r } = await supabase
         .from("reservations")
         .select(
-          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id, payment_method"
+          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id, payment_method, coupon_code, coupon_discount_percent, coupon_discount_amount"
         )
         .eq("id", id)
         .maybeSingle();
@@ -217,7 +220,13 @@ function ReservationDetailPage() {
 
         <div className="space-y-4">
           <StatusCard reservation={r} onChanged={invalidateAll} />
-          <PriceCard breakdown={r.price_breakdown} total={r.total_price} />
+          <PriceCard
+            breakdown={r.price_breakdown}
+            total={r.total_price}
+            couponCode={r.coupon_code}
+            couponPercent={r.coupon_discount_percent}
+            couponAmount={r.coupon_discount_amount}
+          />
           <NotesCard reservation={r} onSaved={invalidateAll} />
         </div>
       </div>
@@ -628,7 +637,19 @@ function StatusCard({
   );
 }
 
-function PriceCard({ breakdown, total }: { breakdown: any; total: number | string }) {
+function PriceCard({
+  breakdown,
+  total,
+  couponCode,
+  couponPercent,
+  couponAmount,
+}: {
+  breakdown: any;
+  total: number | string;
+  couponCode: string | null;
+  couponPercent: number | string | null;
+  couponAmount: number | string | null;
+}) {
   const items: Array<{ label: string; value: string }> = [];
   if (breakdown && typeof breakdown === "object") {
     if (breakdown.weekday_nights != null) {
@@ -653,6 +674,10 @@ function PriceCard({ breakdown, total }: { breakdown: any; total: number | strin
       items.push({ label: "Taxa de limpeza", value: formatBRL(breakdown.cleaning_fee) });
     }
   }
+  const hasCoupon = !!couponCode && couponAmount != null;
+  const subtotal = hasCoupon
+    ? Number(total) + Number(couponAmount ?? 0)
+    : null;
   return (
     <Card bg="#F5F4F1">
       <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1C1C1A" }}>Cálculo de preço</h3>
@@ -667,6 +692,25 @@ function PriceCard({ breakdown, total }: { breakdown: any; total: number | strin
         </ul>
       ) : (
         <p className="mt-3 text-sm text-muted-foreground">Sem detalhamento disponível.</p>
+      )}
+      {hasCoupon && (
+        <div className="mt-3 space-y-1 border-t pt-3 text-sm">
+          <div className="flex justify-between">
+            <span style={{ color: "#5C5B57" }}>Subtotal</span>
+            <span style={{ color: "#1C1C1A" }}>
+              {subtotal != null ? formatBRL(subtotal) : "—"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span style={{ color: "#5C5B57" }}>
+              Cupom {couponCode} (
+              {couponPercent != null ? `${Number(couponPercent)}%` : ""})
+            </span>
+            <span style={{ color: "#1F6F35" }}>
+              − {formatBRL(Number(couponAmount ?? 0))}
+            </span>
+          </div>
+        </div>
       )}
       <div className="mt-4 flex items-baseline justify-between border-t pt-3">
         <span style={{ color: "#5C5B57" }}>Total</span>
