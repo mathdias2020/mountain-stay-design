@@ -21,6 +21,8 @@ export type ReservationRow = {
   total_price: number | string;
   status: string;
   payment_method?: string | null;
+  coupon_code?: string | null;
+  coupon_discount_percent?: number | null;
 };
 
 function statusVariant(status: string) {
@@ -136,7 +138,18 @@ export function ReservationsTable({
                       </div>
                     </td>
                     <td className="hidden px-4 py-3 md:table-cell" style={{ fontWeight: 500 }}>
-                      {formatBRL(r.total_price)}
+                      <div>{formatBRL(r.total_price)}</div>
+                      {r.coupon_code && (
+                        <div
+                          className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium"
+                          style={{ backgroundColor: "#E6F4EA", color: "#1F6F35" }}
+                        >
+                          {r.coupon_code}
+                          {r.coupon_discount_percent != null
+                            ? ` (-${r.coupon_discount_percent}%)`
+                            : ""}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <StatusPill status={r.status} />
