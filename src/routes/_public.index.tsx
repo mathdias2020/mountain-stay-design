@@ -140,7 +140,7 @@ function HomePage() {
         className="bg-primary"
         style={{ paddingBottom: (photoHeight ?? 280) + 32 + 1 }}
       >
-        <Hero imageUrl={hero?.image_url} overlayOpacity={hero?.overlay_opacity ?? 35} />
+        <Hero imageUrls={hero?.image_urls ?? []} title={hero?.title} subtitle={hero?.subtitle} overlayOpacity={hero?.overlay_opacity ?? 35} />
 
         <FiltersCard
           initial={{
