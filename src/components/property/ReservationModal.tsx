@@ -215,7 +215,7 @@ export function ReservationModal({
               onBack={() => setPaymentMethod(null)}
             />
           ) : (
-            <SuccessView
+            <CardRedirectView
               code={success.code}
               whatsapp={success.whatsapp}
               onClose={() => handleClose(false)}
