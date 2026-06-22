@@ -22,6 +22,7 @@ import {
   setHomeAbout,
   getHomeHero,
   setHomeHero,
+  HERO_MAX_IMAGES,
   type CurationMode,
   type PropertiesCuration,
   type HomeAbout,
@@ -144,15 +145,15 @@ function HomeAdmin() {
     queryFn: () => getHomeHero(),
   });
   const [hero, setHero] = useState<HomeHero | null>(null);
-  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  const [heroImageUrls, setHeroImageUrls] = useState<string[]>([]);
   const [heroPendingFile, setHeroPendingFile] = useState<File | null>(null);
   const [heroUploading, setHeroUploading] = useState(false);
 
   useEffect(() => {
     if (heroRemote && !hero) {
-      const { image_url, ...rest } = heroRemote;
+      const { image_urls, ...rest } = heroRemote;
       setHero(rest);
-      setHeroImageUrl(image_url);
+      setHeroImageUrls(image_urls);
     }
   }, [heroRemote, hero]);
 
@@ -201,16 +202,45 @@ function HomeAdmin() {
         .from("home-assets")
         .upload(path, cropped, { contentType: "image/jpeg" });
       if (error) throw error;
-      setHero((h) => (h ? { ...h, image_path: path } : h));
       const { data } = await supabase.storage
         .from("home-assets")
         .createSignedUrl(path, 60 * 60);
-      setHeroImageUrl(data?.signedUrl ?? null);
+      setHero((h) =>
+        h ? { ...h, images: [...h.images, path].slice(0, HERO_MAX_IMAGES) } : h,
+      );
+      setHeroImageUrls((urls) =>
+        [...urls, data?.signedUrl ?? ""].filter(Boolean).slice(0, HERO_MAX_IMAGES),
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao subir imagem");
     } finally {
       setHeroUploading(false);
     }
+  };
+
+  const removeHeroImage = (idx: number) => {
+    setHero((h) =>
+      h ? { ...h, images: h.images.filter((_, i) => i !== idx) } : h,
+    );
+    setHeroImageUrls((urls) => urls.filter((_, i) => i !== idx));
+  };
+
+  const moveHeroImage = (from: number, to: number) => {
+    setHero((h) => {
+      if (!h) return h;
+      if (to < 0 || to >= h.images.length) return h;
+      const arr = [...h.images];
+      const [it] = arr.splice(from, 1);
+      arr.splice(to, 0, it);
+      return { ...h, images: arr };
+    });
+    setHeroImageUrls((urls) => {
+      if (to < 0 || to >= urls.length) return urls;
+      const arr = [...urls];
+      const [it] = arr.splice(from, 1);
+      arr.splice(to, 0, it);
+      return arr;
+    });
   };
 
   const saveHero = async () => {
