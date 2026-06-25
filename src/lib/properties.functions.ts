@@ -68,6 +68,7 @@ export type PropertyListItem = {
   price_weekday: number;
   price_weekend: number;
   cover_url: string | null;
+  photos: string[];
   is_available: boolean | null; // null when no dates selected
   estimated_total: number | null;
 };
