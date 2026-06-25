@@ -1,29 +1,32 @@
 ## Problema
 
-Ao clicar nas setas do PropertyCard, a próxima foto demora 3-5s para carregar (é baixada sob demanda da URL assinada). Enquanto isso, a foto **anterior continua visível**, o que dá a sensação de que a seta não funcionou.
+O preview no admin (`_admin.admin.home.tsx`) é uma **versão fake**: caixa 8:3 com fontes 18/26px e texto centralizado vertical+horizontal. O hero real (`components/home/Hero.tsx`) usa altura mínima 480px, padding assimétrico (96 topo / 128 base), fontes 28/44px e 15/18px. Resultado: o que o admin vê não bate com o que sai na home.
 
 ## Solução
 
-Duas mudanças no `PropertyCard.tsx` (apenas frontend, sem alterar backend nem URLs):
+Substituir o preview customizado por uma **renderização WYSIWYG do próprio componente `<Hero>**`, escalada para caber na largura disponível do card. Assim qualquer mudança futura no Hero real reflete automaticamente no preview.
 
-### 1. Pré-carregar todas as fotos do card em background
-Ao montar o card, disparar `new Image()` para cada uma das (até 5) URLs em `photos`. Isso aquece o cache do navegador, então depois do primeiro carregamento as setas ficam instantâneas.
+Além disso nessa parte do admin, que ele mexe na foto, adiciona a opção de alterar o tamanho da fonte do título que vai aparecer e do subtítulo também. 
 
-### 2. Indicador de carregamento + limpar foto anterior ao trocar
-- Adicionar estado `loaded[index]` (ou `isLoading` para o índice atual).
-- Ao clicar na seta:
-  - Atualizar o `index` imediatamente.
-  - Se a próxima foto ainda não está carregada: mostrar a área da imagem em branco/skeleton (fundo `bg-secondary` que já existe) com uma **barra de progresso indeterminada** animada no topo da imagem (linha fina em `bg-white/70` com animação CSS `translate-x` em loop).
-  - Quando a `<img>` dispara `onLoad`, marcar como carregada e esconder a barra.
-- Usar `key={currentSrc}` na `<img>` para forçar remount e garantir que a foto anterior suma na hora (evita o "fantasma" da foto antiga).
-- Manter `loading="lazy"` apenas na primeira foto; nas demais usar `loading="eager"` já que o usuário pediu para ver.
+### Como
+
+No bloco de preview do `_admin.admin.home.tsx`:
+
+1. Remover o markup atual da prévia (img + overlay + título/subtítulo manuais).
+2. Renderizar `<Hero imageUrls={heroImageUrls} title={hero.title} subtitle={hero.subtitle} overlayOpacity={hero.overlay_opacity} />` dentro de um wrapper:
+  - Wrapper externo: `overflow:hidden`, `border` e `rounded` (como hoje), com largura 100% e altura calculada para manter proporção.
+  - Wrapper interno: largura fixa de referência (ex.: `1280px`) e `transform: scale(containerWidth / 1280)` com `transformOrigin: "top left"`.
+  - Usar `ResizeObserver` (hook local) para recalcular a escala quando o card muda de tamanho.
+  - Altura do wrapper externo = `heroRenderedHeight * scale` (capturada via `ref` no Hero).
+3. Pequeno rótulo "Pré-visualização (proporcional à home)" mantido acima.
 
 ### Detalhes técnicos
-- Sem mudanças em `properties.functions.ts`, sem novas requisições, sem mudar tamanho das URLs assinadas.
-- A barra de progresso é indeterminada (não sabemos % real do download) — só sinaliza atividade.
-- Pré-carregamento usa `new Image(); img.src = url` dentro de um `useEffect` que roda uma vez por card; respeita o cache do navegador.
+
+- Não muda nada no `Hero.tsx`, na home pública nem nas server functions — só o admin.
+- Como o Hero usa `min-height: 480`, a escala vai produzir um preview com a mesma proporção visual da home real.
+- Para evitar interações (carrossel rodando dentro do preview): o slideshow do Hero continua, o que é desejável — mostra exatamente o comportamento real. Se preferir congelar, podemos passar só a primeira imagem; **vou manter o slideshow ativo a menos que você prefira congelar**.
 
 ### Fora do escopo
-- Não mexer na galeria interna da página de detalhes.
-- Não mexer no carrossel da home.
-- Não trocar o backend de URLs assinadas por URLs públicas/CDN (pode ser conversa futura se quiser performance ainda melhor).
+
+- Não alterar tipografia, cores, padding ou overlay do Hero real.
+- Não mudar o fluxo de upload/crop de imagens.
