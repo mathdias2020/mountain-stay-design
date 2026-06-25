@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -30,6 +30,72 @@ import {
 } from "@/lib/home.functions";
 import { ImageCropDialog } from "@/components/admin/ImageCropDialog";
 import { Slider } from "@/components/ui/slider";
+import { Hero } from "@/components/home/Hero";
+
+const HERO_PREVIEW_REF_WIDTH = 1280;
+
+function HeroPreview({
+  imageUrls,
+  title,
+  subtitle,
+  overlayOpacity,
+  titleScale,
+  subtitleScale,
+}: {
+  imageUrls: string[];
+  title: string;
+  subtitle: string;
+  overlayOpacity: number;
+  titleScale: number;
+  subtitleScale: number;
+}) {
+  const outerRef = useRef<HTMLDivElement | null>(null);
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState(1);
+  const [innerHeight, setInnerHeight] = useState(480);
+
+  useLayoutEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const update = () => {
+      const w = outer.clientWidth;
+      if (w > 0) setScale(w / HERO_PREVIEW_REF_WIDTH);
+      setInnerHeight(inner.offsetHeight);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(outer);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={outerRef}
+      className="mt-5 overflow-hidden rounded-[14px] border border-border bg-[#f5f4f0]"
+      style={{ height: innerHeight * scale, position: "relative" }}
+    >
+      <div
+        ref={innerRef}
+        style={{
+          width: HERO_PREVIEW_REF_WIDTH,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        <Hero
+          imageUrls={imageUrls}
+          title={title}
+          subtitle={subtitle}
+          overlayOpacity={overlayOpacity}
+          titleScale={titleScale}
+          subtitleScale={subtitleScale}
+        />
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_admin/admin/home")({
   head: () => ({ meta: [{ title: "Home — RotainStay" }] }),
@@ -334,43 +400,19 @@ function HomeAdmin() {
             </div>
           </div>
 
-          {/* Preview */}
-          <div
-            className="mt-5 overflow-hidden rounded-[14px] border border-border"
-            style={{ aspectRatio: "8 / 3", background: "#f5f4f0", position: "relative" }}
-          >
-            {heroImageUrls.length > 0 ? (
-              <>
-                <img
-                  src={heroImageUrls[0]}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-                <div
-                  className="pointer-events-none absolute inset-0"
-                  style={{ background: `rgba(0,0,0,${hero.overlay_opacity / 100})` }}
-                />
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-                  <div
-                    className="font-semibold text-white text-[18px] md:text-[26px]"
-                    style={{ textShadow: "0 2px 12px rgba(0,0,0,0.45)" }}
-                  >
-                    {hero.title}
-                  </div>
-                  <div
-                    className="mt-1 text-[12px] md:text-[14px]"
-                    style={{ color: "#DDDCD9", textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}
-                  >
-                    {hero.subtitle}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex h-full items-center justify-center text-text-muted text-sm">
-                Sem imagens — a home usa o gradiente verde padrão
-              </div>
-            )}
-          </div>
+          {/* Preview WYSIWYG (mesmo componente da home, escalado) */}
+          <p className="mt-5 text-[12px] text-text-muted">
+            Pré-visualização proporcional à home — tipografia, espaçamentos e
+            posicionamento idênticos ao que o visitante vê.
+          </p>
+          <HeroPreview
+            imageUrls={heroImageUrls}
+            title={hero.title}
+            subtitle={hero.subtitle}
+            overlayOpacity={hero.overlay_opacity}
+            titleScale={hero.title_scale}
+            subtitleScale={hero.subtitle_scale}
+          />
 
           {/* Image list */}
           <div className="mt-5">
@@ -469,6 +511,37 @@ function HomeAdmin() {
             <p className="mt-1 text-[12px] text-text-muted">
               Mais opacidade = texto mais legível, foto menos vibrante. Padrão 35%.
             </p>
+          </div>
+
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <div>
+              <Label>Tamanho do título: {hero.title_scale}%</Label>
+              <Slider
+                value={[hero.title_scale]}
+                min={60}
+                max={160}
+                step={5}
+                onValueChange={(v) => setHero({ ...hero, title_scale: v[0] })}
+                className="mt-2"
+              />
+              <p className="mt-1 text-[12px] text-text-muted">
+                100% = padrão. Aumenta/diminui proporcionalmente em mobile e desktop.
+              </p>
+            </div>
+            <div>
+              <Label>Tamanho do subtítulo: {hero.subtitle_scale}%</Label>
+              <Slider
+                value={[hero.subtitle_scale]}
+                min={60}
+                max={160}
+                step={5}
+                onValueChange={(v) => setHero({ ...hero, subtitle_scale: v[0] })}
+                className="mt-2"
+              />
+              <p className="mt-1 text-[12px] text-text-muted">
+                100% = padrão.
+              </p>
+            </div>
           </div>
 
           <div className="mt-6 flex justify-end">
