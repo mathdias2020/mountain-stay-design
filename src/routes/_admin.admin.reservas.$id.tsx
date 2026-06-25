@@ -672,6 +672,277 @@ function StatusCard({
   );
 }
 
+function PaymentContractCard({
+  reservation,
+  onChanged,
+}: {
+  reservation: Reservation;
+  onChanged: () => void;
+}) {
+  const markDepositFn = useServerFn(markDepositPaid);
+  const markSentFn = useServerFn(markContractSent);
+  const markSignedFn = useServerFn(markContractSigned);
+  const markBalanceFn = useServerFn(markBalancePaid);
+  const updateNotesFn = useServerFn(updateBalanceNotes);
+
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notes, setNotes] = useState(reservation.admin_balance_notes ?? "");
+  const [savingNotes, setSavingNotes] = useState(false);
+
+  useEffect(() => {
+    setNotes(reservation.admin_balance_notes ?? "");
+  }, [reservation.admin_balance_notes]);
+
+  const hasNewFlow = reservation.deposit_amount != null;
+  const depositPaid = !!reservation.deposit_paid_at;
+  const contractSent = !!reservation.contract_sent_at;
+  const contractSigned = !!reservation.contract_signed_at;
+  const balancePaid = !!reservation.balance_paid_at;
+  const cancelled = reservation.status === "cancelled";
+
+  const dueDate = reservation.balance_due_date;
+  const dueOverdue =
+    !!dueDate &&
+    !balancePaid &&
+    new Date(dueDate + "T23:59:59") < new Date();
+
+  async function run(action: () => Promise<unknown>, key: string, ok: string) {
+    setBusy(key);
+    try {
+      await action();
+      toast.success(ok);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao executar ação.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveNotes() {
+    setSavingNotes(true);
+    try {
+      await updateNotesFn({
+        data: { reservationId: reservation.id, notes },
+      });
+      toast.success("Observações salvas.");
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao salvar observações.");
+    } finally {
+      setSavingNotes(false);
+    }
+  }
+
+  if (!hasNewFlow) {
+    return (
+      <Card>
+        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1C1C1A" }}>
+          Pagamento e contrato
+        </h3>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Esta reserva foi criada antes do novo fluxo de sinal/saldo. Use o
+          card "Atualizar status" acima para gerenciá-la manualmente.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1C1C1A" }}>
+        Pagamento e contrato
+      </h3>
+
+      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 rounded-[10px] bg-[#F5F4F1] p-4">
+        <Field label="Sinal (50%)" value={formatBRL(reservation.deposit_amount)} />
+        <Field label="Saldo (50%)" value={formatBRL(reservation.balance_amount)} />
+        <Field
+          label="Vencimento do saldo"
+          value={
+            dueDate ? (
+              <span style={{ color: dueOverdue ? "#A63C2E" : undefined }}>
+                {formatDateBR(dueDate)}
+                {dueOverdue && " (vencido)"}
+              </span>
+            ) : (
+              "—"
+            )
+          }
+        />
+        <Field
+          label="Total"
+          value={formatBRL(reservation.total_price)}
+        />
+      </div>
+
+      {dueOverdue && reservation.status === "awaiting_balance" && (
+        <div
+          className="mt-3 rounded-[10px] p-3 text-sm"
+          style={{ backgroundColor: "#FBE0DC", color: "#A63C2E" }}
+        >
+          <strong>Saldo vencido.</strong> O hóspede não pagou até 5 dias antes
+          do check-in. Decida manualmente: prorrogar, negociar ou cancelar.
+        </div>
+      )}
+
+      <ol className="mt-5 space-y-3">
+        <StepRow
+          n={1}
+          title="Sinal recebido (50%)"
+          done={depositPaid}
+          at={reservation.deposit_paid_at}
+          actionLabel="Marcar sinal recebido"
+          actionDisabled={depositPaid || cancelled || busy !== null}
+          loading={busy === "deposit"}
+          onClick={() =>
+            run(
+              () => markDepositFn({ data: { reservationId: reservation.id } }),
+              "deposit",
+              "Sinal marcado como recebido.",
+            )
+          }
+        />
+        <StepRow
+          n={2}
+          title="Contrato enviado por e-mail"
+          done={contractSent}
+          at={reservation.contract_sent_at}
+          actionLabel="Marcar contrato enviado"
+          actionDisabled={!depositPaid || contractSent || cancelled || busy !== null}
+          loading={busy === "sent"}
+          onClick={() =>
+            run(
+              () => markSentFn({ data: { reservationId: reservation.id } }),
+              "sent",
+              "Contrato marcado como enviado.",
+            )
+          }
+        />
+        <StepRow
+          n={3}
+          title="Contrato assinado pelo hóspede"
+          done={contractSigned}
+          at={reservation.contract_signed_at}
+          actionLabel="Marcar contrato assinado"
+          actionDisabled={
+            !contractSent || contractSigned || cancelled || busy !== null
+          }
+          loading={busy === "signed"}
+          onClick={() =>
+            run(
+              () => markSignedFn({ data: { reservationId: reservation.id } }),
+              "signed",
+              "Contrato marcado como assinado.",
+            )
+          }
+        />
+        <StepRow
+          n={4}
+          title="Saldo recebido (50% restantes)"
+          done={balancePaid}
+          at={reservation.balance_paid_at}
+          actionLabel="Marcar saldo recebido"
+          actionDisabled={
+            !contractSigned || balancePaid || cancelled || busy !== null
+          }
+          loading={busy === "balance"}
+          onClick={() =>
+            run(
+              () => markBalanceFn({ data: { reservationId: reservation.id } }),
+              "balance",
+              "Saldo marcado como recebido. Reserva confirmada.",
+            )
+          }
+        />
+      </ol>
+
+      <div className="mt-5">
+        <div style={{ fontSize: 12, color: "#9A9890" }} className="mb-1">
+          Observações da 2ª cobrança (link do Pix, comprovante, etc.)
+        </div>
+        <Textarea
+          rows={3}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Anote aqui o link/QR enviado, comprovantes e observações sobre a cobrança do saldo..."
+        />
+        <div className="mt-2 flex justify-end">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={saveNotes}
+            disabled={
+              savingNotes ||
+              (notes ?? "") === (reservation.admin_balance_notes ?? "")
+            }
+          >
+            {savingNotes ? "Salvando..." : "Salvar observações"}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function StepRow({
+  n,
+  title,
+  done,
+  at,
+  actionLabel,
+  actionDisabled,
+  loading,
+  onClick,
+}: {
+  n: number;
+  title: string;
+  done: boolean;
+  at: string | null;
+  actionLabel: string;
+  actionDisabled: boolean;
+  loading: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <li className="flex items-start justify-between gap-3 border-t pt-3 first:border-t-0 first:pt-0">
+      <div className="flex items-start gap-3">
+        <div
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+          style={{
+            backgroundColor: done ? "#E6F4EA" : "#EEE",
+            color: done ? "#1F6F35" : "#5C5B57",
+          }}
+        >
+          {done ? "✓" : n}
+        </div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: "#1C1C1A" }}>
+            {title}
+          </div>
+          <div style={{ fontSize: 12, color: "#9A9890" }}>
+            {done && at
+              ? `Em ${new Date(at).toLocaleString("pt-BR")}`
+              : "Pendente"}
+          </div>
+        </div>
+      </div>
+      {!done && (
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={actionDisabled}
+          onClick={onClick}
+        >
+          {loading ? "Salvando..." : actionLabel}
+        </Button>
+      )}
+    </li>
+  );
+}
+
 function PriceCard({
   breakdown,
   total,
@@ -685,7 +956,6 @@ function PriceCard({
   couponPercent: number | string | null;
   couponAmount: number | string | null;
 }) {
-  // placeholder anchor — PaymentContractCard defined below
   const items: Array<{ label: string; value: string }> = [];
   if (breakdown && typeof breakdown === "object") {
     if (breakdown.weekday_nights != null) {
