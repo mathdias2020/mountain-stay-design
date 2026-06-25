@@ -257,6 +257,7 @@ export function ReservationModal({
           ) : paymentMethod === "pix" ? (
             <PixView
               code={success.code}
+              amount={finalTotal}
               onClose={() => handleClose(false)}
               onBack={() => setPaymentMethod(null)}
             />

@@ -1,18 +1,13 @@
-## Problema
-
-No modal de reserva, os steppers de "Número de adultos" e "Número de crianças" usam limites independentes (`max={property.max_guests}` e `max={10}`). Resultado: dá pra selecionar adultos + crianças acima da capacidade da casa, e o erro só aparece ao confirmar.
-
 ## Correção
 
-Em `src/components/property/ReservationModal.tsx`, tornar os limites dos dois steppers dinâmicos com base na capacidade restante (`property.max_guests`):
+Exibir o valor total da reserva no pop-up do Pix.
 
-- **Adultos**: `max = property.max_guests - children` (mantendo `min = 1`).
-- **Crianças**: `max = property.max_guests - adults` (mantendo `min = 0`).
+Em `src/components/property/ReservationModal.tsx`:
 
-Assim o botão `+` desabilita automaticamente em qualquer um dos dois assim que o total atinge `max_guests`.
+1. Passar `amount={finalTotal}` (já calculado no escopo do modal — inclui desconto do cupom) para `<PixView ... />`.
+2. `PixView` aceita prop `amount: number` e renderiza um bloco destacado logo abaixo do título "Pagamento via Pix", antes do QR Code:
+   - Label "Valor a pagar"
+   - Valor formatado em BRL (`R$ X.XXX,XX`) em tipografia grande/negrito
+3. Adicionar botão "Copiar valor" ao lado, para facilitar colar no app do banco (mesmo padrão visual do "Copiar" da chave Pix).
 
-Adicional: exibir uma linha discreta de ajuda abaixo dos steppers com `Total: X / max_guests hóspedes` para o usuário entender por que o `+` ficou indisponível.
-
-Validação no servidor (`reservations.functions.ts`) e a checagem `totalGuests > max_guests` permanecem como estão (defesa em profundidade).
-
-Sem mudanças em backend, schema ou outros componentes.
+Sem mudanças no `CardRedirectView`, backend ou pricing.
