@@ -252,6 +252,7 @@ function ReservationDetailPage() {
 
         <div className="space-y-4">
           <StatusCard reservation={r} onChanged={invalidateAll} />
+          <PaymentContractCard reservation={r} onChanged={invalidateAll} />
           <PriceCard
             breakdown={r.price_breakdown}
             total={r.total_price}
