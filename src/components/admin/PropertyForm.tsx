@@ -38,13 +38,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  CITY_OPTIONS,
   defaultPropertyValues,
   propertyFormSchema,
   slugify,
   type PropertyFormValues,
 } from "@/lib/property-form";
 import { listAmenityCatalog } from "@/lib/amenities.functions";
+import { listActiveCities } from "@/lib/cities.functions";
 import { ImageCropDialog } from "@/components/admin/ImageCropDialog";
 
 type ExistingPhoto = {
