@@ -88,6 +88,13 @@ function AnnouncePage() {
     formState: { errors, isSubmitting },
   } = form;
 
+  const listCitiesFn = useServerFn(listActiveCities);
+  const { data: cityOptions } = useQuery({
+    queryKey: ["cities", "active"],
+    queryFn: () => listCitiesFn(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const whats = watch("whatsapp") || "";
   const msg = watch("message") || "";
 
@@ -240,9 +247,9 @@ function AnnouncePage() {
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {CITY_OPTIONS.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
+                      {(cityOptions ?? []).map((c) => (
+                        <SelectItem key={c.id} value={c.name}>
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
