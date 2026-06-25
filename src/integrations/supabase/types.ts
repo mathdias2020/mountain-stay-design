@@ -617,13 +617,21 @@ export type Database = {
       }
       reservations: {
         Row: {
+          admin_balance_notes: string | null
           admin_notes: string | null
+          balance_amount: number | null
+          balance_due_date: string | null
+          balance_paid_at: string | null
           checkin_date: string
           checkout_date: string
+          contract_sent_at: string | null
+          contract_signed_at: string | null
           coupon_code: string | null
           coupon_discount_amount: number | null
           coupon_discount_percent: number | null
           created_at: string
+          deposit_amount: number | null
+          deposit_paid_at: string | null
           guest_email: string | null
           guest_message: string | null
           guest_name: string
@@ -645,13 +653,21 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_balance_notes?: string | null
           admin_notes?: string | null
+          balance_amount?: number | null
+          balance_due_date?: string | null
+          balance_paid_at?: string | null
           checkin_date: string
           checkout_date: string
+          contract_sent_at?: string | null
+          contract_signed_at?: string | null
           coupon_code?: string | null
           coupon_discount_amount?: number | null
           coupon_discount_percent?: number | null
           created_at?: string
+          deposit_amount?: number | null
+          deposit_paid_at?: string | null
           guest_email?: string | null
           guest_message?: string | null
           guest_name: string
@@ -673,13 +689,21 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_balance_notes?: string | null
           admin_notes?: string | null
+          balance_amount?: number | null
+          balance_due_date?: string | null
+          balance_paid_at?: string | null
           checkin_date?: string
           checkout_date?: string
+          contract_sent_at?: string | null
+          contract_signed_at?: string | null
           coupon_code?: string | null
           coupon_discount_amount?: number | null
           coupon_discount_percent?: number | null
           created_at?: string
+          deposit_amount?: number | null
+          deposit_paid_at?: string | null
           guest_email?: string | null
           guest_message?: string | null
           guest_name?: string
