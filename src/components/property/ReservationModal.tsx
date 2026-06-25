@@ -356,7 +356,7 @@ export function ReservationModal({
                     value={adults}
                     onChange={setAdults}
                     min={1}
-                    max={property.max_guests}
+                    max={Math.max(1, property.max_guests - children)}
                   />
                 </Field>
                 <Field label="Número de crianças">
@@ -364,9 +364,12 @@ export function ReservationModal({
                     value={children}
                     onChange={setChildren}
                     min={0}
-                    max={10}
+                    max={Math.max(0, property.max_guests - adults)}
                   />
                 </Field>
+                <p className="text-xs text-text-secondary">
+                  Total: {adults + children} / {property.max_guests} hóspedes
+                </p>
 
                 {property.accepts_pets ? (
                   <Field label="Traz pets?">
