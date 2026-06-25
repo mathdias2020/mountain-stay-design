@@ -1,28 +1,29 @@
-## Mudança
+## Problema
 
-Adicionar setinhas (◀ ▶) sobrepostas na **foto de cada card de propriedade**, permitindo trocar entre as fotos da casa sem abrir a página de detalhes. Aplicado nos dois lugares onde o `PropertyCard` aparece: home (slideshow) e `/propriedades`.
+Ao clicar nas setas do PropertyCard, a próxima foto demora 3-5s para carregar (é baixada sob demanda da URL assinada). Enquanto isso, a foto **anterior continua visível**, o que dá a sensação de que a seta não funcionou.
 
-O clique nas setas **só troca a foto** — não navega. O resto do card (título, "Ver detalhes") continua levando para a página da propriedade.
+## Solução
 
-## Backend
+Duas mudanças no `PropertyCard.tsx` (apenas frontend, sem alterar backend nem URLs):
 
-`src/lib/properties.functions.ts` (`searchProperties` e versão admin do listing): em vez de devolver só `cover_url`, devolver `photos: string[]` com até **5 URLs assinadas** por propriedade (ordenadas por capa primeiro, depois `sort_order`). Mantém compatibilidade: `cover_url = photos[0] ?? null`.
+### 1. Pré-carregar todas as fotos do card em background
+Ao montar o card, disparar `new Image()` para cada uma das (até 5) URLs em `photos`. Isso aquece o cache do navegador, então depois do primeiro carregamento as setas ficam instantâneas.
 
-Performance: a função já busca todas as fotos das propriedades retornadas; só vou ampliar o limite implícito para 5 por propriedade e batear a assinatura no mesmo `signMany` que já existe.
+### 2. Indicador de carregamento + limpar foto anterior ao trocar
+- Adicionar estado `loaded[index]` (ou `isLoading` para o índice atual).
+- Ao clicar na seta:
+  - Atualizar o `index` imediatamente.
+  - Se a próxima foto ainda não está carregada: mostrar a área da imagem em branco/skeleton (fundo `bg-secondary` que já existe) com uma **barra de progresso indeterminada** animada no topo da imagem (linha fina em `bg-white/70` com animação CSS `translate-x` em loop).
+  - Quando a `<img>` dispara `onLoad`, marcar como carregada e esconder a barra.
+- Usar `key={currentSrc}` na `<img>` para forçar remount e garantir que a foto anterior suma na hora (evita o "fantasma" da foto antiga).
+- Manter `loading="lazy"` apenas na primeira foto; nas demais usar `loading="eager"` já que o usuário pediu para ver.
 
-## UI no `PropertyCard`
+### Detalhes técnicos
+- Sem mudanças em `properties.functions.ts`, sem novas requisições, sem mudar tamanho das URLs assinadas.
+- A barra de progresso é indeterminada (não sabemos % real do download) — só sinaliza atividade.
+- Pré-carregamento usa `new Image(); img.src = url` dentro de um `useEffect` que roda uma vez por card; respeita o cache do navegador.
 
-- Estado local `index` (0..n-1).
-- Foto mostra `photos[index]` (ou fallback ícone se vazio).
-- Setas circulares semitransparentes nos cantos esquerdo/direito da foto. Aparecem só no hover em desktop e sempre visíveis no mobile.
-- Setas com `e.preventDefault(); e.stopPropagation();` para não disparar a navegação do card.
-- Indicador discreto no rodapé da foto: pontinhos (até 5) OU contador `2/5` — a definir; meu default é **pontinhos**.
-- Setas escondidas quando só há 1 foto.
-- Sem auto-play (o usuário pediu controle manual).
-- Acessibilidade: `aria-label="Próxima foto"` / `"Foto anterior"`, navegação por teclado quando o card recebe foco.
-
-## Fora de escopo
-
-- Sem swipe gesture no mobile nesta etapa (posso adicionar depois se quiser).
-- Sem mudança na galeria interna da página de detalhes (`PhotoGallery`) — ela já tem navegação própria.
-- Sem mudança nas setas que trocam propriedades no carrossel da home — também já existem.
+### Fora do escopo
+- Não mexer na galeria interna da página de detalhes.
+- Não mexer no carrossel da home.
+- Não trocar o backend de URLs assinadas por URLs públicas/CDN (pode ser conversa futura se quiser performance ainda melhor).

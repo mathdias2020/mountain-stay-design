@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Home, MapPin, Users, BedDouble } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/Button";
@@ -32,6 +32,33 @@ export function PropertyCard({ property, showAvailability, searchParams }: Props
   const currentSrc = photos[safeIndex];
   const hasImg = !!currentSrc && !imgBroken;
   const showArrows = photos.length > 1;
+  const [loadedSet, setLoadedSet] = useState<Set<string>>(() => new Set());
+  const isLoading = !!currentSrc && !loadedSet.has(currentSrc);
+
+  // Preload all photos in background to warm browser cache.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const imgs: HTMLImageElement[] = [];
+    photos.forEach((src) => {
+      const img = new Image();
+      img.onload = () => {
+        setLoadedSet((prev) => {
+          if (prev.has(src)) return prev;
+          const next = new Set(prev);
+          next.add(src);
+          return next;
+        });
+      };
+      img.src = src;
+      imgs.push(img);
+    });
+    return () => {
+      imgs.forEach((img) => {
+        img.onload = null;
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photos.join("|")]);
 
   const go = (e: React.MouseEvent, delta: number) => {
     e.preventDefault();
@@ -53,14 +80,33 @@ export function PropertyCard({ property, showAvailability, searchParams }: Props
       {/* Cover */}
       <div data-card-photo className="relative aspect-[4/3] w-full bg-secondary">
         {hasImg ? (
-          <img
-            src={currentSrc}
-            alt={`Foto de ${property.name}`}
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover"
-            onError={() => setImgBroken(true)}
-          />
+          <>
+            <img
+              key={currentSrc}
+              src={currentSrc}
+              alt={`Foto de ${property.name}`}
+              loading={safeIndex === 0 ? "lazy" : "eager"}
+              decoding="async"
+              className={cn(
+                "h-full w-full object-cover transition-opacity duration-150",
+                isLoading && "opacity-0",
+              )}
+              onLoad={() =>
+                setLoadedSet((prev) => {
+                  if (prev.has(currentSrc)) return prev;
+                  const next = new Set(prev);
+                  next.add(currentSrc);
+                  return next;
+                })
+              }
+              onError={() => setImgBroken(true)}
+            />
+            {isLoading && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-white/20">
+                <div className="h-full w-1/3 animate-[card-photo-progress_1s_linear_infinite] bg-white/80" />
+              </div>
+            )}
+          </>
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <Home className="h-12 w-12 text-text-muted" strokeWidth={1.5} />
