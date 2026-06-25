@@ -162,9 +162,9 @@ export function FiltersCard({ initial, onSearch }: Props) {
               </SelectTrigger>
               <SelectContent className="bg-white">
                 <SelectItem value="all">Todas as regiões</SelectItem>
-                {CITIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
+                {(citiesList ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
                   </SelectItem>
                 ))}
               </SelectContent>
