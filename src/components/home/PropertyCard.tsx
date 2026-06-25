@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, MapPin, Users, BedDouble } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, MapPin, Users, BedDouble } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
@@ -22,12 +22,31 @@ export function PropertyCard({ property, showAvailability, searchParams }: Props
   const disabled = showAvailability && property.is_available === false;
   const basePrice = Math.min(property.price_weekday, property.price_weekend);
   const [imgBroken, setImgBroken] = useState(false);
-  const hasImg = !!property.cover_url && !imgBroken;
+  const photos = property.photos?.length
+    ? property.photos
+    : property.cover_url
+      ? [property.cover_url]
+      : [];
+  const [index, setIndex] = useState(0);
+  const safeIndex = Math.min(index, Math.max(0, photos.length - 1));
+  const currentSrc = photos[safeIndex];
+  const hasImg = !!currentSrc && !imgBroken;
+  const showArrows = photos.length > 1;
+
+  const go = (e: React.MouseEvent, delta: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setImgBroken(false);
+    setIndex((i) => {
+      const n = photos.length;
+      return (i + delta + n) % n;
+    });
+  };
 
   return (
     <article
       className={cn(
-        "flex flex-col overflow-hidden rounded-[14px] bg-surface border border-border transition-opacity",
+        "group/card flex flex-col overflow-hidden rounded-[14px] bg-surface border border-border transition-opacity",
         disabled && "opacity-50",
       )}
     >
@@ -35,7 +54,7 @@ export function PropertyCard({ property, showAvailability, searchParams }: Props
       <div data-card-photo className="relative aspect-[4/3] w-full bg-secondary">
         {hasImg ? (
           <img
-            src={property.cover_url!}
+            src={currentSrc}
             alt={`Foto de ${property.name}`}
             loading="lazy"
             decoding="async"
@@ -46,6 +65,38 @@ export function PropertyCard({ property, showAvailability, searchParams }: Props
           <div className="flex h-full w-full items-center justify-center">
             <Home className="h-12 w-12 text-text-muted" strokeWidth={1.5} />
           </div>
+        )}
+
+        {showArrows && hasImg && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => go(e, -1)}
+              aria-label="Foto anterior"
+              className="absolute left-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white opacity-0 transition-opacity hover:bg-black/65 focus:opacity-100 group-hover/card:opacity-100 md:opacity-0 max-md:opacity-100"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => go(e, 1)}
+              aria-label="Próxima foto"
+              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white opacity-0 transition-opacity hover:bg-black/65 focus:opacity-100 group-hover/card:opacity-100 md:opacity-0 max-md:opacity-100"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+              {photos.map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full transition-all",
+                    i === safeIndex ? "bg-white" : "bg-white/50",
+                  )}
+                />
+              ))}
+            </div>
+          </>
         )}
 
         {showAvailability && property.is_available !== null && (

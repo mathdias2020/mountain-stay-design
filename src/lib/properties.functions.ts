@@ -68,6 +68,7 @@ export type PropertyListItem = {
   price_weekday: number;
   price_weekend: number;
   cover_url: string | null;
+  photos: string[];
   is_available: boolean | null; // null when no dates selected
   estimated_total: number | null;
 };
@@ -116,29 +117,30 @@ export const searchProperties = createServerFn({ method: "POST" })
 
     // For listings we prefer the lightweight thumb (stored in `public_url`
     // as a storage path — legacy column reused; if absent we fall back to
-    // the original storage_path).
-    const coverByProp = new Map<string, { path: string }>();
+    // the original storage_path). Collect up to 5 photos per property so
+    // the card can cycle through them.
+    const PHOTOS_PER_CARD = 5;
+    const pathsByProp = new Map<string, string[]>();
     for (const p of photos ?? []) {
-      if (!coverByProp.has(p.property_id)) {
-        const thumbPath =
-          p.public_url && !p.public_url.startsWith("http")
-            ? p.public_url
-            : null;
-        coverByProp.set(p.property_id, {
-          path: thumbPath || p.storage_path,
-        });
-      }
+      const list = pathsByProp.get(p.property_id) ?? [];
+      if (list.length >= PHOTOS_PER_CARD) continue;
+      const thumbPath =
+        p.public_url && !p.public_url.startsWith("http")
+          ? p.public_url
+          : null;
+      list.push(thumbPath || p.storage_path);
+      pathsByProp.set(p.property_id, list);
     }
 
     // Generate signed URLs in a single batched call (bucket is private)
-    const allPaths = Array.from(coverByProp.values())
-      .map((c) => c.path)
-      .filter(Boolean);
+    const allPaths = Array.from(pathsByProp.values()).flat().filter(Boolean);
     const signed = await signMany(allPaths);
-    const signedByProp = new Map<string, string>();
-    for (const [propId, cover] of coverByProp.entries()) {
-      const url = signed.get(cover.path);
-      if (url) signedByProp.set(propId, url);
+    const photosByProp = new Map<string, string[]>();
+    for (const [propId, paths] of pathsByProp.entries()) {
+      const urls = paths
+        .map((path) => signed.get(path))
+        .filter((u): u is string => Boolean(u));
+      if (urls.length > 0) photosByProp.set(propId, urls);
     }
 
     // Availability: only compute when both dates are present
@@ -192,6 +194,7 @@ export const searchProperties = createServerFn({ method: "POST" })
     const items: PropertyListItem[] = rows.map((r) => {
       const basePrice = Math.min(Number(r.price_weekday), Number(r.price_weekend));
       const estimated = hasDateRange ? basePrice * nightsCount : null;
+      const photoUrls = photosByProp.get(r.id) ?? [];
       return {
         id: r.id,
         slug: r.slug,
@@ -202,7 +205,8 @@ export const searchProperties = createServerFn({ method: "POST" })
         bathrooms: r.bathrooms,
         price_weekday: Number(r.price_weekday),
         price_weekend: Number(r.price_weekend),
-        cover_url: signedByProp.get(r.id) ?? null,
+        cover_url: photoUrls[0] ?? null,
+        photos: photoUrls,
         is_available: hasDateRange ? (availability.get(r.id) ?? true) : null,
         estimated_total: estimated,
       };
@@ -548,26 +552,29 @@ export const getSuggestedProperties = createServerFn({ method: "POST" })
       .order("is_cover", { ascending: false })
       .order("sort_order", { ascending: true });
 
-    const coverByProp = new Map<string, { path: string }>();
+    const PHOTOS_PER_CARD = 5;
+    const pathsByProp = new Map<string, string[]>();
     for (const p of photos ?? []) {
-      if (!coverByProp.has(p.property_id)) {
-        const thumbPath =
-          p.public_url && !p.public_url.startsWith("http") ? p.public_url : null;
-        coverByProp.set(p.property_id, { path: thumbPath || p.storage_path });
-      }
+      const list = pathsByProp.get(p.property_id) ?? [];
+      if (list.length >= PHOTOS_PER_CARD) continue;
+      const thumbPath =
+        p.public_url && !p.public_url.startsWith("http") ? p.public_url : null;
+      list.push(thumbPath || p.storage_path);
+      pathsByProp.set(p.property_id, list);
     }
-    const allPaths = Array.from(coverByProp.values())
-      .map((c) => c.path)
-      .filter(Boolean);
+    const allPaths = Array.from(pathsByProp.values()).flat().filter(Boolean);
     const signed = await signMany(allPaths);
-    const signedByProp = new Map<string, string>();
-    for (const [propId, cover] of coverByProp.entries()) {
-      const url = signed.get(cover.path);
-      if (url) signedByProp.set(propId, url);
+    const photosByProp = new Map<string, string[]>();
+    for (const [propId, paths] of pathsByProp.entries()) {
+      const urls = paths
+        .map((path) => signed.get(path))
+        .filter((u): u is string => Boolean(u));
+      if (urls.length > 0) photosByProp.set(propId, urls);
     }
 
     const items: PropertyListItem[] = pick.map((r) => {
       const basePrice = Math.min(Number(r.price_weekday), Number(r.price_weekend));
+      const photoUrls = photosByProp.get(r.id) ?? [];
       return {
         id: r.id,
         slug: r.slug,
@@ -578,7 +585,8 @@ export const getSuggestedProperties = createServerFn({ method: "POST" })
         bathrooms: r.bathrooms,
         price_weekday: Number(r.price_weekday),
         price_weekend: Number(r.price_weekend),
-        cover_url: signedByProp.get(r.id) ?? null,
+        cover_url: photoUrls[0] ?? null,
+        photos: photoUrls,
         is_available: hasDateRange ? true : null,
         estimated_total: null,
       };
