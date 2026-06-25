@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PropertyForm } from "@/components/admin/PropertyForm";
-import { CITY_OPTIONS, type PropertyFormValues } from "@/lib/property-form";
+import { type PropertyFormValues } from "@/lib/property-form";
 import { FormSkeleton } from "@/components/skeletons/FormSkeleton";
 
 export const Route = createFileRoute("/_admin/admin/propriedades/$id/editar")({
@@ -52,9 +52,7 @@ function EditProperty() {
   }
 
   const p = data.property;
-  const city = (CITY_OPTIONS as readonly string[]).includes(p.city)
-    ? (p.city as PropertyFormValues["city"])
-    : "Outro";
+  const city = p.city ?? "";
 
   const initialValues: Partial<PropertyFormValues> = {
     name: p.name,

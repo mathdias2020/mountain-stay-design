@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,15 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const CITY_OPTIONS = [
-  "Domingos Martins",
-  "Pedra Azul",
-  "Marechal Floriano",
-  "Venda Nova do Imigrante",
-  "Paraju",
-  "Outro",
-] as const;
+import { listActiveCities } from "@/lib/cities.functions";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Informe seu nome").max(120),
@@ -36,7 +30,7 @@ const schema = z.object({
     .transform((v) => v.replace(/\D/g, ""))
     .refine((v) => v.length === 11, "WhatsApp deve ter 11 dígitos com DDD"),
   email: z.string().trim().email("E-mail inválido").max(255),
-  city: z.enum(CITY_OPTIONS, { errorMap: () => ({ message: "Selecione a cidade" }) }),
+  city: z.string().trim().min(1, "Selecione a cidade").max(80),
   house_description: z.string().trim().min(3).max(80, "Máximo 80 caracteres"),
   bedrooms: z.coerce.number().int().min(1).max(20),
   max_guests: z.coerce.number().int().min(1).max(30),
@@ -93,6 +87,13 @@ function AnnouncePage() {
     watch,
     formState: { errors, isSubmitting },
   } = form;
+
+  const listCitiesFn = useServerFn(listActiveCities);
+  const { data: cityOptions } = useQuery({
+    queryKey: ["cities", "active"],
+    queryFn: () => listCitiesFn(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const whats = watch("whatsapp") || "";
   const msg = watch("message") || "";
@@ -246,9 +247,9 @@ function AnnouncePage() {
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {CITY_OPTIONS.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
+                      {(cityOptions ?? []).map((c) => (
+                        <SelectItem key={c.id} value={c.name}>
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

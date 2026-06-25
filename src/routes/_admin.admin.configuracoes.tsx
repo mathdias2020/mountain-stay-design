@@ -13,6 +13,7 @@ import { LegalDocsCard } from "@/components/admin/LegalDocsCard";
 import { AmenitiesManager } from "@/components/admin/AmenitiesManager";
 import { getPixSettings, setPixSettings } from "@/lib/payment.functions";
 import { CouponsCard } from "@/components/admin/CouponsCard";
+import { CitiesCard } from "@/components/admin/CitiesCard";
 
 export const Route = createFileRoute("/_admin/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — RotainStay" }] }),
@@ -234,6 +235,8 @@ function SettingsPage() {
       <LegalDocsCard />
 
       <AmenitiesManager />
+
+      <CitiesCard />
 
       <CouponsCard />
 

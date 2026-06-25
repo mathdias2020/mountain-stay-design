@@ -38,13 +38,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  CITY_OPTIONS,
   defaultPropertyValues,
   propertyFormSchema,
   slugify,
   type PropertyFormValues,
 } from "@/lib/property-form";
 import { listAmenityCatalog } from "@/lib/amenities.functions";
+import { listActiveCities } from "@/lib/cities.functions";
 import { ImageCropDialog } from "@/components/admin/ImageCropDialog";
 
 type ExistingPhoto = {
@@ -134,6 +134,14 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
   const { data: catalog } = useQuery({
     queryKey: ["amenity-catalog"],
     queryFn: () => listCatalog(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Active cities (dynamic select)
+  const listCitiesFn = useServerFn(listActiveCities);
+  const { data: activeCities } = useQuery({
+    queryKey: ["cities", "active"],
+    queryFn: () => listCitiesFn(),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -515,17 +523,32 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
             <Label>Cidade *</Label>
             <Select
               value={watch("city")}
-              onValueChange={(v) => setValue("city", v as PropertyFormValues["city"])}
+              onValueChange={(v) => setValue("city", v)}
             >
               <SelectTrigger className={errCls(!!errors.city)}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CITY_OPTIONS.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
+                {(() => {
+                  const current = watch("city");
+                  const options = activeCities ?? [];
+                  const hasCurrent =
+                    !current || options.some((c) => c.name === current);
+                  return (
+                    <>
+                      {!hasCurrent && current ? (
+                        <SelectItem value={current}>
+                          {current} (inativa)
+                        </SelectItem>
+                      ) : null}
+                      {options.map((c) => (
+                        <SelectItem key={c.id} value={c.name}>
+                          {c.name}
                   </SelectItem>
                 ))}
+                    </>
+                  );
+                })()}
               </SelectContent>
             </Select>
             <FieldError msg={errors.city?.message} />

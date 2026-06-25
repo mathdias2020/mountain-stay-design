@@ -50,20 +50,11 @@ async function signMany(
   return out;
 }
 
-const CITY_VALUES = [
-  "Domingos Martins",
-  "Pedra Azul",
-  "Marechal Floriano",
-  "Venda Nova do Imigrante",
-  "Paraju",
-  "Outro",
-] as const;
-
 const searchInputSchema = z.object({
   checkin: z.string().optional(),
   checkout: z.string().optional(),
   guests: z.number().int().min(1).max(20).optional(),
-  city: z.enum(CITY_VALUES).optional(),
+  city: z.string().trim().max(80).optional(),
 });
 
 export type PropertyListItem = {

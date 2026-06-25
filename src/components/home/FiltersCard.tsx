@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { format, addDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
@@ -14,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
+import { listActiveCities } from "@/lib/cities.functions";
 
 export type HomeFilters = {
   checkin?: string;
@@ -21,15 +24,6 @@ export type HomeFilters = {
   guests?: number;
   city?: string;
 };
-
-const CITIES = [
-  "Domingos Martins",
-  "Pedra Azul",
-  "Marechal Floriano",
-  "Venda Nova do Imigrante",
-  "Paraju",
-  "Outro",
-];
 
 interface Props {
   initial: HomeFilters;
@@ -47,6 +41,12 @@ export function FiltersCard({ initial, onSearch }: Props) {
     initial.guests ? String(initial.guests) : "",
   );
   const [city, setCity] = useState<string>(initial.city ?? "");
+  const listCitiesFn = useServerFn(listActiveCities);
+  const { data: citiesList } = useQuery({
+    queryKey: ["cities", "active"],
+    queryFn: () => listCitiesFn(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const checkoutMin = checkin ? addDays(checkin, 1) : new Date();
 
@@ -162,9 +162,9 @@ export function FiltersCard({ initial, onSearch }: Props) {
               </SelectTrigger>
               <SelectContent className="bg-white">
                 <SelectItem value="all">Todas as regiões</SelectItem>
-                {CITIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
+                {(citiesList ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
                   </SelectItem>
                 ))}
               </SelectContent>
