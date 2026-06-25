@@ -137,6 +137,14 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
     staleTime: 5 * 60 * 1000,
   });
 
+  // Active cities (dynamic select)
+  const listCitiesFn = useServerFn(listActiveCities);
+  const { data: activeCities } = useQuery({
+    queryKey: ["cities", "active"],
+    queryFn: () => listCitiesFn(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { fields: hsFields, append: hsAppend, remove: hsRemove } = useFieldArray({
     control,
     name: "high_season_dates",
