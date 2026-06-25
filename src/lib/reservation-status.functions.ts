@@ -2,7 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const VALID = ["pending", "confirmed", "cancelled", "completed"] as const;
+const VALID = [
+  "pending",
+  "awaiting_contract",
+  "awaiting_balance",
+  "confirmed",
+  "cancelled",
+  "completed",
+] as const;
 
 export const updateReservationStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -55,8 +62,10 @@ export const updateReservationStatus = createServerFn({ method: "POST" })
       }
     }
 
-    // Efeitos colaterais em blocked_dates
-    if (newStatus === "confirmed") {
+    // Efeitos colaterais em blocked_dates: bloqueia assim que o sinal entra
+    // (awaiting_contract / awaiting_balance / confirmed); libera ao cancelar.
+    const HOLDS = new Set(["awaiting_contract", "awaiting_balance", "confirmed"]);
+    if (HOLDS.has(newStatus)) {
       const reason = `Reserva confirmada #${res.reservation_code}`;
       const { data: existing } = await supabase
         .from("blocked_dates")
