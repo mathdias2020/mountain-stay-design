@@ -9,6 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { updateReservationStatus } from "@/lib/reservation-status.functions";
 import { deleteReservation } from "@/lib/reservation-delete.functions";
 import {
+  markDepositPaid,
+  markContractSent,
+  markContractSigned,
+  markBalancePaid,
+  updateBalanceNotes,
+} from "@/lib/reservation-payment.functions";
+import {
   formatBRL,
   formatDateBR,
   nightsBetween,
@@ -70,6 +77,14 @@ type Reservation = {
   coupon_code: string | null;
   coupon_discount_percent: number | string | null;
   coupon_discount_amount: number | string | null;
+  deposit_amount: number | string | null;
+  balance_amount: number | string | null;
+  balance_due_date: string | null;
+  deposit_paid_at: string | null;
+  contract_sent_at: string | null;
+  contract_signed_at: string | null;
+  balance_paid_at: string | null;
+  admin_balance_notes: string | null;
 };
 
 function statusColor(status: string) {
@@ -78,6 +93,10 @@ function statusColor(status: string) {
       return { bg: "#E6F4EA", fg: "#1F6F35" };
     case "pending":
       return { bg: "#FFF4E0", fg: "#8A5A12" };
+    case "awaiting_contract":
+      return { bg: "#E8EEF7", fg: "#2F4F8A" };
+    case "awaiting_balance":
+      return { bg: "#FFF1D6", fg: "#7A4A0A" };
     case "cancelled":
       return { bg: "#FBE0DC", fg: "#A63C2E" };
     case "completed":
@@ -126,7 +145,7 @@ function ReservationDetailPage() {
       const { data: r } = await supabase
         .from("reservations")
         .select(
-          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id, payment_method, coupon_code, coupon_discount_percent, coupon_discount_amount"
+          "id, reservation_code, status, checkin_date, checkout_date, num_adults, num_children, num_pets, num_vehicles, guest_name, guest_whatsapp, guest_email, how_found, guest_message, total_price, price_breakdown, admin_notes, property_id, payment_method, coupon_code, coupon_discount_percent, coupon_discount_amount, deposit_amount, balance_amount, balance_due_date, deposit_paid_at, contract_sent_at, contract_signed_at, balance_paid_at, admin_balance_notes"
         )
         .eq("id", id)
         .maybeSingle();
