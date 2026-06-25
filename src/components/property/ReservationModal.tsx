@@ -257,6 +257,7 @@ export function ReservationModal({
           ) : paymentMethod === "pix" ? (
             <PixView
               code={success.code}
+              amount={finalTotal}
               onClose={() => handleClose(false)}
               onBack={() => setPaymentMethod(null)}
             />
@@ -816,10 +817,12 @@ function PaymentChoiceView({
 
 function PixView({
   code,
+  amount,
   onClose,
   onBack,
 }: {
   code: string;
+  amount: number;
   onClose: () => void;
   onBack: () => void;
 }) {
@@ -829,6 +832,7 @@ function PixView({
     staleTime: 60_000,
   });
   const [copied, setCopied] = useState(false);
+  const [amountCopied, setAmountCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
   const copyKey = async () => {
@@ -837,6 +841,21 @@ function PixView({
       await navigator.clipboard.writeText(pix.data.pix_key);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // noop
+    }
+  };
+
+  const formattedAmount = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(amount);
+
+  const copyAmount = async () => {
+    try {
+      await navigator.clipboard.writeText(amount.toFixed(2));
+      setAmountCopied(true);
+      setTimeout(() => setAmountCopied(false), 2000);
     } catch {
       // noop
     }
@@ -876,6 +895,25 @@ function PixView({
       <p className="mt-2 text-center text-sm text-text-secondary">
         Reserva <strong className="text-text-primary">{code}</strong>
       </p>
+
+      <div className="mt-4 rounded-[10px] border border-input bg-background p-4">
+        <div className="text-xs uppercase tracking-wide text-text-muted">
+          Valor a pagar
+        </div>
+        <div className="mt-1 flex items-center justify-between gap-3">
+          <div className="text-2xl font-semibold text-text-primary">
+            {formattedAmount}
+          </div>
+          <button
+            type="button"
+            onClick={copyAmount}
+            className="inline-flex items-center gap-1 rounded-md border border-input bg-surface px-3 py-2 text-xs font-medium text-text-primary hover:bg-secondary"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {amountCopied ? "Copiado!" : "Copiar valor"}
+          </button>
+        </div>
+      </div>
 
       {pix.isLoading ? (
         <div className="mt-6 h-56 animate-pulse rounded-[10px] bg-background" />
