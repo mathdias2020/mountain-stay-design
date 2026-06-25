@@ -523,17 +523,32 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
             <Label>Cidade *</Label>
             <Select
               value={watch("city")}
-              onValueChange={(v) => setValue("city", v as PropertyFormValues["city"])}
+              onValueChange={(v) => setValue("city", v)}
             >
               <SelectTrigger className={errCls(!!errors.city)}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CITY_OPTIONS.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
+                {(() => {
+                  const current = watch("city");
+                  const options = activeCities ?? [];
+                  const hasCurrent =
+                    !current || options.some((c) => c.name === current);
+                  return (
+                    <>
+                      {!hasCurrent && current ? (
+                        <SelectItem value={current}>
+                          {current} (inativa)
+                        </SelectItem>
+                      ) : null}
+                      {options.map((c) => (
+                        <SelectItem key={c.id} value={c.name}>
+                          {c.name}
                   </SelectItem>
                 ))}
+                    </>
+                  );
+                })()}
               </SelectContent>
             </Select>
             <FieldError msg={errors.city?.message} />
