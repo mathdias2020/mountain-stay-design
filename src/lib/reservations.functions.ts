@@ -79,7 +79,10 @@ export const createReservation = createServerFn({ method: "POST" })
       .eq("key", "block_on_request")
       .maybeSingle();
     const blockOnRequest = setting?.value === "true";
-    const blockingStatuses = blockOnRequest ? ["pending", "confirmed"] : ["confirmed"];
+    // awaiting_contract / awaiting_balance sempre bloqueiam (sinal pago)
+    const blockingStatuses = blockOnRequest
+      ? ["pending", "awaiting_contract", "awaiting_balance", "confirmed"]
+      : ["awaiting_contract", "awaiting_balance", "confirmed"];
 
     // 4. Revalidar disponibilidade
     const [{ data: blocks }, { data: reservs }] = await Promise.all([
@@ -133,6 +136,12 @@ export const createReservation = createServerFn({ method: "POST" })
         `Esta propriedade exige mínimo de ${minRequired} noites para o período selecionado.`,
       );
     }
+
+    // 5c. Sinal (50%) e saldo (50%); vencimento do saldo = checkin - 5 dias
+    const depositAmount = Math.round(finalTotal * 50) / 100;
+    const balanceAmount = Math.round((finalTotal - depositAmount) * 100) / 100;
+    const dueMs = ci.getTime() - 5 * 86400000;
+    const dueDateIso = new Date(dueMs).toISOString().slice(0, 10);
 
     // 5b. Validar cupom (servidor é a fonte da verdade)
     let couponRow: {
@@ -204,6 +213,9 @@ export const createReservation = createServerFn({ method: "POST" })
           total: finalTotal,
         },
         total_price: finalTotal,
+        deposit_amount: depositAmount,
+        balance_amount: balanceAmount,
+        balance_due_date: dueDateIso,
         coupon_code: couponRow?.code ?? null,
         coupon_discount_percent: couponRow?.discount_percent ?? null,
         coupon_discount_amount: discountAmount || null,
