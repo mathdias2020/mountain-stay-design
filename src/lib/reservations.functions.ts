@@ -137,12 +137,6 @@ export const createReservation = createServerFn({ method: "POST" })
       );
     }
 
-    // 5c. Sinal (50%) e saldo (50%); vencimento do saldo = checkin - 5 dias
-    const depositAmount = Math.round(finalTotal * 50) / 100;
-    const balanceAmount = Math.round((finalTotal - depositAmount) * 100) / 100;
-    const dueMs = ci.getTime() - 5 * 86400000;
-    const dueDateIso = new Date(dueMs).toISOString().slice(0, 10);
-
     // 5b. Validar cupom (servidor é a fonte da verdade)
     let couponRow: {
       id: string;
@@ -177,6 +171,12 @@ export const createReservation = createServerFn({ method: "POST" })
         uses_count: c.uses_count,
       };
     }
+
+    // 5c. Sinal (50%) e saldo (50%); vencimento do saldo = checkin - 5 dias
+    const depositAmount = Math.round(finalTotal * 50) / 100;
+    const balanceAmount = Math.round((finalTotal - depositAmount) * 100) / 100;
+    const dueMs = ci.getTime() - 5 * 86400000;
+    const dueDateIso = new Date(dueMs).toISOString().slice(0, 10);
 
     // 6. Insert (trigger preenche reservation_code)
     const { data: created, error: insErr } = await supabaseAdmin
