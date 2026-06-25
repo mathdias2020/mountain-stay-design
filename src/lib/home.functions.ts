@@ -39,6 +39,8 @@ export type HomeHero = {
   subtitle: string;
   overlay_opacity: number; // 0-100
   images: string[]; // storage paths, max 5
+  title_scale: number; // 50-200 (%), 100 = padrão
+  subtitle_scale: number; // 50-200 (%), 100 = padrão
 };
 
 const heroSchema = z.object({
@@ -46,6 +48,8 @@ const heroSchema = z.object({
   subtitle: z.string().min(1).max(200),
   overlay_opacity: z.number().int().min(0).max(100),
   images: z.array(z.string().min(1)).max(HERO_MAX_IMAGES),
+  title_scale: z.number().int().min(50).max(200),
+  subtitle_scale: z.number().int().min(50).max(200),
 });
 
 const DEFAULT_HERO_TITLE =
@@ -59,6 +63,8 @@ function defaultHero(): HomeHero {
     subtitle: DEFAULT_HERO_SUBTITLE,
     overlay_opacity: 35,
     images: [],
+    title_scale: 100,
+    subtitle_scale: 100,
   };
 }
 
@@ -92,6 +98,14 @@ function parseHero(raw: unknown): HomeHero {
       overlay_opacity:
         typeof obj.overlay_opacity === "number" ? obj.overlay_opacity : 35,
       images: images.slice(0, HERO_MAX_IMAGES),
+      title_scale:
+        typeof obj.title_scale === "number"
+          ? Math.max(50, Math.min(200, Math.round(obj.title_scale)))
+          : 100,
+      subtitle_scale:
+        typeof obj.subtitle_scale === "number"
+          ? Math.max(50, Math.min(200, Math.round(obj.subtitle_scale)))
+          : 100,
     };
     return heroSchema.parse(merged);
   } catch {
