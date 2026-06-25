@@ -46,6 +46,10 @@ function statusVariant(status: string) {
       return { bg: "#E6F4EA", fg: "#1F6F35" };
     case "pending":
       return { bg: "#FFF4E0", fg: "#8A5A12" };
+    case "awaiting_contract":
+      return { bg: "#E8EEF7", fg: "#2F4F8A" };
+    case "awaiting_balance":
+      return { bg: "#FFF1D6", fg: "#7A4A0A" };
     case "cancelled":
       return { bg: "#FBE0DC", fg: "#A63C2E" };
     case "completed":

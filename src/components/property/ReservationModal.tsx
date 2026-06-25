@@ -257,7 +257,7 @@ export function ReservationModal({
           ) : paymentMethod === "pix" ? (
             <PixView
               code={success.code}
-              amount={finalTotal}
+              totalAmount={finalTotal}
               onClose={() => handleClose(false)}
               onBack={() => setPaymentMethod(null)}
             />
@@ -817,12 +817,12 @@ function PaymentChoiceView({
 
 function PixView({
   code,
-  amount,
+  totalAmount,
   onClose,
   onBack,
 }: {
   code: string;
-  amount: number;
+  totalAmount: number;
   onClose: () => void;
   onBack: () => void;
 }) {
@@ -834,6 +834,10 @@ function PixView({
   const [copied, setCopied] = useState(false);
   const [amountCopied, setAmountCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+
+  // Sinal de 50% para garantir a reserva; saldo cobrado depois.
+  const depositAmount = Math.round(totalAmount * 50) / 100;
+  const balanceAmount = Math.round((totalAmount - depositAmount) * 100) / 100;
 
   const copyKey = async () => {
     if (!pix.data?.pix_key) return;
@@ -849,11 +853,19 @@ function PixView({
   const formattedAmount = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(amount);
+  }).format(depositAmount);
+  const formattedTotal = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(totalAmount);
+  const formattedBalance = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(balanceAmount);
 
   const copyAmount = async () => {
     try {
-      await navigator.clipboard.writeText(amount.toFixed(2));
+      await navigator.clipboard.writeText(depositAmount.toFixed(2));
       setAmountCopied(true);
       setTimeout(() => setAmountCopied(false), 2000);
     } catch {
@@ -873,8 +885,11 @@ function PixView({
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-text-secondary">
           Em até <strong className="text-text-primary">24 horas</strong> nosso
-          time entrará em contato confirmando o pagamento e enviando detalhes
-          sobre sua reserva e estadia.
+          time confirma o recebimento do sinal e envia por e-mail a
+          confirmação da pré-reserva, o contrato para assinatura e demais
+          informações da estadia. O saldo de{" "}
+          <strong className="text-text-primary">{formattedBalance}</strong> será
+          cobrado depois, até 5 dias antes do check-in.
         </p>
         <p className="mt-2 text-xs text-text-muted">
           Código da reserva:{" "}
@@ -890,15 +905,42 @@ function PixView({
   return (
     <div className="py-2">
       <DialogTitle className="text-center text-[20px] font-semibold text-text-primary">
-        Pagamento via Pix
+        Pix do sinal (50%) para garantir a reserva
       </DialogTitle>
       <p className="mt-2 text-center text-sm text-text-secondary">
         Reserva <strong className="text-text-primary">{code}</strong>
       </p>
 
+      <div className="mt-4 rounded-[10px] border border-input bg-primary/5 p-4 text-sm text-text-primary">
+        <div className="font-semibold">Como funciona o pagamento</div>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-text-secondary">
+          <li>
+            <strong className="text-text-primary">Agora:</strong> pague{" "}
+            <strong className="text-text-primary">{formattedAmount}</strong>{" "}
+            (sinal de 50% do total de {formattedTotal}) para garantir a
+            reserva.
+          </li>
+          <li>
+            Em até 24h enviamos por e-mail a confirmação da pré-reserva e o
+            contrato para assinatura.
+          </li>
+          <li>
+            Com o contrato assinado, enviamos um novo Pix com o saldo de{" "}
+            <strong className="text-text-primary">{formattedBalance}</strong>.
+          </li>
+          <li>
+            O saldo deve ser pago{" "}
+            <strong className="text-text-primary">
+              até 5 dias antes do check-in
+            </strong>
+            .
+          </li>
+        </ol>
+      </div>
+
       <div className="mt-4 rounded-[10px] border border-input bg-background p-4">
         <div className="text-xs uppercase tracking-wide text-text-muted">
-          Valor a pagar
+          Valor a pagar agora (sinal de 50%)
         </div>
         <div className="mt-1 flex items-center justify-between gap-3">
           <div className="text-2xl font-semibold text-text-primary">
@@ -960,7 +1002,7 @@ function PixView({
 
       <p className="mt-4 text-center text-xs text-text-secondary">
         Após pagar, clique em <strong>"Já paguei"</strong>. Nosso time confirma
-        e envia os detalhes da reserva pelo WhatsApp.
+        o sinal e envia o contrato e os próximos passos por e-mail.
       </p>
 
       <div className="mt-5 grid grid-cols-2 gap-3">

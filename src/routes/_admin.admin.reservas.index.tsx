@@ -202,6 +202,8 @@ function ReservationsPage() {
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="pending">Pendente</SelectItem>
+            <SelectItem value="awaiting_contract">Aguardando contrato</SelectItem>
+            <SelectItem value="awaiting_balance">Aguardando saldo</SelectItem>
             <SelectItem value="confirmed">Confirmada</SelectItem>
             <SelectItem value="cancelled">Cancelada</SelectItem>
             <SelectItem value="completed">Concluída</SelectItem>

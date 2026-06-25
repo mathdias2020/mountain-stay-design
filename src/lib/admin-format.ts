@@ -25,6 +25,8 @@ export function onlyDigits(s: string): string {
 
 export const RESERVATION_STATUS_LABEL: Record<string, string> = {
   pending: "Pendente",
+  awaiting_contract: "Aguardando contrato",
+  awaiting_balance: "Aguardando saldo",
   confirmed: "Confirmada",
   cancelled: "Cancelada",
   completed: "Concluída",
