@@ -1,14 +1,5 @@
 import { z } from "zod";
 
-export const CITY_OPTIONS = [
-  "Domingos Martins",
-  "Pedra Azul",
-  "Marechal Floriano",
-  "Venda Nova do Imigrante",
-  "Paraju",
-  "Outro",
-] as const;
-
 export function slugify(input: string): string {
   return (input || "")
     .toString()
@@ -31,7 +22,7 @@ export const highSeasonPeriodSchema = z
 export const propertyFormSchema = z
   .object({
     name: z.string().trim().min(1, "Obrigatório").max(120),
-    city: z.enum(CITY_OPTIONS, { errorMap: () => ({ message: "Selecione uma cidade" }) }),
+    city: z.string().trim().min(1, "Selecione uma cidade").max(80),
     address_detail: z.string().max(255).optional().or(z.literal("")),
     google_maps_url: z.string().url("URL inválida").max(500).optional().or(z.literal("")),
     description: z
