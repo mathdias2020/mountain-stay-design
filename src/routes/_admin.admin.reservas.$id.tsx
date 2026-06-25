@@ -685,6 +685,7 @@ function PriceCard({
   couponPercent: number | string | null;
   couponAmount: number | string | null;
 }) {
+  // placeholder anchor — PaymentContractCard defined below
   const items: Array<{ label: string; value: string }> = [];
   if (breakdown && typeof breakdown === "object") {
     if (breakdown.weekday_nights != null) {
