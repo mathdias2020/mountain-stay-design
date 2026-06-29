@@ -194,7 +194,8 @@ function CalendarPage() {
 
   // Modals
   const [blockModalDate, setBlockModalDate] = useState<string | null>(null);
-  const [unblockModal, setUnblockModal] = useState<Blocked | null>(null);
+  const [editBlockModal, setEditBlockModal] = useState<Blocked | null>(null);
+  const [intervalOpen, setIntervalOpen] = useState(false);
 
   function onDayClick(state: DayState | null, iso: string) {
     if (iso < today) return;
@@ -203,7 +204,7 @@ function CalendarPage() {
       return;
     }
     if (state?.blocked) {
-      setUnblockModal(state.blocked);
+      setEditBlockModal(state.blocked);
       return;
     }
     setBlockModalDate(iso);
@@ -232,6 +233,14 @@ function CalendarPage() {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setIntervalOpen(true)}
+            disabled={!propertyId}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Bloquear intervalo
+          </Button>
           <div className="ml-auto flex items-center gap-2">
             <Button
               variant="outline"
@@ -262,11 +271,20 @@ function CalendarPage() {
         {calLoading || !calData ? (
           <CalendarSkeleton />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <MonthGrid month={month1} dayMap={dayMap} today={today} onDayClick={onDayClick} />
-            <div className="hidden md:block">
-              <MonthGrid month={month2} dayMap={dayMap} today={today} onDayClick={onDayClick} />
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <MonthGrid month={month1} dayMap={dayMap} today={today} onDayClick={onDayClick} />
+              <div className="hidden md:block">
+                <MonthGrid month={month2} dayMap={dayMap} today={today} onDayClick={onDayClick} />
+              </div>
             </div>
+            <BlocksPanel
+              blocks={(calData?.blocked ?? []).filter(
+                (b) => !(b.reason || "").toLowerCase().includes("reserva confirmada"),
+              )}
+              today={today}
+              onEdit={(b) => setEditBlockModal(b)}
+            />
           </div>
         )}
 
@@ -287,12 +305,22 @@ function CalendarPage() {
           propertyId={propertyId}
         />
 
-        <UnblockDialog
-          blocked={unblockModal}
-          onClose={() => setUnblockModal(null)}
-          onRemoved={() => {
+        <IntervalBlockDialog
+          open={intervalOpen}
+          propertyId={propertyId}
+          onClose={() => setIntervalOpen(false)}
+          onSaved={() => {
             qc.invalidateQueries({ queryKey: ["admin", "calendar", "data"] });
-            setUnblockModal(null);
+            setIntervalOpen(false);
+          }}
+        />
+
+        <BlockEditDialog
+          blocked={editBlockModal}
+          onClose={() => setEditBlockModal(null)}
+          onChanged={() => {
+            qc.invalidateQueries({ queryKey: ["admin", "calendar", "data"] });
+            setEditBlockModal(null);
           }}
         />
       </div>
