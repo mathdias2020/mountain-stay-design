@@ -537,6 +537,7 @@ function BlockDialog({
               <SelectContent>
                 <SelectItem value="Manutenção">Manutenção</SelectItem>
                 <SelectItem value="Uso próprio">Uso próprio</SelectItem>
+                <SelectItem value="Reservado">Reservado</SelectItem>
                 <SelectItem value="Outro">Outro</SelectItem>
               </SelectContent>
             </Select>
@@ -735,6 +736,7 @@ function IntervalBlockDialog({
                 <SelectContent>
                   <SelectItem value="Manutenção">Manutenção</SelectItem>
                   <SelectItem value="Uso próprio">Uso próprio</SelectItem>
+                  <SelectItem value="Reservado">Reservado</SelectItem>
                   <SelectItem value="Reserva offline">Reserva offline</SelectItem>
                   <SelectItem value="Outro">Outro</SelectItem>
                 </SelectContent>
