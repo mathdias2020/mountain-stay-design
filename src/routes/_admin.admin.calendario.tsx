@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CalendarSkeleton } from "@/components/skeletons/CalendarSkeleton";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  createBlockedDate,
+  updateBlockedDate,
+} from "@/lib/reservation-admin.functions";
+import {
+  ConflictWarningDialog,
+  type ConflictPayload,
+} from "@/components/admin/ConflictWarningDialog";
 
 export const Route = createFileRoute("/_admin/admin/calendario")({
   head: () => ({ meta: [{ title: "Calendário — RotainStay" }] }),
