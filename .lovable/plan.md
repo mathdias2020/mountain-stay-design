@@ -1,72 +1,76 @@
-## Objetivo
+# Reserva manual + melhorias no bloqueio de datas
 
-Trocar o pagamento Pix de "1× total" para **2× 50%**, com etapa intermediária de contrato (enviado manualmente pelo admin por e-mail), e tornar os status da reserva granulares para refletir cada passo.
+## 1. Nova reserva manual (admin)
 
-## Novo fluxo (visão do hóspede)
+**Rota:** `/admin/reservas/nova` (botão "Nova reserva" em `/admin/reservas`).
 
-1. Hóspede preenche reserva → escolhe Pix → vê tela explicando que o Pix **é de 50% do total para garantir a reserva** e que o saldo será cobrado depois (até 5 dias antes do check-in).
-2. Recebe a página com QR/chave Pix do sinal (50%) + instruções claras dos próximos passos.
-3. Após sinal confirmado pelo admin → recebe e-mail (fora do sistema) com confirmação da pré-reserva + contrato em PDF para assinatura + demais informações.
-4. Após contrato assinado → recebe cobrança do Pix da 2ª parcela (50%) gerada manualmente pelo admin, com prazo até D-5 do check-in.
-5. Pagou o saldo → reserva confirmada.
+**Formulário:**
+- Propriedade (select, obrigatório)
+- Hóspede: nome, WhatsApp, e-mail (opcional), CPF (opcional)
+- Check-in / check-out (date pickers)
+- Nº de hóspedes
+- Valor total (auto-calculado pelo `calculatePrice` da propriedade, editável manualmente — admin pode sobrescrever para refletir negociação offline)
+- Cupom (opcional, mesmo seletor já usado no site)
+- Método de pagamento: Pix / Cartão / Dinheiro / Transferência / Outro
+- **Modo de criação** (dropdown — o admin escolhe):
+  - **"Reserva já confirmada (offline)"** → status entra direto como `confirmed`, bloqueia datas imediatamente, todos os campos de pagamento marcados como pagos (`deposit_paid_at`, `balance_paid_at` = agora).
+  - **"Iniciar fluxo padrão (50% sinal / contrato / saldo)"** → status entra como `pending`, mesma esteira do fluxo do site, admin avança manualmente depois pela tela da reserva.
+- Observações internas (textarea, salvas em campo admin-only)
 
-## Status da reserva (granular)
+**Validação de conflito (avisar mas permitir forçar):**
+- Antes de salvar, server fn checa overlap com `reservations` ativas (`awaiting_contract`, `awaiting_balance`, `confirmed`) e `blocked_dates` da mesma propriedade.
+- Se houver conflito: dialog amarelo lista os conflitos (código da reserva / motivo do bloqueio + datas) com botões "Cancelar" e "Confirmar mesmo assim".
+- Server fn aceita flag `force: true` para permitir o overbooking; sem a flag, retorna 409 com a lista de conflitos.
 
-`pending` (sinal não pago) → `awaiting_contract` (sinal pago, contrato pendente) → `awaiting_balance` (contrato assinado, falta saldo) → `confirmed` (saldo pago) → `completed` / `cancelled`.
+**Marcação interna:**
+- Nova coluna `reservations.created_by_admin boolean default false` (true para reservas manuais).
+- Nova coluna `reservations.admin_notes text` (observações internas).
+- Reservas manuais ganham badge "Manual" na lista de reservas para diferenciação.
 
-## Mudanças de banco (migration)
+## 2. Melhorias no bloqueio de datas (`/admin/calendario`)
 
-Tabela `reservations`, novas colunas (todas opcionais, sem quebrar reservas antigas):
+Mantém o fluxo atual de clicar num dia para bloquear e adiciona:
 
-- `deposit_amount numeric` — valor do sinal (50% de `total_price` no momento da criação).
-- `balance_amount numeric` — saldo (50% restante).
-- `balance_due_date date` — calculado como `checkin_date - 5 dias`.
-- `deposit_paid_at timestamptz` — admin marca quando recebe o sinal.
-- `contract_sent_at timestamptz` — admin marca quando envia contrato por e-mail.
-- `contract_signed_at timestamptz` — admin marca quando recebe contrato assinado.
-- `balance_paid_at timestamptz` — admin marca quando recebe a 2ª parcela.
-- `admin_balance_notes text` — campo livre para a 2ª cobrança.
+**a) Painel lateral "Bloqueios desta propriedade"**
+- Lista todos os bloqueios manuais futuros da propriedade selecionada (motivo + intervalo + dias restantes).
+- Cada item tem botões **Editar** (abre dialog com motivo/datas pré-preenchidos) e **Remover**.
+- Ignora bloqueios que vieram de reservas confirmadas (esses não são editáveis aqui — o admin gerencia pela tela da reserva).
 
-`reservations.status` aceita os novos valores; ajustar CHECK constraint (se houver) ou validar só na server fn. `reservation-status.functions.ts` passa a aceitar o enum estendido. Trigger existente de `reservation_status_history` continua logando.
+**b) Botão "Bloquear intervalo"** no topo
+- Abre dialog independente (sem precisar clicar num dia específico).
+- Date pickers de início + fim, motivo, descrição.
+- Mesma validação de conflito com reservas existentes (avisa mas permite forçar).
 
-`blocked_dates`: passa a ser inserido em `**awaiting_contract**` (datas seguram assim que o sinal entra), e removido em `cancelled`. Hoje só insere em `confirmed`.
-
-## Mudanças no fluxo do hóspede
-
-- `src/components/property/ReservationModal.tsx`:
-  - Ao escolher Pix, exibir um bloco de **expectativa**: "Este Pix é o sinal de 50% (R$ X). Após confirmarmos o recebimento, enviaremos por e-mail a confirmação da pré-reserva e o contrato para assinatura. O saldo de 50% (R$ Y) será pago via Pix até 5 dias antes do check-in (DD/MM)."
-  - `PixView` mostra o valor do **sinal**, não do total. Mantém QR/chave atuais.
-  - "Próximos passos" listados em 4 etapas (sinal → e-mail com contrato → assinatura → Pix do saldo).
-
-## Mudanças no admin
-
-- `src/routes/_admin.admin.reservas.$id.tsx` ganha um painel **"Pagamento e contrato"** com 4 ações sequenciais, cada uma libera a próxima:
-  1. **Marcar sinal recebido** → `status=awaiting_contract`, `deposit_paid_at=now()`, insere `blocked_dates`.
-  2. **Marcar contrato enviado** → `contract_sent_at=now()` (status não muda).
-  3. **Marcar contrato assinado** → `status=awaiting_balance`, `contract_signed_at=now()`.
-  4. **Marcar saldo recebido** → `status=confirmed`, `balance_paid_at=now()`.
-  - Botão **"Cancelar reserva"** continua disponível em qualquer etapa (libera datas).
-  - Mostra `balance_due_date` em destaque quando `status=awaiting_balance`; se passar de D-5 sem pagamento, mostra alerta vermelho **"Saldo vencido — decidir manualmente"** (sem ação automática).
-  - Campo de notas livre para a 2ª cobrança (link, comprovante, observações).
-- `ReservationsTable` (lista): nova coluna de status com badges para os 5 estados; filtros incluem `awaiting_contract` e `awaiting_balance`.
-
-## Server functions
-
-- `src/lib/reservations.functions.ts` (criação): calcula e grava `deposit_amount`, `balance_amount`, `balance_due_date` no insert. Status inicial continua `pending`.
-- `src/lib/reservation-status.functions.ts`: enum atualizado; lógica de `blocked_dates` move de `confirmed` para `awaiting_contract` (insert) e mantém remoção em `cancelled`.
-- Nova `src/lib/reservation-payment.functions.ts` com ações admin: `markDepositPaid`, `markContractSent`, `markContractSigned`, `markBalancePaid`, `updateBalanceNotes`. Todas usam `requireSupabaseAuth` + checagem de `has_role('admin')`.
-
-## Fora de escopo (confirmado nas perguntas)
-
-- Sem integração com e-signature: contrato é enviado por e-mail manualmente pelo admin.
-- Sem geração/envio automático do Pix da 2ª parcela: admin gera e envia manualmente, sistema só rastreia.
-- Sem cancelamento automático por atraso de saldo: apenas alerta visual ao admin.
-- Sem mudanças no fluxo de cartão (segue como está hoje).
+**c) Edição de bloqueio existente**
+- Hoje, ao clicar num dia bloqueado, abre `UnblockDialog` que só permite remover.
+- Vira `BlockEditDialog`: permite alterar intervalo + motivo OU remover.
 
 ## Detalhes técnicos
 
-- Valores em `numeric(12,2)`. Cálculo: `deposit = round(total_price/2, 2)`, `balance = total_price - deposit` (evita centavo perdido).
-- `balance_due_date` recalculado se admin alterar `checkin_date` (fora de escopo agora; assumir imutável após criação).
-- Reservas antigas (sem as novas colunas preenchidas) continuam funcionando; UI admin mostra "—" e oculta botões novos quando `deposit_amount IS NULL`.
-- `reservation_status_history` já loga transições automaticamente via trigger — sem mudança.
-- Após a migration o `types.ts` é regerado; só então editamos os arquivos TS que dependem das novas colunas.
+### Schema (migration)
+```sql
+ALTER TABLE public.reservations
+  ADD COLUMN created_by_admin boolean NOT NULL DEFAULT false,
+  ADD COLUMN admin_notes text;
+```
+
+### Server functions novas (`src/lib/reservation-admin.functions.ts`, com `requireSupabaseAuth` + assert admin)
+- `checkReservationConflicts({ propertyId, checkin, checkout, excludeReservationId? })` → retorna `{ reservations: [...], blocks: [...] }`. Usado pelo formulário antes de salvar e pelo dialog de bloqueio.
+- `createManualReservation({ ...payload, force })` → cria a reserva. Se `mode === "confirmed_offline"`: status = `confirmed`, preenche timestamps de pagamento, insere `blocked_dates` correspondente. Se `mode === "standard_flow"`: status = `pending`, calcula `deposit_amount`/`balance_amount`/`balance_due_date` igual ao fluxo do site.
+- `updateBlockedDate({ id, start_date, end_date, reason, force })` → edita bloqueio manual.
+
+### UI nova
+- `src/routes/_admin.admin.reservas.nova.tsx` — formulário completo.
+- `src/components/admin/ConflictWarningDialog.tsx` — dialog reaproveitado (nova reserva + bloqueio).
+- Botão "Nova reserva" em `_admin.admin.reservas.index.tsx`.
+- `_admin.admin.calendario.tsx`: adiciona painel de bloqueios + botão "Bloquear intervalo" + troca `UnblockDialog` por `BlockEditDialog`.
+
+### Validações
+- Zod no client e no server: nome 2–120, WhatsApp 8–20 dígitos, e-mail opcional válido, valor > 0, checkout > checkin, motivo do bloqueio 1–200.
+
+## Fora do escopo
+- Não envia e-mails/WhatsApp automáticos para reservas manuais (admin trata offline).
+- Não cobra cartão nem gera Pix automaticamente — é registro de algo já acertado fora.
+- Não muda o fluxo de reservas vindas do site.
+
+Posso seguir?
