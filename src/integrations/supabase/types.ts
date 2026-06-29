@@ -630,6 +630,7 @@ export type Database = {
           coupon_discount_amount: number | null
           coupon_discount_percent: number | null
           created_at: string
+          created_by_admin: boolean
           deposit_amount: number | null
           deposit_paid_at: string | null
           guest_email: string | null
@@ -666,6 +667,7 @@ export type Database = {
           coupon_discount_amount?: number | null
           coupon_discount_percent?: number | null
           created_at?: string
+          created_by_admin?: boolean
           deposit_amount?: number | null
           deposit_paid_at?: string | null
           guest_email?: string | null
@@ -702,6 +704,7 @@ export type Database = {
           coupon_discount_amount?: number | null
           coupon_discount_percent?: number | null
           created_at?: string
+          created_by_admin?: boolean
           deposit_amount?: number | null
           deposit_paid_at?: string | null
           guest_email?: string | null
