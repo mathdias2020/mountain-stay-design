@@ -38,6 +38,7 @@ export type ReservationRow = {
   payment_method?: string | null;
   coupon_code?: string | null;
   coupon_discount_percent?: number | null;
+  created_by_admin?: boolean;
 };
 
 function statusVariant(status: string) {
@@ -162,6 +163,15 @@ export function ReservationsTable({
                   >
                     <td className="hidden px-4 py-3 md:table-cell" style={{ fontWeight: 500 }}>
                       {r.reservation_code}
+                      {r.created_by_admin && (
+                        <span
+                          className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-medium align-middle"
+                          style={{ backgroundColor: "#EEF2FF", color: "#3F3F7A" }}
+                          title="Reserva criada manualmente pelo admin"
+                        >
+                          Manual
+                        </span>
+                      )}
                     </td>
                     <td className="hidden px-4 py-3 md:table-cell">{r.property_name ?? "—"}</td>
                     <td className="px-4 py-3">

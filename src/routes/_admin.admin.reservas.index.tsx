@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ClipboardList } from "lucide-react";
@@ -121,7 +122,7 @@ function ReservationsPage() {
       let q = supabase
         .from("reservations")
         .select(
-          "id, reservation_code, property_id, guest_name, guest_whatsapp, checkin_date, checkout_date, total_price, status, payment_method, coupon_code, coupon_discount_percent",
+          "id, reservation_code, property_id, guest_name, guest_whatsapp, checkin_date, checkout_date, total_price, status, payment_method, coupon_code, coupon_discount_percent, created_by_admin",
           { count: "exact" }
         )
         .order("created_at", { ascending: false })
@@ -167,6 +168,7 @@ function ReservationsPage() {
             ? Number(r.coupon_discount_percent)
             : null,
         property_name: nameMap.get(r.property_id) ?? null,
+        created_by_admin: !!r.created_by_admin,
       }));
       return { rows, count: count ?? 0 };
     },
@@ -185,7 +187,15 @@ function ReservationsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 style={{ fontSize: 24, fontWeight: 600, color: "#1C1C1A" }}>Reservas</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 style={{ fontSize: 24, fontWeight: 600, color: "#1C1C1A" }}>Reservas</h1>
+        <Link to="/admin/reservas/nova">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova reserva
+          </Button>
+        </Link>
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Input

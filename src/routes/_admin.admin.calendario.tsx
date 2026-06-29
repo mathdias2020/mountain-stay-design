@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CalendarSkeleton } from "@/components/skeletons/CalendarSkeleton";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  createBlockedDate,
+  updateBlockedDate,
+} from "@/lib/reservation-admin.functions";
+import {
+  ConflictWarningDialog,
+  type ConflictPayload,
+} from "@/components/admin/ConflictWarningDialog";
 
 export const Route = createFileRoute("/_admin/admin/calendario")({
   head: () => ({ meta: [{ title: "Calendário — RotainStay" }] }),
@@ -185,7 +194,8 @@ function CalendarPage() {
 
   // Modals
   const [blockModalDate, setBlockModalDate] = useState<string | null>(null);
-  const [unblockModal, setUnblockModal] = useState<Blocked | null>(null);
+  const [editBlockModal, setEditBlockModal] = useState<Blocked | null>(null);
+  const [intervalOpen, setIntervalOpen] = useState(false);
 
   function onDayClick(state: DayState | null, iso: string) {
     if (iso < today) return;
@@ -194,7 +204,7 @@ function CalendarPage() {
       return;
     }
     if (state?.blocked) {
-      setUnblockModal(state.blocked);
+      setEditBlockModal(state.blocked);
       return;
     }
     setBlockModalDate(iso);
@@ -223,6 +233,14 @@ function CalendarPage() {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setIntervalOpen(true)}
+            disabled={!propertyId}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Bloquear intervalo
+          </Button>
           <div className="ml-auto flex items-center gap-2">
             <Button
               variant="outline"
@@ -253,11 +271,20 @@ function CalendarPage() {
         {calLoading || !calData ? (
           <CalendarSkeleton />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <MonthGrid month={month1} dayMap={dayMap} today={today} onDayClick={onDayClick} />
-            <div className="hidden md:block">
-              <MonthGrid month={month2} dayMap={dayMap} today={today} onDayClick={onDayClick} />
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <MonthGrid month={month1} dayMap={dayMap} today={today} onDayClick={onDayClick} />
+              <div className="hidden md:block">
+                <MonthGrid month={month2} dayMap={dayMap} today={today} onDayClick={onDayClick} />
+              </div>
             </div>
+            <BlocksPanel
+              blocks={(calData?.blocked ?? []).filter(
+                (b) => !(b.reason || "").toLowerCase().includes("reserva confirmada"),
+              )}
+              today={today}
+              onEdit={(b) => setEditBlockModal(b)}
+            />
           </div>
         )}
 
@@ -278,12 +305,22 @@ function CalendarPage() {
           propertyId={propertyId}
         />
 
-        <UnblockDialog
-          blocked={unblockModal}
-          onClose={() => setUnblockModal(null)}
-          onRemoved={() => {
+        <IntervalBlockDialog
+          open={intervalOpen}
+          propertyId={propertyId}
+          onClose={() => setIntervalOpen(false)}
+          onSaved={() => {
             qc.invalidateQueries({ queryKey: ["admin", "calendar", "data"] });
-            setUnblockModal(null);
+            setIntervalOpen(false);
+          }}
+        />
+
+        <BlockEditDialog
+          blocked={editBlockModal}
+          onClose={() => setEditBlockModal(null)}
+          onChanged={() => {
+            qc.invalidateQueries({ queryKey: ["admin", "calendar", "data"] });
+            setEditBlockModal(null);
           }}
         />
       </div>
@@ -533,68 +570,317 @@ function UnblockDialog({
   onClose: () => void;
   onRemoved: () => void;
 }) {
-  const [removing, setRemoving] = useState(false);
-  async function remove() {
-    if (!blocked) return;
-    setRemoving(true);
-    const { error } = await supabase.from("blocked_dates").delete().eq("id", blocked.id);
-    setRemoving(false);
-    if (error) {
-      toast.error("Erro ao remover bloqueio");
+  // Legado — substituído por BlockEditDialog. Mantido vazio para evitar quebra.
+  const _unused = { blocked, onClose, onRemoved };
+  void _unused;
+  return null as any;
+}
+
+function BlocksPanel({
+  blocks,
+  today,
+  onEdit,
+}: {
+  blocks: Blocked[];
+  today: string;
+  onEdit: (b: Blocked) => void;
+}) {
+  const future = blocks
+    .filter((b) => b.end_date > today)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date));
+  return (
+    <aside
+      style={{
+        background: "#fff",
+        borderRadius: 14,
+        padding: 16,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+        minHeight: 200,
+      }}
+    >
+      <h3 style={{ fontSize: 14, fontWeight: 600, color: "#2F2E2A", marginBottom: 12 }}>
+        Bloqueios desta propriedade
+      </h3>
+      {future.length === 0 ? (
+        <p style={{ fontSize: 13, color: "#9A9890" }}>Nenhum bloqueio manual ativo.</p>
+      ) : (
+        <ul className="space-y-2">
+          {future.map((b) => {
+            const start = parseISO(b.start_date);
+            const end = parseISO(b.end_date);
+            const nights = Math.max(
+              0,
+              Math.round((end.getTime() - start.getTime()) / 86_400_000),
+            );
+            const fmt = (d: Date) =>
+              `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+            return (
+              <li
+                key={b.id}
+                className="rounded-md border p-3"
+                style={{ borderColor: "#E2E1DD", fontSize: 13 }}
+              >
+                <div style={{ fontWeight: 500, color: "#2F2E2A" }}>
+                  {b.reason || "Bloqueado"}
+                </div>
+                <div style={{ color: "#5C5B57", marginTop: 2 }}>
+                  {fmt(start)} → {fmt(addDays(end, -1))} · {nights} {nights === 1 ? "noite" : "noites"}
+                </div>
+                <div className="mt-2 flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(b)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label="Editar bloqueio"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </aside>
+  );
+}
+
+function IntervalBlockDialog({
+  open,
+  propertyId,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  propertyId: string | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("Manutenção");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [conflicts, setConflicts] = useState<ConflictPayload | null>(null);
+  const createFn = useServerFn(createBlockedDate);
+
+  useEffect(() => {
+    if (open) {
+      const today = isoDate(new Date());
+      setStartDate(today);
+      setEndDate(isoDate(addDays(new Date(), 1)));
+      setReason("Manutenção");
+      setDescription("");
+    }
+  }, [open]);
+
+  async function submit(force = false) {
+    if (!propertyId || !startDate || !endDate) return;
+    if (endDate <= startDate) {
+      toast.error("Data fim deve ser após a data início.");
       return;
     }
-    toast.success("Bloqueio removido");
-    onRemoved();
-  }
-
-  function formatPeriod(b: Blocked) {
-    const start = parseISO(b.start_date);
-    const end = parseISO(b.end_date);
-    const nights = Math.max(
-      0,
-      Math.round((end.getTime() - start.getTime()) / 86_400_000),
-    );
-    const fmt = (d: Date) =>
-      `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const lastNight = addDays(end, -1);
-    const liberacao = `${String(end.getDate()).padStart(2, "0")}/${String(end.getMonth() + 1).padStart(2, "0")}/${end.getFullYear()}`;
-    if (nights <= 1) {
-      return {
-        line: `Noite bloqueada: ${fmt(start)} (1 noite)`,
-        liberacao,
-      };
+    setSaving(true);
+    const fullReason = description ? `${reason}: ${description}` : reason;
+    try {
+      await createFn({
+        data: {
+          property_id: propertyId,
+          start_date: startDate,
+          end_date: endDate,
+          reason: fullReason,
+          force,
+        },
+      });
+      toast.success("Período bloqueado.");
+      onSaved();
+    } catch (e: any) {
+      const c = e?.conflicts ?? e?.cause?.conflicts;
+      if (c) setConflicts(c);
+      else toast.error(e?.message || "Erro ao bloquear.");
+    } finally {
+      setSaving(false);
     }
-    return {
-      line: `Noites bloqueadas: ${fmt(start)} a ${fmt(lastNight)} (${nights} noites)`,
-      liberacao,
-    };
   }
 
   return (
-    <Dialog open={!!blocked} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Remover bloqueio</DialogTitle>
-        </DialogHeader>
-        {blocked && (() => {
-          const p = formatPeriod(blocked);
-          return (
-            <div className="space-y-2" style={{ fontSize: 14, color: "#2F2E2A" }}>
-              <div>{p.line}</div>
-              <div style={{ color: "#5C5B57" }}>Liberação: {p.liberacao}</div>
-              <div>
-                <strong>Motivo:</strong> {blocked.reason || "—"}
-              </div>
+    <>
+      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bloquear intervalo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Primeira noite bloqueada</Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
             </div>
-          );
-        })()}
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={removing}>Cancelar</Button>
-          <Button variant="destructive" onClick={remove} disabled={removing}>
-            {removing ? "Removendo..." : "Remover bloqueio"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <div>
+              <Label>Liberação (check-in disponível neste dia)</Label>
+              <Input
+                type="date"
+                value={endDate}
+                min={startDate ? isoDate(addDays(parseISO(startDate), 1)) : undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Motivo</Label>
+              <Select value={reason} onValueChange={setReason}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Manutenção">Manutenção</SelectItem>
+                  <SelectItem value="Uso próprio">Uso próprio</SelectItem>
+                  <SelectItem value="Reserva offline">Reserva offline</SelectItem>
+                  <SelectItem value="Outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Descrição (opcional)</Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={onClose} disabled={saving}>Cancelar</Button>
+            <Button onClick={() => submit(false)} disabled={saving}>
+              {saving ? "Salvando..." : "Bloquear"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ConflictWarningDialog
+        open={!!conflicts}
+        onOpenChange={(o) => !o && setConflicts(null)}
+        conflicts={conflicts}
+        confirmLabel="Bloquear mesmo assim"
+        onConfirm={() => {
+          setConflicts(null);
+          submit(true);
+        }}
+      />
+    </>
+  );
+}
+
+function BlockEditDialog({
+  blocked,
+  onClose,
+  onChanged,
+}: {
+  blocked: Blocked | null;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [conflicts, setConflicts] = useState<ConflictPayload | null>(null);
+  const updateFn = useServerFn(updateBlockedDate);
+
+  useEffect(() => {
+    if (blocked) {
+      setStartDate(blocked.start_date);
+      setEndDate(blocked.end_date);
+      setReason(blocked.reason || "");
+    }
+  }, [blocked]);
+
+  async function save(force = false) {
+    if (!blocked) return;
+    if (endDate <= startDate) {
+      toast.error("Data fim deve ser após a data início.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await updateFn({
+        data: {
+          id: blocked.id,
+          start_date: startDate,
+          end_date: endDate,
+          reason: reason.trim() || "Bloqueado",
+          force,
+        },
+      });
+      toast.success("Bloqueio atualizado.");
+      onChanged();
+    } catch (e: any) {
+      const c = e?.conflicts ?? e?.cause?.conflicts;
+      if (c) setConflicts(c);
+      else toast.error(e?.message || "Erro ao atualizar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!blocked) return;
+    setBusy(true);
+    const { error } = await supabase.from("blocked_dates").delete().eq("id", blocked.id);
+    setBusy(false);
+    if (error) {
+      toast.error("Erro ao remover bloqueio.");
+      return;
+    }
+    toast.success("Bloqueio removido.");
+    onChanged();
+  }
+
+  return (
+    <>
+      <Dialog open={!!blocked} onOpenChange={(v) => !v && onClose()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar bloqueio</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Primeira noite bloqueada</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>Liberação</Label>
+              <Input
+                type="date"
+                value={endDate}
+                min={startDate ? isoDate(addDays(parseISO(startDate), 1)) : undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Motivo</Label>
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} />
+            </div>
+          </div>
+          <DialogFooter className="flex-wrap gap-2">
+            <Button variant="destructive" onClick={remove} disabled={busy}>
+              <Trash2 className="h-4 w-4 mr-1" />
+              Remover
+            </Button>
+            <div className="flex-1" />
+            <Button variant="ghost" onClick={onClose} disabled={busy}>Cancelar</Button>
+            <Button onClick={() => save(false)} disabled={busy}>
+              {busy ? "Salvando..." : "Salvar alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ConflictWarningDialog
+        open={!!conflicts}
+        onOpenChange={(o) => !o && setConflicts(null)}
+        conflicts={conflicts}
+        confirmLabel="Salvar mesmo assim"
+        onConfirm={() => {
+          setConflicts(null);
+          save(true);
+        }}
+      />
+    </>
   );
 }
