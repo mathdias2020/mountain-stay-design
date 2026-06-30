@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X, ChevronDown } from "lucide-react";
-import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import rotainstayLogo from "@/assets/rotainstay-logo.svg.asset.json";
 
@@ -145,12 +144,6 @@ export function PublicHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/admin/login"
-            className="hidden md:inline-flex text-sm font-medium text-text-primary hover:text-primary transition-colors"
-          >
-            Entrar
-          </Link>
           <button
             type="button"
             aria-label="Abrir menu"
@@ -231,17 +224,6 @@ export function PublicHeader() {
                 </Link>
               ))}
             </nav>
-            <div className="p-4 border-t" style={{ borderColor: "#E2E1DD" }}>
-              <Link
-                to="/admin/login"
-                onClick={() => setMobileOpen(false)}
-                className="block"
-              >
-                <Button variant="primary" className="w-full">
-                  Entrar
-                </Button>
-              </Link>
-            </div>
           </aside>
         </div>
       )}
