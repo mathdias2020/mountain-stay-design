@@ -71,7 +71,7 @@ export function PublicHeader() {
           />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-8">
           {NAV.map((item) => {
             const active = isActive(item.to);
             return (
