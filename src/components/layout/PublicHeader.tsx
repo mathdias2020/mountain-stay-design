@@ -60,7 +60,11 @@ export function PublicHeader() {
       }}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 md:px-8" style={{ paddingTop: 14, paddingBottom: 14 }}>
-        <Link to="/" className="flex items-center" aria-label="RotainStay — Nas Montanhas">
+        <Link
+          to="/"
+          className="absolute left-1/2 -translate-x-1/2 flex items-center md:static md:translate-x-0"
+          aria-label="RotainStay — Nas Montanhas"
+        >
           <img
             src={rotainstayLogo.url}
             alt="RotainStay — Nas Montanhas"
