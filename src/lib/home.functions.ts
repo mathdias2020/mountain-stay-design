@@ -25,11 +25,43 @@ export type HomeAbout = {
   cta_label: string;
 };
 
+export type AboutPageSection = {
+  title: string;
+  body: string;
+};
+
+export type AboutPage = {
+  hero_title: string;
+  hero_intro: string;
+  image_path: string;
+  sections: AboutPageSection[];
+  cta_title: string;
+  cta_subtitle: string;
+  cta_button_label: string;
+  cta_button_link: string;
+};
+
 const aboutSchema = z.object({
   title: z.string().min(1).max(120),
   body: z.string().min(1).max(800),
   image_path: z.string(),
   cta_label: z.string().min(1).max(60),
+});
+
+const aboutPageSectionSchema = z.object({
+  title: z.string().min(1).max(80),
+  body: z.string().min(1).max(900),
+});
+
+const aboutPageSchema = z.object({
+  hero_title: z.string().min(1).max(120),
+  hero_intro: z.string().min(1).max(900),
+  image_path: z.string(),
+  sections: z.array(aboutPageSectionSchema).length(3),
+  cta_title: z.string().min(1).max(120),
+  cta_subtitle: z.string().min(1).max(220),
+  cta_button_label: z.string().min(1).max(60),
+  cta_button_link: z.string().min(1).max(160),
 });
 
 export const HERO_MAX_IMAGES = 5;
@@ -126,6 +158,34 @@ function defaultAbout(): HomeAbout {
   };
 }
 
+function defaultAboutPage(): AboutPage {
+  return {
+    hero_title: "Sobre a RotainStay",
+    hero_intro:
+      "A RotainStay nasceu do amor pelas montanhas do Espírito Santo e do desejo de oferecer aos visitantes muito mais que uma simples hospedagem. Cada propriedade do nosso portfólio é cuidadosamente selecionada para garantir que sua estadia na Serra seja inesquecível.",
+    image_path: "",
+    sections: [
+      {
+        title: "Nossa região",
+        body: "Atuamos em Domingos Martins, Pedra Azul, Marechal Floriano, Venda Nova do Imigrante, Paraju e demais cidades da região serrana capixaba. Um destino de clima ameno, paisagens deslumbrantes, gastronomia rica e tradição de hospitalidade. Seja para uma escapada romântica, uma viagem em família ou um retiro com amigos, temos a propriedade certa para você.",
+      },
+      {
+        title: "Como funciona",
+        body: "Você navega pelo nosso site, encontra a casa ideal para suas datas e número de hóspedes, e envia uma solicitação de reserva. Em seguida, nosso atendimento entra em contato via WhatsApp para confirmar os detalhes, esclarecer dúvidas e finalizar sua reserva com segurança. Nada de processos burocráticos: simples, direto e humano.",
+      },
+      {
+        title: "Nosso compromisso",
+        body: "Cada propriedade é avaliada pessoalmente antes de entrar no portfólio. Verificamos estrutura, limpeza, conforto, segurança e a qualidade do que é entregue. Trabalhamos apenas com proprietários comprometidos com a excelência, para que você se preocupe apenas em aproveitar.",
+      },
+    ],
+    cta_title: "Pronto para sua próxima escapada?",
+    cta_subtitle:
+      "Explore nosso portfólio completo e encontre a casa perfeita para você.",
+    cta_button_label: "Ver todas as propriedades",
+    cta_button_link: "/propriedades",
+  };
+}
+
 function parseCuration(raw: unknown): PropertiesCuration {
   try {
     const obj = typeof raw === "string" ? JSON.parse(raw) : raw;
@@ -144,6 +204,60 @@ function parseAbout(raw: unknown): HomeAbout {
     return aboutSchema.parse(obj);
   } catch {
     return defaultAbout();
+  }
+}
+
+function parseAboutPage(raw: unknown): AboutPage {
+  const fallback = defaultAboutPage();
+  try {
+    const obj =
+      typeof raw === "string"
+        ? (JSON.parse(raw) as Record<string, unknown>)
+        : ((raw ?? {}) as Record<string, unknown>);
+    const incomingSections = Array.isArray(obj.sections) ? obj.sections : [];
+    const sections = fallback.sections.map((fallbackSection, index) => {
+      const section = incomingSections[index] as Record<string, unknown> | undefined;
+      return {
+        title:
+          typeof section?.title === "string" && section.title.trim()
+            ? section.title
+            : fallbackSection.title,
+        body:
+          typeof section?.body === "string" && section.body.trim()
+            ? section.body
+            : fallbackSection.body,
+      };
+    });
+    return aboutPageSchema.parse({
+      hero_title:
+        typeof obj.hero_title === "string" && obj.hero_title.trim()
+          ? obj.hero_title
+          : fallback.hero_title,
+      hero_intro:
+        typeof obj.hero_intro === "string" && obj.hero_intro.trim()
+          ? obj.hero_intro
+          : fallback.hero_intro,
+      image_path: typeof obj.image_path === "string" ? obj.image_path : "",
+      sections,
+      cta_title:
+        typeof obj.cta_title === "string" && obj.cta_title.trim()
+          ? obj.cta_title
+          : fallback.cta_title,
+      cta_subtitle:
+        typeof obj.cta_subtitle === "string" && obj.cta_subtitle.trim()
+          ? obj.cta_subtitle
+          : fallback.cta_subtitle,
+      cta_button_label:
+        typeof obj.cta_button_label === "string" && obj.cta_button_label.trim()
+          ? obj.cta_button_label
+          : fallback.cta_button_label,
+      cta_button_link:
+        typeof obj.cta_button_link === "string" && obj.cta_button_link.trim()
+          ? obj.cta_button_link
+          : fallback.cta_button_link,
+    });
+  } catch {
+    return fallback;
   }
 }
 
@@ -209,6 +323,21 @@ export const getHomeAbout = createServerFn({ method: "GET" }).handler(
   },
 );
 
+export const getAboutPage = createServerFn({ method: "GET" }).handler(
+  async (): Promise<AboutPage & { image_url: string | null }> => {
+    setResponseHeader(
+      "cache-control",
+      "public, max-age=60, s-maxage=120, stale-while-revalidate=600",
+    );
+    const raw = await readSetting("about_page");
+    const about = parseAboutPage(raw);
+    const image_url = about.image_path
+      ? await signOne("home-assets", about.image_path)
+      : null;
+    return { ...about, image_url };
+  },
+);
+
 export const getHomeHero = createServerFn({ method: "GET" }).handler(
   async (): Promise<HomeHero & { image_urls: string[] }> => {
     setResponseHeader(
@@ -257,6 +386,15 @@ export const setHomeAbout = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     await writeSetting("home_about", data);
+    return { ok: true };
+  });
+
+export const setAboutPage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: AboutPage) => aboutPageSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    await writeSetting("about_page", data);
     return { ok: true };
   });
 
