@@ -64,7 +64,7 @@ export function PublicHeader() {
           <img
             src={rotainstayLogo.url}
             alt="RotainStay — Nas Montanhas"
-            className="h-14 w-auto shrink-0 sm:h-16 md:h-20"
+            className="h-10 w-auto shrink-0 sm:h-12 md:h-14"
           />
         </Link>
 
