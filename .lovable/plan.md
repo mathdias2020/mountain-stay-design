@@ -1,76 +1,44 @@
-# Reserva manual + melhorias no bloqueio de datas
+## Objetivo
 
-## 1. Nova reserva manual (admin)
+Criar uma nova seção no painel admin (`/admin/sobre`) dedicada a gerenciar **todo o conteúdo da marca "Sobre"**, que hoje aparece em dois lugares do site:
 
-**Rota:** `/admin/reservas/nova` (botão "Nova reserva" em `/admin/reservas`).
+1. **Seção "Sobre" na Home** (`AboutSection` em `/`) — já editável em `/admin/home`.
+2. **Página `/sobre`** — hoje 100% hardcoded (`src/routes/_public.sobre.tsx`): título, parágrafo de intro, blocos "Nossa região", "Como funciona", "Nosso compromisso" e o card CTA verde no rodapé.
 
-**Formulário:**
-- Propriedade (select, obrigatório)
-- Hóspede: nome, WhatsApp, e-mail (opcional), CPF (opcional)
-- Check-in / check-out (date pickers)
-- Nº de hóspedes
-- Valor total (auto-calculado pelo `calculatePrice` da propriedade, editável manualmente — admin pode sobrescrever para refletir negociação offline)
-- Cupom (opcional, mesmo seletor já usado no site)
-- Método de pagamento: Pix / Cartão / Dinheiro / Transferência / Outro
-- **Modo de criação** (dropdown — o admin escolhe):
-  - **"Reserva já confirmada (offline)"** → status entra direto como `confirmed`, bloqueia datas imediatamente, todos os campos de pagamento marcados como pagos (`deposit_paid_at`, `balance_paid_at` = agora).
-  - **"Iniciar fluxo padrão (50% sinal / contrato / saldo)"** → status entra como `pending`, mesma esteira do fluxo do site, admin avança manualmente depois pela tela da reserva.
-- Observações internas (textarea, salvas em campo admin-only)
+Tudo passa a ser editado em um único lugar.
 
-**Validação de conflito (avisar mas permitir forçar):**
-- Antes de salvar, server fn checa overlap com `reservations` ativas (`awaiting_contract`, `awaiting_balance`, `confirmed`) e `blocked_dates` da mesma propriedade.
-- Se houver conflito: dialog amarelo lista os conflitos (código da reserva / motivo do bloqueio + datas) com botões "Cancelar" e "Confirmar mesmo assim".
-- Server fn aceita flag `force: true` para permitir o overbooking; sem a flag, retorna 409 com a lista de conflitos.
+## Mudanças
 
-**Marcação interna:**
-- Nova coluna `reservations.created_by_admin boolean default false` (true para reservas manuais).
-- Nova coluna `reservations.admin_notes text` (observações internas).
-- Reservas manuais ganham badge "Manual" na lista de reservas para diferenciação.
+### 1. Backend (Lovable Cloud)
+Reaproveitar a tabela `site_settings` (mesmo padrão do `home_about` / `home_hero`). Sem nova tabela.
 
-## 2. Melhorias no bloqueio de datas (`/admin/calendario`)
+Novas chaves:
+- `home_about` — **mantida** (seção Sobre da Home), continua editável aqui.
+- `about_page` — **nova**, JSON com a estrutura:
+  - `hero_title` (texto curto)
+  - `hero_intro` (parágrafo)
+  - `sections[]` — lista de blocos `{ title, body }` (inicialmente 3: Nossa região / Como funciona / Nosso compromisso, mas com botão "adicionar bloco" / remover / reordenar)
+  - `cta_title`, `cta_subtitle`, `cta_button_label`, `cta_button_link` (default `/propriedades`)
+  - `image_path` (opcional — caso queiramos adicionar uma imagem de capa à página `/sobre` no futuro; por ora apenas armazenada, não exibida, se você não quiser visual novo)
 
-Mantém o fluxo atual de clicar num dia para bloquear e adiciona:
+### 2. Server functions (`src/lib/home.functions.ts` ou novo `about.functions.ts`)
+- `getAboutPage()` (público, com cache) — retorna o conteúdo com fallback aos textos atuais hardcoded.
+- `setAboutPage()` (admin) — valida com Zod e salva.
 
-**a) Painel lateral "Bloqueios desta propriedade"**
-- Lista todos os bloqueios manuais futuros da propriedade selecionada (motivo + intervalo + dias restantes).
-- Cada item tem botões **Editar** (abre dialog com motivo/datas pré-preenchidos) e **Remover**.
-- Ignora bloqueios que vieram de reservas confirmadas (esses não são editáveis aqui — o admin gerencia pela tela da reserva).
+### 3. Nova rota admin: `src/routes/_admin.admin.sobre.tsx`
+Layout com duas abas (Tabs do shadcn):
+- **Aba "Sobre na Home"** — mesmos campos hoje em `/admin/home` (título, corpo, label do CTA, imagem). Move o formulário existente para cá.
+- **Aba "Página /sobre"** — formulário completo para `about_page`: título, intro, lista editável de blocos (título + texto), e os campos do card CTA verde.
 
-**b) Botão "Bloquear intervalo"** no topo
-- Abre dialog independente (sem precisar clicar num dia específico).
-- Date pickers de início + fim, motivo, descrição.
-- Mesma validação de conflito com reservas existentes (avisa mas permite forçar).
+Cada aba tem botão "Salvar" próprio.
 
-**c) Edição de bloqueio existente**
-- Hoje, ao clicar num dia bloqueado, abre `UnblockDialog` que só permite remover.
-- Vira `BlockEditDialog`: permite alterar intervalo + motivo OU remover.
+### 4. Atualizações nos arquivos existentes
+- **`src/routes/_admin.admin.home.tsx`** — remover a seção "Sobre" do formulário (fica só Hero + curadoria de propriedades). Adicionar aviso "Conteúdo Sobre movido para /admin/sobre".
+- **`src/routes/_public.sobre.tsx`** — substituir conteúdo hardcoded por `useQuery(getAboutPage)`. Manter fallback caso o setting esteja vazio.
+- **`src/components/layout/AdminSidebar.tsx`** — adicionar item "Sobre" (ícone `Info` ou `FileText`) e renomear "Home (slideshow / sobre)" → "Home (slideshow)".
 
-## Detalhes técnicos
+## Pontos para você confirmar antes de eu implementar
 
-### Schema (migration)
-```sql
-ALTER TABLE public.reservations
-  ADD COLUMN created_by_admin boolean NOT NULL DEFAULT false,
-  ADD COLUMN admin_notes text;
-```
-
-### Server functions novas (`src/lib/reservation-admin.functions.ts`, com `requireSupabaseAuth` + assert admin)
-- `checkReservationConflicts({ propertyId, checkin, checkout, excludeReservationId? })` → retorna `{ reservations: [...], blocks: [...] }`. Usado pelo formulário antes de salvar e pelo dialog de bloqueio.
-- `createManualReservation({ ...payload, force })` → cria a reserva. Se `mode === "confirmed_offline"`: status = `confirmed`, preenche timestamps de pagamento, insere `blocked_dates` correspondente. Se `mode === "standard_flow"`: status = `pending`, calcula `deposit_amount`/`balance_amount`/`balance_due_date` igual ao fluxo do site.
-- `updateBlockedDate({ id, start_date, end_date, reason, force })` → edita bloqueio manual.
-
-### UI nova
-- `src/routes/_admin.admin.reservas.nova.tsx` — formulário completo.
-- `src/components/admin/ConflictWarningDialog.tsx` — dialog reaproveitado (nova reserva + bloqueio).
-- Botão "Nova reserva" em `_admin.admin.reservas.index.tsx`.
-- `_admin.admin.calendario.tsx`: adiciona painel de bloqueios + botão "Bloquear intervalo" + troca `UnblockDialog` por `BlockEditDialog`.
-
-### Validações
-- Zod no client e no server: nome 2–120, WhatsApp 8–20 dígitos, e-mail opcional válido, valor > 0, checkout > checkin, motivo do bloqueio 1–200.
-
-## Fora do escopo
-- Não envia e-mails/WhatsApp automáticos para reservas manuais (admin trata offline).
-- Não cobra cartão nem gera Pix automaticamente — é registro de algo já acertado fora.
-- Não muda o fluxo de reservas vindas do site.
-
-Posso seguir?
+1. **Blocos da página `/sobre`** — quer que sejam uma lista dinâmica (admin adiciona/remove blocos livremente) ou fixos nos 3 atuais (Nossa região / Como funciona / Nosso compromisso) só com texto editável?
+2. **Imagem na página `/sobre`** — hoje a página é só texto. Quer aproveitar para incluir um campo de imagem (capa) editável, ou deixar só texto por enquanto?
+3. **Aba única vs duas rotas** — prefere `/admin/sobre` com duas abas (Home + Página), ou duas rotas separadas (`/admin/sobre/home` e `/admin/sobre/pagina`)?
