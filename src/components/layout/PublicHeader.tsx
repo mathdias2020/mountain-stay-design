@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X, ChevronDown } from "lucide-react";
-import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import rotainstayLogo from "@/assets/rotainstay-logo.svg.asset.json";
 
