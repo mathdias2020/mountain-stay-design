@@ -36,6 +36,8 @@ function AboutPage() {
   if (!data) return null;
 
   const cover = data.image_url || FALLBACK_COVER;
+  const ctaLink = data.cta_button_link.trim() || "/propriedades";
+  const isExternalCta = /^https?:\/\//.test(ctaLink);
 
   return (
     <div className="bg-background">
@@ -93,11 +95,19 @@ function AboutPage() {
             {data.cta_subtitle}
           </p>
           <div style={{ marginTop: 20 }}>
-            <Link to={data.cta_button_link as "/propriedades"}>
+            {isExternalCta ? (
+              <a href={ctaLink} target="_blank" rel="noreferrer">
+                <Button variant="secondary" style={{ color: "#6B7052" }}>
+                  {data.cta_button_label}
+                </Button>
+              </a>
+            ) : (
+              <Link to={ctaLink as "/propriedades"}>
               <Button variant="secondary" style={{ color: "#6B7052" }}>
                 {data.cta_button_label}
               </Button>
             </Link>
+            )}
           </div>
         </div>
       </div>
