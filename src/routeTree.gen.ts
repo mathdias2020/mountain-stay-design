@@ -27,6 +27,7 @@ import { Route as PublicPasseiosSlugRouteImport } from './routes/_public.passeio
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
 import { Route as PublicAtracoesSlugRouteImport } from './routes/_public.atracoes.$slug'
 import { Route as AdminAdminSubmissoesRouteImport } from './routes/_admin.admin.submissoes'
+import { Route as AdminAdminSobreRouteImport } from './routes/_admin.admin.sobre'
 import { Route as AdminAdminReservasRouteImport } from './routes/_admin.admin.reservas'
 import { Route as AdminAdminPropriedadesRouteImport } from './routes/_admin.admin.propriedades'
 import { Route as AdminAdminInstagramRouteImport } from './routes/_admin.admin.instagram'
@@ -130,6 +131,11 @@ const AdminAdminSubmissoesRoute = AdminAdminSubmissoesRouteImport.update({
   path: '/submissoes',
   getParentRoute: () => AdminAdminRoute,
 } as any)
+const AdminAdminSobreRoute = AdminAdminSobreRouteImport.update({
+  id: '/sobre',
+  path: '/sobre',
+  getParentRoute: () => AdminAdminRoute,
+} as any)
 const AdminAdminReservasRoute = AdminAdminReservasRouteImport.update({
   id: '/reservas',
   path: '/reservas',
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/admin/instagram': typeof AdminAdminInstagramRoute
   '/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/admin/reservas': typeof AdminAdminReservasRouteWithChildren
+  '/admin/sobre': typeof AdminAdminSobreRoute
   '/admin/submissoes': typeof AdminAdminSubmissoesRoute
   '/atracoes/$slug': typeof PublicAtracoesSlugRoute
   '/imovel/$slug': typeof PublicImovelSlugRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/admin/eventos': typeof AdminAdminEventosRoute
   '/admin/home': typeof AdminAdminHomeRoute
   '/admin/instagram': typeof AdminAdminInstagramRoute
+  '/admin/sobre': typeof AdminAdminSobreRoute
   '/admin/submissoes': typeof AdminAdminSubmissoesRoute
   '/atracoes/$slug': typeof PublicAtracoesSlugRoute
   '/imovel/$slug': typeof PublicImovelSlugRoute
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/_admin/admin/instagram': typeof AdminAdminInstagramRoute
   '/_admin/admin/propriedades': typeof AdminAdminPropriedadesRouteWithChildren
   '/_admin/admin/reservas': typeof AdminAdminReservasRouteWithChildren
+  '/_admin/admin/sobre': typeof AdminAdminSobreRoute
   '/_admin/admin/submissoes': typeof AdminAdminSubmissoesRoute
   '/_public/atracoes/$slug': typeof PublicAtracoesSlugRoute
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/admin/instagram'
     | '/admin/propriedades'
     | '/admin/reservas'
+    | '/admin/sobre'
     | '/admin/submissoes'
     | '/atracoes/$slug'
     | '/imovel/$slug'
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/admin/eventos'
     | '/admin/home'
     | '/admin/instagram'
+    | '/admin/sobre'
     | '/admin/submissoes'
     | '/atracoes/$slug'
     | '/imovel/$slug'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/instagram'
     | '/_admin/admin/propriedades'
     | '/_admin/admin/reservas'
+    | '/_admin/admin/sobre'
     | '/_admin/admin/submissoes'
     | '/_public/atracoes/$slug'
     | '/_public/imovel/$slug'
@@ -532,6 +544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminSubmissoesRouteImport
       parentRoute: typeof AdminAdminRoute
     }
+    '/_admin/admin/sobre': {
+      id: '/_admin/admin/sobre'
+      path: '/sobre'
+      fullPath: '/admin/sobre'
+      preLoaderRoute: typeof AdminAdminSobreRouteImport
+      parentRoute: typeof AdminAdminRoute
+    }
     '/_admin/admin/reservas': {
       id: '/_admin/admin/reservas'
       path: '/reservas'
@@ -675,6 +694,7 @@ interface AdminAdminRouteChildren {
   AdminAdminInstagramRoute: typeof AdminAdminInstagramRoute
   AdminAdminPropriedadesRoute: typeof AdminAdminPropriedadesRouteWithChildren
   AdminAdminReservasRoute: typeof AdminAdminReservasRouteWithChildren
+  AdminAdminSobreRoute: typeof AdminAdminSobreRoute
   AdminAdminSubmissoesRoute: typeof AdminAdminSubmissoesRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
 }
@@ -688,6 +708,7 @@ const AdminAdminRouteChildren: AdminAdminRouteChildren = {
   AdminAdminInstagramRoute: AdminAdminInstagramRoute,
   AdminAdminPropriedadesRoute: AdminAdminPropriedadesRouteWithChildren,
   AdminAdminReservasRoute: AdminAdminReservasRouteWithChildren,
+  AdminAdminSobreRoute: AdminAdminSobreRoute,
   AdminAdminSubmissoesRoute: AdminAdminSubmissoesRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
 }
