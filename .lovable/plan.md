@@ -1,44 +1,70 @@
-## Objetivo
+## Plano
 
-Criar uma nova seção no painel admin (`/admin/sobre`) dedicada a gerenciar **todo o conteúdo da marca "Sobre"**, que hoje aparece em dois lugares do site:
+Criar uma nova área no painel Admin em `/admin/sobre`, dedicada exclusivamente ao conteúdo “Sobre”, separando isso da tela atual `Admin/Home`.
 
-1. **Seção "Sobre" na Home** (`AboutSection` em `/`) — já editável em `/admin/home`.
-2. **Página `/sobre`** — hoje 100% hardcoded (`src/routes/_public.sobre.tsx`): título, parágrafo de intro, blocos "Nossa região", "Como funciona", "Nosso compromisso" e o card CTA verde no rodapé.
+## O que será implementado
 
-Tudo passa a ser editado em um único lugar.
+1. **Nova rota Admin: `/admin/sobre`**
+   - Uma única rota com abas.
+   - Aba **Sobre na Home** para editar a seção Sobre que aparece na página inicial.
+   - Aba **Página /sobre** para editar o conteúdo da rota pública `/sobre`.
 
-## Mudanças
+2. **Sobre na Home**
+   - Mover para essa nova rota os campos que hoje ficam em `Admin/Home`:
+     - título
+     - texto
+     - imagem
+     - texto do botão/CTA
+   - A seção continuará aparecendo normalmente na Home pública.
+   - Em `Admin/Home`, remover essa configuração ou deixar apenas um aviso indicando que o conteúdo foi movido para `Admin/Sobre`.
 
-### 1. Backend (Lovable Cloud)
-Reaproveitar a tabela `site_settings` (mesmo padrão do `home_about` / `home_hero`). Sem nova tabela.
+3. **Página pública `/sobre`**
+   - Trocar o conteúdo fixo atual por conteúdo configurável pelo Admin.
+   - Manter 3 blocos fixos, conforme confirmado:
+     - Nossa região
+     - Como funciona
+     - Nosso compromisso
+   - Cada bloco terá título e texto editáveis.
+   - Adicionar imagem de capa editável na página `/sobre`, conforme confirmado.
 
-Novas chaves:
-- `home_about` — **mantida** (seção Sobre da Home), continua editável aqui.
-- `about_page` — **nova**, JSON com a estrutura:
-  - `hero_title` (texto curto)
-  - `hero_intro` (parágrafo)
-  - `sections[]` — lista de blocos `{ title, body }` (inicialmente 3: Nossa região / Como funciona / Nosso compromisso, mas com botão "adicionar bloco" / remover / reordenar)
-  - `cta_title`, `cta_subtitle`, `cta_button_label`, `cta_button_link` (default `/propriedades`)
-  - `image_path` (opcional — caso queiramos adicionar uma imagem de capa à página `/sobre` no futuro; por ora apenas armazenada, não exibida, se você não quiser visual novo)
+4. **Card inferior da página `/sobre`**
+   - Tornar editáveis os textos do card final:
+     - título
+     - subtítulo
+     - texto do botão
+     - link do botão
 
-### 2. Server functions (`src/lib/home.functions.ts` ou novo `about.functions.ts`)
-- `getAboutPage()` (público, com cache) — retorna o conteúdo com fallback aos textos atuais hardcoded.
-- `setAboutPage()` (admin) — valida com Zod e salva.
+5. **Backend / armazenamento**
+   - Reaproveitar a estrutura existente de configurações do site.
+   - Manter a configuração atual `home_about` para a seção Sobre da Home.
+   - Criar uma nova configuração `about_page` para o conteúdo completo da página `/sobre`.
+   - Não criar nova tabela.
 
-### 3. Nova rota admin: `src/routes/_admin.admin.sobre.tsx`
-Layout com duas abas (Tabs do shadcn):
-- **Aba "Sobre na Home"** — mesmos campos hoje em `/admin/home` (título, corpo, label do CTA, imagem). Move o formulário existente para cá.
-- **Aba "Página /sobre"** — formulário completo para `about_page`: título, intro, lista editável de blocos (título + texto), e os campos do card CTA verde.
+6. **Menu lateral do Admin**
+   - Adicionar item **Sobre** no menu lateral.
+   - Ajustar o item **Home** para não indicar mais que edita a parte Sobre.
 
-Cada aba tem botão "Salvar" próprio.
+7. **Fallbacks**
+   - Se ainda não houver conteúdo salvo para `/sobre`, a página continuará usando os textos atuais como padrão.
+   - Isso evita página vazia depois da mudança.
 
-### 4. Atualizações nos arquivos existentes
-- **`src/routes/_admin.admin.home.tsx`** — remover a seção "Sobre" do formulário (fica só Hero + curadoria de propriedades). Adicionar aviso "Conteúdo Sobre movido para /admin/sobre".
-- **`src/routes/_public.sobre.tsx`** — substituir conteúdo hardcoded por `useQuery(getAboutPage)`. Manter fallback caso o setting esteja vazio.
-- **`src/components/layout/AdminSidebar.tsx`** — adicionar item "Sobre" (ícone `Info` ou `FileText`) e renomear "Home (slideshow / sobre)" → "Home (slideshow)".
+## Resultado esperado
 
-## Pontos para você confirmar antes de eu implementar
+O Admin terá uma área centralizada para editar tudo relacionado a “Sobre”:
 
-1. **Blocos da página `/sobre`** — quer que sejam uma lista dinâmica (admin adiciona/remove blocos livremente) ou fixos nos 3 atuais (Nossa região / Como funciona / Nosso compromisso) só com texto editável?
-2. **Imagem na página `/sobre`** — hoje a página é só texto. Quer aproveitar para incluir um campo de imagem (capa) editável, ou deixar só texto por enquanto?
-3. **Aba única vs duas rotas** — prefere `/admin/sobre` com duas abas (Home + Página), ou duas rotas separadas (`/admin/sobre/home` e `/admin/sobre/pagina`)?
+```text
+Admin
+├── Home
+│   └── Slideshow / propriedades da Home
+└── Sobre
+    ├── Sobre na Home
+    └── Página /sobre
+        ├── capa
+        ├── título e introdução
+        ├── 3 blocos fixos
+        └── card inferior
+```
+
+## Observação técnica
+
+A implementação seguirá os padrões atuais do projeto com funções server-side internas, validação dos dados antes de salvar e uso do bucket de imagens já existente para assets da Home/site.
