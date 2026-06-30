@@ -111,8 +111,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Casas para temporada nas montanhas do Espírito Santo" },
       { property: "og:description", content: "Casas para temporada nas montanhas do Espírito Santo" },
       { name: "twitter:description", content: "Casas para temporada nas montanhas do Espírito Santo" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/29335eef-91a1-4019-814c-a3ab1183d6b4/id-preview-9cbcae7b--c6dfa468-7d5c-4953-ad88-1bfcf51f40f5.lovable.app-1780541883999.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/29335eef-91a1-4019-814c-a3ab1183d6b4/id-preview-9cbcae7b--c6dfa468-7d5c-4953-ad88-1bfcf51f40f5.lovable.app-1780541883999.png" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7b0e822f-b138-4123-aa62-65fbcc63f3f2/id-preview-bcbee753--c6dfa468-7d5c-4953-ad88-1bfcf51f40f5.lovable.app-1782837308519.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7b0e822f-b138-4123-aa62-65fbcc63f3f2/id-preview-bcbee753--c6dfa468-7d5c-4953-ad88-1bfcf51f40f5.lovable.app-1782837308519.png" },
     ],
     links: [
       {
