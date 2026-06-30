@@ -160,8 +160,8 @@ function HomePage() {
         />
 
         <div className="mx-auto max-w-7xl px-6 pt-12">
-          <div className="flex items-baseline justify-center gap-2 text-center">
-            <h2 className="text-xl font-semibold text-white">
+          <div className="flex flex-col items-center gap-1 text-center sm:flex-row sm:items-baseline sm:justify-center sm:gap-2">
+            <h2 className="text-xl font-semibold text-white whitespace-nowrap">
               Propriedades disponíveis
             </h2>
             {!isLoading && !isError && (
