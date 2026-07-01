@@ -16,7 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getPropertyCities } from "@/lib/events.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { listActiveCities } from "@/lib/cities.functions";
 
 export const Route = createFileRoute("/_admin/admin/eventos")({
   head: () => ({ meta: [{ title: "Eventos — RotainStay" }] }),
@@ -288,12 +289,13 @@ function EventFormDialog({
   const [locationAddress, setLocationAddress] = useState("");
   const [mapUrl, setMapUrl] = useState("");
 
+  const listCitiesFn = useServerFn(listActiveCities);
   const { data: citiesData } = useQuery({
-    queryKey: ["property-cities"],
-    queryFn: () => getPropertyCities(),
+    queryKey: ["cities", "active"],
+    queryFn: () => listCitiesFn(),
     staleTime: 5 * 60 * 1000,
   });
-  const cities = citiesData?.cities ?? [];
+  const cities = (citiesData ?? []).map((c) => c.name);
 
   useEffect(() => {
     if (!open) return;

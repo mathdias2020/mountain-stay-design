@@ -1,22 +1,41 @@
-## Problema
+## Problema encontrado
 
-O arquivo `src/routes/_public.eventos.tsx` funciona como **rota pai** (layout) de `_public.eventos.$id.tsx`, mas em vez de renderizar `<Outlet />`, ele renderiza a listagem completa de eventos. Resultado: ao navegar para `/eventos/algum-id`, o TanStack casa a rota filha corretamente, mas o pai continua mostrando a lista — e a filha nunca aparece na tela.
+Fui verificar a tabela `cities` no banco e ela **não tem nenhum GRANT** (`anon`, `authenticated`, `service_role`). Isso explica os sintomas:
 
-## Correção
+- **Salvar cidade dá erro** — as funções admin (`createCity`, `updateCity`, `deleteCity`) usam o cliente `supabaseAdmin` (service role), mas sem `GRANT` na tabela, o PostgREST/Data API responde "permission denied".
+- **Cidades novas não aparecem em Propriedades / Anuncie / Filtros** — o `listActiveCities` usa a chave publishable (`anon`), que também precisa de `GRANT SELECT`.
 
-Aplicar o padrão layout + index do TanStack Router:
+Além disso, o formulário de **Eventos** (`_admin/admin/eventos`) usa `getPropertyCities()`, que só lê nomes de cidade a partir da tabela `properties`. Ou seja, uma cidade recém-criada em Configurações **nunca** aparece no select de Eventos até existir alguma propriedade com aquela cidade — inconsistente com o restante do sistema.
 
-1. **Criar `src/routes/_public.eventos.index.tsx`** — mover para cá todo o conteúdo atual de `EventsPage` (a listagem, o `head()` de "Eventos na região"), registrando como `createFileRoute("/_public/eventos/")`.
+## Plano
 
-2. **Reescrever `src/routes/_public.eventos.tsx`** para ser apenas layout:
-   ```tsx
-   import { createFileRoute, Outlet } from "@tanstack/react-router";
-   export const Route = createFileRoute("/_public/eventos")({
-     component: () => <Outlet />,
-   });
-   ```
-   (sem `head()` — o index e o `$id` definem o próprio).
+### 1. Migration: adicionar GRANTs faltantes na tabela `cities`
+```sql
+GRANT SELECT ON public.cities TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.cities TO authenticated;
+GRANT ALL ON public.cities TO service_role;
+```
+(RLS já está habilitada e as policies já existem — só faltam os grants para o Data API enxergar a tabela.)
 
-3. **Nenhuma outra mudança** — o `<Link to="/eventos/$id" params={{ id }}>` no `EventsSection` já está correto, e `_public.eventos.$id.tsx` já existe e está bem construído.
+### 2. Unificar a fonte de cidades no admin de Eventos
+Em `src/routes/_admin.admin.eventos.tsx`:
+- Trocar `getPropertyCities` por `listActiveCities` (de `@/lib/cities.functions`).
+- Ordenar/exibir pelo `name` das cidades cadastradas em Configurações.
+- Manter a opção "Outra cidade..." como fallback livre (mesma UX de hoje).
 
-O routeTree.gen.ts se regenera automaticamente. Após isso, "Ver detalhes" abre `/eventos/{id}` com os dados do evento específico.
+Depois disso, o comportamento fica consistente:
+
+| Onde | Fonte da lista de cidades |
+|---|---|
+| Admin → Propriedades (form) | `listActiveCities` ✅ (já era) |
+| Admin → Eventos (form) | `listActiveCities` ← **muda** |
+| Home → Filtros | `listActiveCities` ✅ |
+| Público → Anuncie | `listActiveCities` ✅ |
+
+### 3. Verificação
+- Após aplicar a migration, tentar criar/editar uma cidade em Configurações — o toast "Cidade salva." deve aparecer sem erro.
+- Abrir o form de nova propriedade e de novo evento — a nova cidade deve constar no select.
+
+### Fora do escopo
+- Não vou mexer em `getPropertyCities` em si (ainda pode ser útil em outros lugares); só troco o uso no form de Eventos.
+- Não mexo em RLS/policies existentes.
