@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, Plus, ExternalLink } from "lucide-react";
+import { Pencil, Trash2, Plus, ExternalLink, X, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,15 @@ type EventRow = {
   sort_order: number;
   is_active: boolean;
   created_at: string;
+  long_description: string | null;
+  schedule: ScheduleItem[] | null;
+  gallery_paths: string[] | null;
+  location_name: string | null;
+  location_address: string | null;
+  map_url: string | null;
 };
+
+type ScheduleItem = { datetime: string; title: string; description?: string | null };
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -57,7 +65,7 @@ function EventsAdmin() {
       const { data, error } = await sb
         .from("events")
         .select(
-          "id, image_path, title, description, city, start_date, end_date, button_label, button_url, sort_order, is_active, created_at",
+          "id, image_path, title, description, city, start_date, end_date, button_label, button_url, sort_order, is_active, created_at, long_description, schedule, gallery_paths, location_name, location_address, map_url",
         )
         .order("sort_order", { ascending: true })
         .order("start_date", { ascending: true });

@@ -25,6 +25,7 @@ import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index
 import { Route as PublicRestaurantesSlugRouteImport } from './routes/_public.restaurantes.$slug'
 import { Route as PublicPasseiosSlugRouteImport } from './routes/_public.passeios.$slug'
 import { Route as PublicImovelSlugRouteImport } from './routes/_public.imovel.$slug'
+import { Route as PublicEventosIdRouteImport } from './routes/_public.eventos.$id'
 import { Route as PublicAtracoesSlugRouteImport } from './routes/_public.atracoes.$slug'
 import { Route as AdminAdminSubmissoesRouteImport } from './routes/_admin.admin.submissoes'
 import { Route as AdminAdminSobreRouteImport } from './routes/_admin.admin.sobre'
@@ -121,6 +122,11 @@ const PublicImovelSlugRoute = PublicImovelSlugRouteImport.update({
   path: '/imovel/$slug',
   getParentRoute: () => PublicRoute,
 } as any)
+const PublicEventosIdRoute = PublicEventosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PublicEventosRoute,
+} as any)
 const PublicAtracoesSlugRoute = PublicAtracoesSlugRouteImport.update({
   id: '/atracoes/$slug',
   path: '/atracoes/$slug',
@@ -214,7 +220,7 @@ export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/admin': typeof AdminAdminRouteWithChildren
   '/anuncie': typeof PublicAnuncieRoute
-  '/eventos': typeof PublicEventosRoute
+  '/eventos': typeof PublicEventosRouteWithChildren
   '/propriedades': typeof PublicPropriedadesRoute
   '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
@@ -229,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/admin/sobre': typeof AdminAdminSobreRoute
   '/admin/submissoes': typeof AdminAdminSubmissoesRoute
   '/atracoes/$slug': typeof PublicAtracoesSlugRoute
+  '/eventos/$id': typeof PublicEventosIdRoute
   '/imovel/$slug': typeof PublicImovelSlugRoute
   '/passeios/$slug': typeof PublicPasseiosSlugRoute
   '/restaurantes/$slug': typeof PublicRestaurantesSlugRoute
@@ -246,7 +253,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/anuncie': typeof PublicAnuncieRoute
-  '/eventos': typeof PublicEventosRoute
+  '/eventos': typeof PublicEventosRouteWithChildren
   '/propriedades': typeof PublicPropriedadesRoute
   '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/admin/sobre': typeof AdminAdminSobreRoute
   '/admin/submissoes': typeof AdminAdminSubmissoesRoute
   '/atracoes/$slug': typeof PublicAtracoesSlugRoute
+  '/eventos/$id': typeof PublicEventosIdRoute
   '/imovel/$slug': typeof PublicImovelSlugRoute
   '/passeios/$slug': typeof PublicPasseiosSlugRoute
   '/restaurantes/$slug': typeof PublicRestaurantesSlugRoute
@@ -279,7 +287,7 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_admin/admin': typeof AdminAdminRouteWithChildren
   '/_public/anuncie': typeof PublicAnuncieRoute
-  '/_public/eventos': typeof PublicEventosRoute
+  '/_public/eventos': typeof PublicEventosRouteWithChildren
   '/_public/propriedades': typeof PublicPropriedadesRoute
   '/_public/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
@@ -295,6 +303,7 @@ export interface FileRoutesById {
   '/_admin/admin/sobre': typeof AdminAdminSobreRoute
   '/_admin/admin/submissoes': typeof AdminAdminSubmissoesRoute
   '/_public/atracoes/$slug': typeof PublicAtracoesSlugRoute
+  '/_public/eventos/$id': typeof PublicEventosIdRoute
   '/_public/imovel/$slug': typeof PublicImovelSlugRoute
   '/_public/passeios/$slug': typeof PublicPasseiosSlugRoute
   '/_public/restaurantes/$slug': typeof PublicRestaurantesSlugRoute
@@ -330,6 +339,7 @@ export interface FileRouteTypes {
     | '/admin/sobre'
     | '/admin/submissoes'
     | '/atracoes/$slug'
+    | '/eventos/$id'
     | '/imovel/$slug'
     | '/passeios/$slug'
     | '/restaurantes/$slug'
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/admin/sobre'
     | '/admin/submissoes'
     | '/atracoes/$slug'
+    | '/eventos/$id'
     | '/imovel/$slug'
     | '/passeios/$slug'
     | '/restaurantes/$slug'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/sobre'
     | '/_admin/admin/submissoes'
     | '/_public/atracoes/$slug'
+    | '/_public/eventos/$id'
     | '/_public/imovel/$slug'
     | '/_public/passeios/$slug'
     | '/_public/restaurantes/$slug'
@@ -529,6 +541,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/imovel/$slug'
       preLoaderRoute: typeof PublicImovelSlugRouteImport
       parentRoute: typeof PublicRoute
+    }
+    '/_public/eventos/$id': {
+      id: '/_public/eventos/$id'
+      path: '/$id'
+      fullPath: '/eventos/$id'
+      preLoaderRoute: typeof PublicEventosIdRouteImport
+      parentRoute: typeof PublicEventosRoute
     }
     '/_public/atracoes/$slug': {
       id: '/_public/atracoes/$slug'
@@ -727,9 +746,21 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface PublicEventosRouteChildren {
+  PublicEventosIdRoute: typeof PublicEventosIdRoute
+}
+
+const PublicEventosRouteChildren: PublicEventosRouteChildren = {
+  PublicEventosIdRoute: PublicEventosIdRoute,
+}
+
+const PublicEventosRouteWithChildren = PublicEventosRoute._addFileChildren(
+  PublicEventosRouteChildren,
+)
+
 interface PublicRouteChildren {
   PublicAnuncieRoute: typeof PublicAnuncieRoute
-  PublicEventosRoute: typeof PublicEventosRoute
+  PublicEventosRoute: typeof PublicEventosRouteWithChildren
   PublicPropriedadesRoute: typeof PublicPropriedadesRoute
   PublicSobreRoute: typeof PublicSobreRoute
   PublicIndexRoute: typeof PublicIndexRoute
@@ -744,7 +775,7 @@ interface PublicRouteChildren {
 
 const PublicRouteChildren: PublicRouteChildren = {
   PublicAnuncieRoute: PublicAnuncieRoute,
-  PublicEventosRoute: PublicEventosRoute,
+  PublicEventosRoute: PublicEventosRouteWithChildren,
   PublicPropriedadesRoute: PublicPropriedadesRoute,
   PublicSobreRoute: PublicSobreRoute,
   PublicIndexRoute: PublicIndexRoute,
