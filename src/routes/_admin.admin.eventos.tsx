@@ -520,6 +520,18 @@ function EventFormDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+            <p className="mt-1 text-xs text-text-muted">
+              Resumo curto exibido no card.
+            </p>
+          </div>
+          <div>
+            <Label>Descrição longa (Markdown)</Label>
+            <Textarea
+              rows={6}
+              value={longDescription}
+              onChange={(e) => setLongDescription(e.target.value)}
+              placeholder="Texto completo exibido na página do evento. Aceita **negrito**, listas, links..."
+            />
           </div>
           <div>
             <Label>Cidade</Label>
@@ -582,6 +594,120 @@ function EventFormDialog({
               placeholder="Deixe vazio para filtrar hospedagens pelas datas do evento"
             />
           </div>
+
+          <div className="border-t pt-4">
+            <Label>Local (opcional)</Label>
+            <div className="mt-2 space-y-2">
+              <Input
+                placeholder="Nome do local"
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
+              />
+              <Input
+                placeholder="Endereço completo"
+                value={locationAddress}
+                onChange={(e) => setLocationAddress(e.target.value)}
+              />
+              <Input
+                type="url"
+                placeholder="URL do Google Maps"
+                value={mapUrl}
+                onChange={(e) => setMapUrl(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between">
+              <Label>Programação</Label>
+              <Button type="button" size="sm" variant="outline" onClick={addScheduleItem}>
+                <Plus className="h-3 w-3 mr-1" /> Adicionar
+              </Button>
+            </div>
+            <div className="mt-2 space-y-2">
+              {schedule.length === 0 && (
+                <p className="text-xs text-text-muted">Nenhum item na programação.</p>
+              )}
+              {schedule.map((it, i) => (
+                <div key={i} className="rounded border p-2 space-y-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className="p-1 text-text-muted hover:text-foreground disabled:opacity-30"
+                      onClick={() => moveScheduleItem(i, -1)}
+                      disabled={i === 0}
+                      aria-label="Mover para cima"
+                    >
+                      <GripVertical className="h-3 w-3" />
+                    </button>
+                    <Input
+                      type="datetime-local"
+                      value={it.datetime}
+                      onChange={(e) => updateScheduleItem(i, { datetime: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => removeScheduleItem(i)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <Input
+                    placeholder="Título do item"
+                    value={it.title}
+                    onChange={(e) => updateScheduleItem(i, { title: e.target.value })}
+                  />
+                  <Textarea
+                    rows={2}
+                    placeholder="Descrição (opcional)"
+                    value={it.description ?? ""}
+                    onChange={(e) => updateScheduleItem(i, { description: e.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <Label>Galeria de fotos (opcional)</Label>
+            <Input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              disabled={galleryUploading}
+              onChange={(e) => {
+                uploadGallery(e.target.files);
+                e.target.value = "";
+              }}
+              className="mt-2"
+            />
+            {galleryUploading && (
+              <p className="mt-1 text-xs text-text-muted">Enviando...</p>
+            )}
+            {galleryPaths.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {galleryPaths.map((p) => (
+                  <div key={p} className="relative aspect-square overflow-hidden rounded bg-muted">
+                    {galleryUrls[p] && (
+                      <img src={galleryUrls[p]} alt="" className="h-full w-full object-cover" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeGalleryPhoto(p)}
+                      className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                      aria-label="Remover"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Ordem</Label>
