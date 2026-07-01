@@ -242,9 +242,15 @@ export type Database = {
           created_at: string
           description: string | null
           end_date: string
+          gallery_paths: string[]
           id: string
           image_path: string
           is_active: boolean
+          location_address: string | null
+          location_name: string | null
+          long_description: string | null
+          map_url: string | null
+          schedule: Json
           sort_order: number
           start_date: string
           title: string
@@ -257,9 +263,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_date: string
+          gallery_paths?: string[]
           id?: string
           image_path: string
           is_active?: boolean
+          location_address?: string | null
+          location_name?: string | null
+          long_description?: string | null
+          map_url?: string | null
+          schedule?: Json
           sort_order?: number
           start_date: string
           title: string
@@ -272,9 +284,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           end_date?: string
+          gallery_paths?: string[]
           id?: string
           image_path?: string
           is_active?: boolean
+          location_address?: string | null
+          location_name?: string | null
+          long_description?: string | null
+          map_url?: string | null
+          schedule?: Json
           sort_order?: number
           start_date?: string
           title?: string

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Trash2, Plus, ExternalLink } from "lucide-react";
+import { Pencil, Trash2, Plus, ExternalLink, X, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,15 @@ type EventRow = {
   sort_order: number;
   is_active: boolean;
   created_at: string;
+  long_description: string | null;
+  schedule: ScheduleItem[] | null;
+  gallery_paths: string[] | null;
+  location_name: string | null;
+  location_address: string | null;
+  map_url: string | null;
 };
+
+type ScheduleItem = { datetime: string; title: string; description?: string | null };
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -57,7 +65,7 @@ function EventsAdmin() {
       const { data, error } = await sb
         .from("events")
         .select(
-          "id, image_path, title, description, city, start_date, end_date, button_label, button_url, sort_order, is_active, created_at",
+          "id, image_path, title, description, city, start_date, end_date, button_label, button_url, sort_order, is_active, created_at, long_description, schedule, gallery_paths, location_name, location_address, map_url",
         )
         .order("sort_order", { ascending: true })
         .order("start_date", { ascending: true });
@@ -271,6 +279,14 @@ function EventFormDialog({
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [longDescription, setLongDescription] = useState("");
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [galleryPaths, setGalleryPaths] = useState<string[]>([]);
+  const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [locationName, setLocationName] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
+  const [mapUrl, setMapUrl] = useState("");
 
   const { data: citiesData } = useQuery({
     queryKey: ["property-cities"],
@@ -299,7 +315,82 @@ function EventFormDialog({
     setIsActive(event?.is_active ?? true);
     setFile(null);
     setError(null);
+    setLongDescription(event?.long_description ?? "");
+    setSchedule(Array.isArray(event?.schedule) ? (event!.schedule as ScheduleItem[]) : []);
+    setGalleryPaths(event?.gallery_paths ?? []);
+    setLocationName(event?.location_name ?? "");
+    setLocationAddress(event?.location_address ?? "");
+    setMapUrl(event?.map_url ?? "");
   }, [open, event, cities]);
+
+  useEffect(() => {
+    if (!open || galleryPaths.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.storage
+        .from("event-photos")
+        .createSignedUrls(galleryPaths, 60 * 30);
+      if (cancelled || !data) return;
+      const map: Record<string, string> = {};
+      for (const e of data) if (e.path && e.signedUrl) map[e.path] = e.signedUrl;
+      setGalleryUrls(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, galleryPaths]);
+
+  const uploadGallery = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setGalleryUploading(true);
+    setError(null);
+    try {
+      const added: string[] = [];
+      for (const f of Array.from(files)) {
+        if (!ALLOWED.includes(f.type)) {
+          setError("Use JPG, PNG ou WEBP.");
+          continue;
+        }
+        if (f.size > MAX_BYTES) {
+          setError("Arquivo maior que 10MB.");
+          continue;
+        }
+        const ext = f.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `gallery/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("event-photos")
+          .upload(path, f, { contentType: f.type, upsert: false });
+        if (upErr) throw upErr;
+        added.push(path);
+      }
+      if (added.length) setGalleryPaths((prev) => [...prev, ...added]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao enviar foto.";
+      setError(msg);
+    } finally {
+      setGalleryUploading(false);
+    }
+  };
+
+  const removeGalleryPhoto = async (path: string) => {
+    setGalleryPaths((prev) => prev.filter((p) => p !== path));
+    await supabase.storage.from("event-photos").remove([path]);
+  };
+
+  const addScheduleItem = () =>
+    setSchedule((prev) => [...prev, { datetime: "", title: "", description: "" }]);
+  const updateScheduleItem = (i: number, patch: Partial<ScheduleItem>) =>
+    setSchedule((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const removeScheduleItem = (i: number) =>
+    setSchedule((prev) => prev.filter((_, idx) => idx !== i));
+  const moveScheduleItem = (i: number, dir: -1 | 1) =>
+    setSchedule((prev) => {
+      const next = [...prev];
+      const j = i + dir;
+      if (j < 0 || j >= next.length) return prev;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
 
   const handleFile = (f: File | null) => {
     setError(null);
@@ -362,6 +453,18 @@ function EventFormDialog({
         button_url: buttonUrl.trim() || null,
         sort_order: Number(sortOrder) || 0,
         is_active: isActive,
+        long_description: longDescription.trim() || null,
+        schedule: schedule
+          .filter((s) => s.title.trim() && s.datetime.trim())
+          .map((s) => ({
+            datetime: s.datetime,
+            title: s.title.trim(),
+            description: s.description?.trim() || null,
+          })),
+        gallery_paths: galleryPaths,
+        location_name: locationName.trim() || null,
+        location_address: locationAddress.trim() || null,
+        map_url: mapUrl.trim() || null,
       };
 
       if (isEdit && event) {
@@ -416,6 +519,18 @@ function EventFormDialog({
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-text-muted">
+              Resumo curto exibido no card.
+            </p>
+          </div>
+          <div>
+            <Label>Descrição longa (Markdown)</Label>
+            <Textarea
+              rows={6}
+              value={longDescription}
+              onChange={(e) => setLongDescription(e.target.value)}
+              placeholder="Texto completo exibido na página do evento. Aceita **negrito**, listas, links..."
             />
           </div>
           <div>
@@ -479,6 +594,120 @@ function EventFormDialog({
               placeholder="Deixe vazio para filtrar hospedagens pelas datas do evento"
             />
           </div>
+
+          <div className="border-t pt-4">
+            <Label>Local (opcional)</Label>
+            <div className="mt-2 space-y-2">
+              <Input
+                placeholder="Nome do local"
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
+              />
+              <Input
+                placeholder="Endereço completo"
+                value={locationAddress}
+                onChange={(e) => setLocationAddress(e.target.value)}
+              />
+              <Input
+                type="url"
+                placeholder="URL do Google Maps"
+                value={mapUrl}
+                onChange={(e) => setMapUrl(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between">
+              <Label>Programação</Label>
+              <Button type="button" size="sm" variant="outline" onClick={addScheduleItem}>
+                <Plus className="h-3 w-3 mr-1" /> Adicionar
+              </Button>
+            </div>
+            <div className="mt-2 space-y-2">
+              {schedule.length === 0 && (
+                <p className="text-xs text-text-muted">Nenhum item na programação.</p>
+              )}
+              {schedule.map((it, i) => (
+                <div key={i} className="rounded border p-2 space-y-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className="p-1 text-text-muted hover:text-foreground disabled:opacity-30"
+                      onClick={() => moveScheduleItem(i, -1)}
+                      disabled={i === 0}
+                      aria-label="Mover para cima"
+                    >
+                      <GripVertical className="h-3 w-3" />
+                    </button>
+                    <Input
+                      type="datetime-local"
+                      value={it.datetime}
+                      onChange={(e) => updateScheduleItem(i, { datetime: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => removeScheduleItem(i)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <Input
+                    placeholder="Título do item"
+                    value={it.title}
+                    onChange={(e) => updateScheduleItem(i, { title: e.target.value })}
+                  />
+                  <Textarea
+                    rows={2}
+                    placeholder="Descrição (opcional)"
+                    value={it.description ?? ""}
+                    onChange={(e) => updateScheduleItem(i, { description: e.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <Label>Galeria de fotos (opcional)</Label>
+            <Input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              disabled={galleryUploading}
+              onChange={(e) => {
+                uploadGallery(e.target.files);
+                e.target.value = "";
+              }}
+              className="mt-2"
+            />
+            {galleryUploading && (
+              <p className="mt-1 text-xs text-text-muted">Enviando...</p>
+            )}
+            {galleryPaths.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {galleryPaths.map((p) => (
+                  <div key={p} className="relative aspect-square overflow-hidden rounded bg-muted">
+                    {galleryUrls[p] && (
+                      <img src={galleryUrls[p]} alt="" className="h-full w-full object-cover" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeGalleryPhoto(p)}
+                      className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                      aria-label="Remover"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Ordem</Label>

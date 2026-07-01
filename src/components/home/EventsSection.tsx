@@ -16,10 +16,18 @@ export function EventCard({ event }: { event: EventPublic }) {
       ? event.button_url
       : null;
 
-  const button = (
+  const primaryBtn = (
     <span
-      className="inline-flex items-center justify-center w-full mt-4 px-4 py-2.5 rounded-md text-sm font-medium transition-colors"
+      className="inline-flex items-center justify-center w-full px-3 py-2.5 rounded-md text-sm font-medium transition-colors"
       style={{ backgroundColor: "#6B7052", color: "#fff" }}
+    >
+      Ver detalhes
+    </span>
+  );
+  const secondaryBtn = (
+    <span
+      className="inline-flex items-center justify-center w-full px-3 py-2.5 rounded-md text-sm font-medium transition-colors border"
+      style={{ borderColor: "#6B7052", color: "#6B7052", backgroundColor: "transparent" }}
     >
       {event.button_label}
     </span>
@@ -62,10 +70,17 @@ export function EventCard({ event }: { event: EventPublic }) {
             {event.description}
           </p>
         )}
-        <div className="mt-auto">
+        <div className="mt-auto pt-4 grid grid-cols-2 gap-2">
+          <Link
+            to="/eventos/$id"
+            params={{ id: event.id }}
+            className="block"
+          >
+            {primaryBtn}
+          </Link>
           {href ? (
             <a href={href} target="_blank" rel="noreferrer" className="block">
-              {button}
+              {secondaryBtn}
             </a>
           ) : (
             <Link
@@ -79,7 +94,7 @@ export function EventCard({ event }: { event: EventPublic }) {
               }}
               className="block"
             >
-              {button}
+              {secondaryBtn}
             </Link>
           )}
         </div>
