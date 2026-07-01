@@ -132,6 +132,19 @@ export const updateCity = createServerFn({ method: "POST" })
     if (!previous) throw new Error("Cidade não encontrada.");
 
     const newName = data.name.trim();
+
+    // Prevent silent duplicate names on rename (case-insensitive).
+    if (previous.name.toLowerCase() !== newName.toLowerCase()) {
+      const { data: conflict, error: conflictErr } = await supabaseAdmin
+        .from("cities")
+        .select("id")
+        .ilike("name", newName)
+        .neq("id", data.id)
+        .maybeSingle();
+      if (conflictErr) throw new Error(conflictErr.message);
+      if (conflict) throw new Error("Já existe uma cidade com esse nome.");
+    }
+
     const { error } = await supabaseAdmin
       .from("cities")
       .update({
