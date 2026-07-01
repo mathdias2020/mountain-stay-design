@@ -145,6 +145,15 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
     staleTime: 5 * 60 * 1000,
   });
 
+  // In create mode, auto-select the first active city if none was chosen yet.
+  useEffect(() => {
+    if (mode !== "create") return;
+    const current = form.getValues("city");
+    if (current) return;
+    const first = activeCities?.[0]?.name;
+    if (first) setValue("city", first);
+  }, [activeCities, mode, form, setValue]);
+
   const { fields: hsFields, append: hsAppend, remove: hsRemove } = useFieldArray({
     control,
     name: "high_season_dates",

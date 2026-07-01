@@ -9,20 +9,11 @@ import { PropertyCardSkeleton } from "@/components/home/PropertyCardSkeleton";
 import { Button } from "@/components/Button";
 import { searchProperties } from "@/lib/properties.functions";
 
-const CITY_VALUES = [
-  "Domingos Martins",
-  "Pedra Azul",
-  "Marechal Floriano",
-  "Venda Nova do Imigrante",
-  "Paraju",
-  "Outro",
-] as const;
-
 const searchSchema = z.object({
   checkin: fallback(z.string().optional(), undefined),
   checkout: fallback(z.string().optional(), undefined),
   guests: fallback(z.number().int().min(1).max(20).optional(), undefined),
-  city: fallback(z.enum(CITY_VALUES).optional(), undefined),
+  city: fallback(z.string().max(80).optional(), undefined),
   page: fallback(z.number().int().min(1).optional(), undefined),
 });
 
@@ -89,7 +80,7 @@ function AllPropertiesPage() {
         checkin: next.checkin,
         checkout: next.checkout,
         guests: next.guests,
-        city: next.city as (typeof CITY_VALUES)[number] | undefined,
+        city: next.city,
         page: undefined,
       },
     });

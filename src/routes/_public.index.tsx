@@ -15,20 +15,11 @@ import { AboutSection } from "@/components/home/AboutSection";
 import { WhatToDoSection } from "@/components/home/WhatToDoSection";
 import { getHomeCuration, getHomeHero } from "@/lib/home.functions";
 
-const CITY_VALUES = [
-  "Domingos Martins",
-  "Pedra Azul",
-  "Marechal Floriano",
-  "Venda Nova do Imigrante",
-  "Paraju",
-  "Outro",
-] as const;
-
 const searchSchema = z.object({
   checkin: fallback(z.string().optional(), undefined),
   checkout: fallback(z.string().optional(), undefined),
   guests: fallback(z.number().int().min(1).max(20).optional(), undefined),
-  city: fallback(z.enum(CITY_VALUES).optional(), undefined),
+  city: fallback(z.string().max(80).optional(), undefined),
 });
 
 export const Route = createFileRoute("/_public/")({
@@ -119,7 +110,7 @@ function HomePage() {
         checkin: next.checkin,
         checkout: next.checkout,
         guests: next.guests,
-        city: next.city as (typeof CITY_VALUES)[number] | undefined,
+        city: next.city,
       },
     });
   };

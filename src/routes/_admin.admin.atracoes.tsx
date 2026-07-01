@@ -29,7 +29,8 @@ import {
   deleteAttraction,
   type AttractionCategory,
 } from "@/lib/attractions.functions";
-import { getPropertyCities } from "@/lib/events.functions";
+import { listActiveCities } from "@/lib/cities.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/_admin/admin/atracoes")({
   head: () => ({ meta: [{ title: "O que fazer — RotainStay" }] }),
@@ -92,12 +93,13 @@ function AttractionsAdmin() {
   });
   const items: Row[] = data?.items ?? [];
 
+  const listCitiesFn = useServerFn(listActiveCities);
   const { data: cityData } = useQuery({
-    queryKey: ["property-cities"],
-    queryFn: () => getPropertyCities(),
+    queryKey: ["cities", "active"],
+    queryFn: () => listCitiesFn(),
     staleTime: 5 * 60 * 1000,
   });
-  const cities = cityData?.cities ?? [];
+  const cities = (cityData ?? []).map((c) => c.name);
 
   useEffect(() => {
     if (items.length === 0) return;
