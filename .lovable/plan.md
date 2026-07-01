@@ -1,49 +1,33 @@
-# Página de detalhes do evento + edição no admin
+# Hero da home configurável
 
-## 1. Banco de dados (migração)
-Adicionar colunas à tabela `events`:
-- `long_description` (text) — descrição longa em markdown
-- `schedule` (jsonb) — array de itens `{ datetime, title, description? }`
-- `gallery_paths` (text[]) — paths adicionais no bucket `event-photos`
-- `location_name` (text)
-- `location_address` (text)
-- `map_url` (text)
+## 1. Configuração do slideshow
+- Aumentar `HERO_MAX_IMAGES` de 5 para **20** em `src/lib/home.functions.ts`.
+- Adicionar campo `slide_interval_ms` ao tipo `HomeHero` (valores permitidos: 3000, 5000, 6000, 8000, 10000). Default: 6000.
+- Estender `heroSchema`, `parseHero` e `defaultHero` para incluir/validar o novo campo com fallback.
 
-Sem mudanças em RLS/policies (mantém as atuais).
+## 2. Componente Hero
+Em `src/components/home/Hero.tsx`:
+- Remover a constante `SLIDE_INTERVAL_MS`.
+- Aceitar prop `slideIntervalMs?: number` (default 6000).
+- Usar essa prop no `setInterval`.
 
-## 2. Rota pública `/eventos/$id`
-Nova rota `src/routes/_public.eventos.$id.tsx`:
-- Server function `getEventById(id)` retornando o evento + URLs assinadas da capa e da galeria.
-- Layout: capa grande, título, cidade, datas, local com link para o mapa, descrição longa (render markdown), programação em lista, galeria de fotos.
-- Head/SEO por evento (title, description, og:image = capa).
-- CTA no fim: "Ver hospedagens nas datas" → `/propriedades?checkin=...&checkout=...`.
+Em `src/routes/_public.index.tsx`:
+- Passar `slideIntervalMs={hero?.slide_interval_ms ?? 6000}` para o `<Hero>`.
 
-## 3. Card de evento com 2 botões
-Em `EventCard` (`src/components/home/EventsSection.tsx`):
-- Grid de 2 colunas no rodapé do card:
-  - **Ver Detalhes** (primário, verde cheio) → `Link` para `/eventos/$id`
-  - **Ver Hospedagens** (secundário, outline verde) → mantém comportamento atual (`button_url` ou `/propriedades` com datas)
-- Aplicado também na página `/eventos` (mesmo componente).
+## 3. Admin — Home
+Em `src/routes/_admin.admin.home.tsx`:
+- No card do Hero:
+  - Atualizar o texto explicativo para mencionar "até 20 imagens" e "intervalo configurável".
+  - Adicionar um `<Select>` "Intervalo entre imagens" com as opções **3s, 5s, 6s, 8s, 10s**, ligado a `hero.slide_interval_ms`.
+  - O contador de imagens (`{hero.images.length}/{HERO_MAX_IMAGES}`) e o botão de adicionar continuam funcionando (já usam a constante).
+- Passar `slideIntervalMs` também para o `HeroPreview` para que a pré-visualização respeite o tempo escolhido.
 
-## 4. Admin — edição estendida
-Na rota admin de eventos (`src/routes/_admin.admin.eventos.tsx`), no formulário de criar/editar, adicionar:
-- Textarea de descrição longa (markdown, com hint).
-- Editor de programação: lista dinâmica de itens (data/hora + título + descrição opcional), com adicionar/remover/reordenar.
-- Upload múltiplo de fotos da galeria (bucket `event-photos`), com preview e remoção.
-- Campos de local: nome, endereço, URL do mapa.
-
-Server functions novas/estendidas:
-- `updateEvent` aceitando os novos campos.
-- `uploadEventGalleryPhoto` / remoção.
-
-## 5. Fora do escopo
-- Sem mudanças no header, filtros da home, ou outras seções.
-- Sem alteração em RLS além do necessário para colunas novas (herdam as policies existentes).
-- Markdown renderizado com biblioteca leve (`react-markdown`) — adicionar como dep.
+## 4. Fora do escopo
+- Nenhuma mudança em outras seções (curadoria, sobre, eventos).
+- Sem migração de banco: `home_hero` já é um JSON no `site_settings`; o campo novo é aditivo com default.
+- Ordem/seleção das imagens já é controlada pelo admin (mover ↑/↓, remover) — nada muda ali além do limite.
 
 ## Ordem de execução
-1. Migração das colunas.
-2. Server functions (get by id, update estendido, upload galeria).
-3. Rota pública `/eventos/$id`.
-4. Ajuste do `EventCard` (2 botões).
-5. Formulário do admin.
+1. Ajustes em `home.functions.ts` (tipos, schema, default, limite).
+2. Prop no `Hero.tsx` + uso no `_public.index.tsx`.
+3. UI no admin (`_admin.admin.home.tsx`) e no `HeroPreview`.
