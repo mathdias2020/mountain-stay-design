@@ -60,7 +60,7 @@ export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 
 export const defaultPropertyValues: PropertyFormValues = {
   name: "",
-  city: "Domingos Martins",
+  city: "",
   address_detail: "",
   google_maps_url: "",
   description: "",
