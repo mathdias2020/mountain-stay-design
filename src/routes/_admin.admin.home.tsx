@@ -21,6 +21,7 @@ import {
   getHomeHero,
   setHomeHero,
   HERO_MAX_IMAGES,
+  HERO_INTERVAL_OPTIONS,
   type CurationMode,
   type PropertiesCuration,
   type HomeHero,
@@ -38,6 +39,7 @@ function HeroPreview({
   overlayOpacity,
   titleScale,
   subtitleScale,
+  slideIntervalMs,
 }: {
   imageUrls: string[];
   title: string;
@@ -45,6 +47,7 @@ function HeroPreview({
   overlayOpacity: number;
   titleScale: number;
   subtitleScale: number;
+  slideIntervalMs: number;
 }) {
   const outerRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
@@ -88,6 +91,7 @@ function HeroPreview({
           overlayOpacity={overlayOpacity}
           titleScale={titleScale}
           subtitleScale={subtitleScale}
+          slideIntervalMs={slideIntervalMs}
         />
       </div>
     </div>
