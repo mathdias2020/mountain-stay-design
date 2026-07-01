@@ -470,6 +470,34 @@ function HomeAdmin() {
             </p>
           </div>
 
+          <div className="mt-5 max-w-md">
+            <Label>Intervalo entre imagens</Label>
+            <Select
+              value={String(hero.slide_interval_ms)}
+              onValueChange={(v) =>
+                setHero({
+                  ...hero,
+                  slide_interval_ms: Number(v) as HomeHero["slide_interval_ms"],
+                })
+              }
+            >
+              <SelectTrigger className="mt-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {HERO_INTERVAL_OPTIONS.map((ms) => (
+                  <SelectItem key={ms} value={String(ms)}>
+                    {ms / 1000} segundos
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[12px] text-text-muted">
+              Tempo que cada imagem fica visível antes de trocar. Só se aplica
+              quando houver mais de uma imagem.
+            </p>
+          </div>
+
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             <div>
               <Label>Tamanho do título: {hero.title_scale}%</Label>
