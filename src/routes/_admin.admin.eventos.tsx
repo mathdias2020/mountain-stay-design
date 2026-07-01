@@ -279,6 +279,14 @@ function EventFormDialog({
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [longDescription, setLongDescription] = useState("");
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [galleryPaths, setGalleryPaths] = useState<string[]>([]);
+  const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [locationName, setLocationName] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
+  const [mapUrl, setMapUrl] = useState("");
 
   const { data: citiesData } = useQuery({
     queryKey: ["property-cities"],
@@ -307,7 +315,82 @@ function EventFormDialog({
     setIsActive(event?.is_active ?? true);
     setFile(null);
     setError(null);
+    setLongDescription(event?.long_description ?? "");
+    setSchedule(Array.isArray(event?.schedule) ? (event!.schedule as ScheduleItem[]) : []);
+    setGalleryPaths(event?.gallery_paths ?? []);
+    setLocationName(event?.location_name ?? "");
+    setLocationAddress(event?.location_address ?? "");
+    setMapUrl(event?.map_url ?? "");
   }, [open, event, cities]);
+
+  useEffect(() => {
+    if (!open || galleryPaths.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.storage
+        .from("event-photos")
+        .createSignedUrls(galleryPaths, 60 * 30);
+      if (cancelled || !data) return;
+      const map: Record<string, string> = {};
+      for (const e of data) if (e.path && e.signedUrl) map[e.path] = e.signedUrl;
+      setGalleryUrls(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, galleryPaths]);
+
+  const uploadGallery = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setGalleryUploading(true);
+    setError(null);
+    try {
+      const added: string[] = [];
+      for (const f of Array.from(files)) {
+        if (!ALLOWED.includes(f.type)) {
+          setError("Use JPG, PNG ou WEBP.");
+          continue;
+        }
+        if (f.size > MAX_BYTES) {
+          setError("Arquivo maior que 10MB.");
+          continue;
+        }
+        const ext = f.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `gallery/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("event-photos")
+          .upload(path, f, { contentType: f.type, upsert: false });
+        if (upErr) throw upErr;
+        added.push(path);
+      }
+      if (added.length) setGalleryPaths((prev) => [...prev, ...added]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao enviar foto.";
+      setError(msg);
+    } finally {
+      setGalleryUploading(false);
+    }
+  };
+
+  const removeGalleryPhoto = async (path: string) => {
+    setGalleryPaths((prev) => prev.filter((p) => p !== path));
+    await supabase.storage.from("event-photos").remove([path]);
+  };
+
+  const addScheduleItem = () =>
+    setSchedule((prev) => [...prev, { datetime: "", title: "", description: "" }]);
+  const updateScheduleItem = (i: number, patch: Partial<ScheduleItem>) =>
+    setSchedule((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const removeScheduleItem = (i: number) =>
+    setSchedule((prev) => prev.filter((_, idx) => idx !== i));
+  const moveScheduleItem = (i: number, dir: -1 | 1) =>
+    setSchedule((prev) => {
+      const next = [...prev];
+      const j = i + dir;
+      if (j < 0 || j >= next.length) return prev;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
 
   const handleFile = (f: File | null) => {
     setError(null);
@@ -370,6 +453,18 @@ function EventFormDialog({
         button_url: buttonUrl.trim() || null,
         sort_order: Number(sortOrder) || 0,
         is_active: isActive,
+        long_description: longDescription.trim() || null,
+        schedule: schedule
+          .filter((s) => s.title.trim() && s.datetime.trim())
+          .map((s) => ({
+            datetime: s.datetime,
+            title: s.title.trim(),
+            description: s.description?.trim() || null,
+          })),
+        gallery_paths: galleryPaths,
+        location_name: locationName.trim() || null,
+        location_address: locationAddress.trim() || null,
+        map_url: mapUrl.trim() || null,
       };
 
       if (isEdit && event) {
