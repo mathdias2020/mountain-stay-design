@@ -20,6 +20,7 @@ import { Route as PublicAnuncieRouteImport } from './routes/_public.anuncie'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as PublicRestaurantesIndexRouteImport } from './routes/_public.restaurantes.index'
 import { Route as PublicPasseiosIndexRouteImport } from './routes/_public.passeios.index'
+import { Route as PublicEventosIndexRouteImport } from './routes/_public.eventos.index'
 import { Route as PublicAtracoesIndexRouteImport } from './routes/_public.atracoes.index'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
 import { Route as PublicRestaurantesSlugRouteImport } from './routes/_public.restaurantes.$slug'
@@ -96,6 +97,11 @@ const PublicPasseiosIndexRoute = PublicPasseiosIndexRouteImport.update({
   id: '/passeios/',
   path: '/passeios/',
   getParentRoute: () => PublicRoute,
+} as any)
+const PublicEventosIndexRoute = PublicEventosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PublicEventosRoute,
 } as any)
 const PublicAtracoesIndexRoute = PublicAtracoesIndexRouteImport.update({
   id: '/atracoes/',
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/restaurantes/$slug': typeof PublicRestaurantesSlugRoute
   '/admin/': typeof AdminAdminIndexRoute
   '/atracoes/': typeof PublicAtracoesIndexRoute
+  '/eventos/': typeof PublicEventosIndexRoute
   '/passeios/': typeof PublicPasseiosIndexRoute
   '/restaurantes/': typeof PublicRestaurantesIndexRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
@@ -253,7 +260,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/anuncie': typeof PublicAnuncieRoute
-  '/eventos': typeof PublicEventosRouteWithChildren
   '/propriedades': typeof PublicPropriedadesRoute
   '/sobre': typeof PublicSobreRoute
   '/admin/login': typeof AdminLoginRoute
@@ -272,6 +278,7 @@ export interface FileRoutesByTo {
   '/restaurantes/$slug': typeof PublicRestaurantesSlugRoute
   '/admin': typeof AdminAdminIndexRoute
   '/atracoes': typeof PublicAtracoesIndexRoute
+  '/eventos': typeof PublicEventosIndexRoute
   '/passeios': typeof PublicPasseiosIndexRoute
   '/restaurantes': typeof PublicRestaurantesIndexRoute
   '/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
@@ -309,6 +316,7 @@ export interface FileRoutesById {
   '/_public/restaurantes/$slug': typeof PublicRestaurantesSlugRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_public/atracoes/': typeof PublicAtracoesIndexRoute
+  '/_public/eventos/': typeof PublicEventosIndexRoute
   '/_public/passeios/': typeof PublicPasseiosIndexRoute
   '/_public/restaurantes/': typeof PublicRestaurantesIndexRoute
   '/_admin/admin/propriedades/nova': typeof AdminAdminPropriedadesNovaRoute
@@ -345,6 +353,7 @@ export interface FileRouteTypes {
     | '/restaurantes/$slug'
     | '/admin/'
     | '/atracoes/'
+    | '/eventos/'
     | '/passeios/'
     | '/restaurantes/'
     | '/admin/propriedades/nova'
@@ -357,7 +366,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/anuncie'
-    | '/eventos'
     | '/propriedades'
     | '/sobre'
     | '/admin/login'
@@ -376,6 +384,7 @@ export interface FileRouteTypes {
     | '/restaurantes/$slug'
     | '/admin'
     | '/atracoes'
+    | '/eventos'
     | '/passeios'
     | '/restaurantes'
     | '/admin/propriedades/nova'
@@ -412,6 +421,7 @@ export interface FileRouteTypes {
     | '/_public/restaurantes/$slug'
     | '/_admin/admin/'
     | '/_public/atracoes/'
+    | '/_public/eventos/'
     | '/_public/passeios/'
     | '/_public/restaurantes/'
     | '/_admin/admin/propriedades/nova'
@@ -506,6 +516,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/passeios/'
       preLoaderRoute: typeof PublicPasseiosIndexRouteImport
       parentRoute: typeof PublicRoute
+    }
+    '/_public/eventos/': {
+      id: '/_public/eventos/'
+      path: '/'
+      fullPath: '/eventos/'
+      preLoaderRoute: typeof PublicEventosIndexRouteImport
+      parentRoute: typeof PublicEventosRoute
     }
     '/_public/atracoes/': {
       id: '/_public/atracoes/'
@@ -748,10 +765,12 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PublicEventosRouteChildren {
   PublicEventosIdRoute: typeof PublicEventosIdRoute
+  PublicEventosIndexRoute: typeof PublicEventosIndexRoute
 }
 
 const PublicEventosRouteChildren: PublicEventosRouteChildren = {
   PublicEventosIdRoute: PublicEventosIdRoute,
+  PublicEventosIndexRoute: PublicEventosIndexRoute,
 }
 
 const PublicEventosRouteWithChildren = PublicEventosRoute._addFileChildren(
@@ -799,13 +818,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
