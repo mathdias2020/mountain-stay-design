@@ -1,41 +1,36 @@
-## Problema encontrado
+## Problema
 
-Fui verificar a tabela `cities` no banco e ela **não tem nenhum GRANT** (`anon`, `authenticated`, `service_role`). Isso explica os sintomas:
+Ao editar uma propriedade e escolher uma cidade nova (criada pelo admin em Configurações → Cidades), o "Salvar" falha com "Erro ao salvar".
 
-- **Salvar cidade dá erro** — as funções admin (`createCity`, `updateCity`, `deleteCity`) usam o cliente `supabaseAdmin` (service role), mas sem `GRANT` na tabela, o PostgREST/Data API responde "permission denied".
-- **Cidades novas não aparecem em Propriedades / Anuncie / Filtros** — o `listActiveCities` usa a chave publishable (`anon`), que também precisa de `GRANT SELECT`.
+## Causa raiz
 
-Além disso, o formulário de **Eventos** (`_admin/admin/eventos`) usa `getPropertyCities()`, que só lê nomes de cidade a partir da tabela `properties`. Ou seja, uma cidade recém-criada em Configurações **nunca** aparece no select de Eventos até existir alguma propriedade com aquela cidade — inconsistente com o restante do sistema.
+A tabela `properties` tem uma restrição antiga no banco (`properties_city_check`) que só aceita 6 valores fixos:
 
-## Plano
+`'Domingos Martins', 'Pedra Azul', 'Marechal Floriano', 'Venda Nova do Imigrante', 'Paraju', 'Outro'`
 
-### 1. Migration: adicionar GRANTs faltantes na tabela `cities`
+Qualquer cidade fora dessa lista (inclusive as novas cadastradas dinamicamente na tabela `cities`) é rejeitada pelo banco no `UPDATE`/`INSERT`, e o formulário mostra a mensagem genérica "Erro ao salvar".
+
+Isso é inconsistente com o modelo atual, em que as cidades são gerenciadas dinamicamente pelo admin.
+
+## Correção
+
+Uma única migration para remover a restrição fixa:
+
 ```sql
-GRANT SELECT ON public.cities TO anon;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.cities TO authenticated;
-GRANT ALL ON public.cities TO service_role;
+ALTER TABLE public.properties DROP CONSTRAINT IF EXISTS properties_city_check;
 ```
-(RLS já está habilitada e as policies já existem — só faltam os grants para o Data API enxergar a tabela.)
 
-### 2. Unificar a fonte de cidades no admin de Eventos
-Em `src/routes/_admin.admin.eventos.tsx`:
-- Trocar `getPropertyCities` por `listActiveCities` (de `@/lib/cities.functions`).
-- Ordenar/exibir pelo `name` das cidades cadastradas em Configurações.
-- Manter a opção "Outra cidade..." como fallback livre (mesma UX de hoje).
+A validação de cidade continua sendo feita:
+- **no frontend** (Select mostra apenas cidades ativas da tabela `cities`, com validação Zod de string obrigatória)
+- **no admin** (só quem tem role `admin` pode alterar propriedades via RLS)
 
-Depois disso, o comportamento fica consistente:
+## Fora de escopo
 
-| Onde | Fonte da lista de cidades |
-|---|---|
-| Admin → Propriedades (form) | `listActiveCities` ✅ (já era) |
-| Admin → Eventos (form) | `listActiveCities` ← **muda** |
-| Home → Filtros | `listActiveCities` ✅ |
-| Público → Anuncie | `listActiveCities` ✅ |
+- Não vou trocar `properties.city` (text) por uma FK para `cities.id` — isso seria uma refatoração maior que afeta várias telas públicas, filtros e o form de anúncio. Só remover o CHECK já resolve o erro sem quebrar nada existente.
+- Nenhuma alteração de código no frontend.
 
-### 3. Verificação
-- Após aplicar a migration, tentar criar/editar uma cidade em Configurações — o toast "Cidade salva." deve aparecer sem erro.
-- Abrir o form de nova propriedade e de novo evento — a nova cidade deve constar no select.
+## Verificação
 
-### Fora do escopo
-- Não vou mexer em `getPropertyCities` em si (ainda pode ser útil em outros lugares); só troco o uso no form de Eventos.
-- Não mexo em RLS/policies existentes.
+Depois da migration aplicada:
+1. Editar uma propriedade, trocar a cidade para uma criada em Configurações → Salvar deve funcionar.
+2. Criar uma nova propriedade com qualquer cidade ativa também deve funcionar.

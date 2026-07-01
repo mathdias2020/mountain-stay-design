@@ -1,0 +1,1 @@
+ALTER TABLE public.properties DROP CONSTRAINT IF EXISTS properties_city_check;
