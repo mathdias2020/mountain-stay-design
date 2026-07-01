@@ -1,33 +1,22 @@
-# Hero da home configurável
+## Problema
 
-## 1. Configuração do slideshow
-- Aumentar `HERO_MAX_IMAGES` de 5 para **20** em `src/lib/home.functions.ts`.
-- Adicionar campo `slide_interval_ms` ao tipo `HomeHero` (valores permitidos: 3000, 5000, 6000, 8000, 10000). Default: 6000.
-- Estender `heroSchema`, `parseHero` e `defaultHero` para incluir/validar o novo campo com fallback.
+O arquivo `src/routes/_public.eventos.tsx` funciona como **rota pai** (layout) de `_public.eventos.$id.tsx`, mas em vez de renderizar `<Outlet />`, ele renderiza a listagem completa de eventos. Resultado: ao navegar para `/eventos/algum-id`, o TanStack casa a rota filha corretamente, mas o pai continua mostrando a lista — e a filha nunca aparece na tela.
 
-## 2. Componente Hero
-Em `src/components/home/Hero.tsx`:
-- Remover a constante `SLIDE_INTERVAL_MS`.
-- Aceitar prop `slideIntervalMs?: number` (default 6000).
-- Usar essa prop no `setInterval`.
+## Correção
 
-Em `src/routes/_public.index.tsx`:
-- Passar `slideIntervalMs={hero?.slide_interval_ms ?? 6000}` para o `<Hero>`.
+Aplicar o padrão layout + index do TanStack Router:
 
-## 3. Admin — Home
-Em `src/routes/_admin.admin.home.tsx`:
-- No card do Hero:
-  - Atualizar o texto explicativo para mencionar "até 20 imagens" e "intervalo configurável".
-  - Adicionar um `<Select>` "Intervalo entre imagens" com as opções **3s, 5s, 6s, 8s, 10s**, ligado a `hero.slide_interval_ms`.
-  - O contador de imagens (`{hero.images.length}/{HERO_MAX_IMAGES}`) e o botão de adicionar continuam funcionando (já usam a constante).
-- Passar `slideIntervalMs` também para o `HeroPreview` para que a pré-visualização respeite o tempo escolhido.
+1. **Criar `src/routes/_public.eventos.index.tsx`** — mover para cá todo o conteúdo atual de `EventsPage` (a listagem, o `head()` de "Eventos na região"), registrando como `createFileRoute("/_public/eventos/")`.
 
-## 4. Fora do escopo
-- Nenhuma mudança em outras seções (curadoria, sobre, eventos).
-- Sem migração de banco: `home_hero` já é um JSON no `site_settings`; o campo novo é aditivo com default.
-- Ordem/seleção das imagens já é controlada pelo admin (mover ↑/↓, remover) — nada muda ali além do limite.
+2. **Reescrever `src/routes/_public.eventos.tsx`** para ser apenas layout:
+   ```tsx
+   import { createFileRoute, Outlet } from "@tanstack/react-router";
+   export const Route = createFileRoute("/_public/eventos")({
+     component: () => <Outlet />,
+   });
+   ```
+   (sem `head()` — o index e o `$id` definem o próprio).
 
-## Ordem de execução
-1. Ajustes em `home.functions.ts` (tipos, schema, default, limite).
-2. Prop no `Hero.tsx` + uso no `_public.index.tsx`.
-3. UI no admin (`_admin.admin.home.tsx`) e no `HeroPreview`.
+3. **Nenhuma outra mudança** — o `<Link to="/eventos/$id" params={{ id }}>` no `EventsSection` já está correto, e `_public.eventos.$id.tsx` já existe e está bem construído.
+
+O routeTree.gen.ts se regenera automaticamente. Após isso, "Ver detalhes" abre `/eventos/{id}` com os dados do evento específico.
