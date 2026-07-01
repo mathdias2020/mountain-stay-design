@@ -21,6 +21,7 @@ import {
   getHomeHero,
   setHomeHero,
   HERO_MAX_IMAGES,
+  HERO_INTERVAL_OPTIONS,
   type CurationMode,
   type PropertiesCuration,
   type HomeHero,
@@ -38,6 +39,7 @@ function HeroPreview({
   overlayOpacity,
   titleScale,
   subtitleScale,
+  slideIntervalMs,
 }: {
   imageUrls: string[];
   title: string;
@@ -45,6 +47,7 @@ function HeroPreview({
   overlayOpacity: number;
   titleScale: number;
   subtitleScale: number;
+  slideIntervalMs: number;
 }) {
   const outerRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
@@ -88,6 +91,7 @@ function HeroPreview({
           overlayOpacity={overlayOpacity}
           titleScale={titleScale}
           subtitleScale={subtitleScale}
+          slideIntervalMs={slideIntervalMs}
         />
       </div>
     </div>
@@ -315,9 +319,9 @@ function HomeAdmin() {
             <p className="text-sm text-text-secondary">
               Texto e imagens que aparecem no topo da home, atrás do card de
               busca. Adicione até <strong>{HERO_MAX_IMAGES} imagens</strong> —
-              quando houver mais de uma, elas alternam automaticamente a cada
-              6s. Tamanho recomendado: <strong>1920×720px</strong> (mínimo),
-              proporção 8:3.
+              quando houver mais de uma, elas alternam automaticamente no
+              intervalo configurado abaixo. Tamanho recomendado:{" "}
+              <strong>1920×720px</strong> (mínimo), proporção 8:3.
             </p>
           </header>
 
@@ -364,6 +368,7 @@ function HomeAdmin() {
             overlayOpacity={hero.overlay_opacity}
             titleScale={hero.title_scale}
             subtitleScale={hero.subtitle_scale}
+            slideIntervalMs={hero.slide_interval_ms}
           />
 
           {/* Image list */}
@@ -462,6 +467,34 @@ function HomeAdmin() {
             />
             <p className="mt-1 text-[12px] text-text-muted">
               Mais opacidade = texto mais legível, foto menos vibrante. Padrão 35%.
+            </p>
+          </div>
+
+          <div className="mt-5 max-w-md">
+            <Label>Intervalo entre imagens</Label>
+            <Select
+              value={String(hero.slide_interval_ms)}
+              onValueChange={(v) =>
+                setHero({
+                  ...hero,
+                  slide_interval_ms: Number(v) as HomeHero["slide_interval_ms"],
+                })
+              }
+            >
+              <SelectTrigger className="mt-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {HERO_INTERVAL_OPTIONS.map((ms) => (
+                  <SelectItem key={ms} value={String(ms)}>
+                    {ms / 1000} segundos
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[12px] text-text-muted">
+              Tempo que cada imagem fica visível antes de trocar. Só se aplica
+              quando houver mais de uma imagem.
             </p>
           </div>
 

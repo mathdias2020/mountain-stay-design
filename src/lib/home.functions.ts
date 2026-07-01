@@ -64,7 +64,9 @@ const aboutPageSchema = z.object({
   cta_button_link: z.string().min(1).max(160),
 });
 
-export const HERO_MAX_IMAGES = 5;
+export const HERO_MAX_IMAGES = 20;
+export const HERO_INTERVAL_OPTIONS = [3000, 5000, 6000, 8000, 10000] as const;
+export type HeroIntervalMs = (typeof HERO_INTERVAL_OPTIONS)[number];
 
 export type HomeHero = {
   title: string;
@@ -73,6 +75,7 @@ export type HomeHero = {
   images: string[]; // storage paths, max 5
   title_scale: number; // 50-200 (%), 100 = padrão
   subtitle_scale: number; // 50-200 (%), 100 = padrão
+  slide_interval_ms: HeroIntervalMs;
 };
 
 const heroSchema = z.object({
@@ -82,6 +85,10 @@ const heroSchema = z.object({
   images: z.array(z.string().min(1)).max(HERO_MAX_IMAGES),
   title_scale: z.number().int().min(50).max(200),
   subtitle_scale: z.number().int().min(50).max(200),
+  slide_interval_ms: z
+    .number()
+    .int()
+    .refine((v): v is HeroIntervalMs => (HERO_INTERVAL_OPTIONS as readonly number[]).includes(v)),
 });
 
 const DEFAULT_HERO_TITLE =
@@ -97,6 +104,7 @@ function defaultHero(): HomeHero {
     images: [],
     title_scale: 100,
     subtitle_scale: 100,
+    slide_interval_ms: 6000,
   };
 }
 
@@ -138,6 +146,11 @@ function parseHero(raw: unknown): HomeHero {
         typeof obj.subtitle_scale === "number"
           ? Math.max(50, Math.min(200, Math.round(obj.subtitle_scale)))
           : 100,
+      slide_interval_ms:
+        typeof obj.slide_interval_ms === "number" &&
+        (HERO_INTERVAL_OPTIONS as readonly number[]).includes(obj.slide_interval_ms)
+          ? (obj.slide_interval_ms as HeroIntervalMs)
+          : 6000,
     };
     return heroSchema.parse(merged);
   } catch {

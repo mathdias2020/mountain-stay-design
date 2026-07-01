@@ -7,13 +7,12 @@ export type HeroProps = {
   overlayOpacity?: number; // 0-100
   titleScale?: number; // percent, default 100
   subtitleScale?: number; // percent, default 100
+  slideIntervalMs?: number;
 };
 
 const DEFAULT_TITLE = "Sua próxima escapada nas montanhas do Espírito Santo";
 const DEFAULT_SUBTITLE =
   "Casas e chalés para temporada em Domingos Martins, Pedra Azul e região serrana.";
-const SLIDE_INTERVAL_MS = 6000;
-
 export function Hero({
   imageUrls = [],
   title,
@@ -21,6 +20,7 @@ export function Hero({
   overlayOpacity = 35,
   titleScale = 100,
   subtitleScale = 100,
+  slideIntervalMs = 6000,
 }: HeroProps = {}) {
   const images = imageUrls.filter(Boolean);
   const hasImage = images.length > 0;
@@ -39,9 +39,9 @@ export function Hero({
     if (reduce) return;
     const id = window.setInterval(() => {
       setActive((i) => (i + 1) % images.length);
-    }, SLIDE_INTERVAL_MS);
+    }, slideIntervalMs);
     return () => window.clearInterval(id);
-  }, [images.length]);
+  }, [images.length, slideIntervalMs]);
 
   return (
     <section

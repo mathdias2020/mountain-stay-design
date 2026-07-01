@@ -147,6 +147,7 @@ function HomePage() {
           overlayOpacity={hero?.overlay_opacity ?? 35}
           titleScale={hero?.title_scale ?? 100}
           subtitleScale={hero?.subtitle_scale ?? 100}
+          slideIntervalMs={hero?.slide_interval_ms ?? 6000}
         />
 
         <FiltersCard
