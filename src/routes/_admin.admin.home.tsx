@@ -319,9 +319,9 @@ function HomeAdmin() {
             <p className="text-sm text-text-secondary">
               Texto e imagens que aparecem no topo da home, atrás do card de
               busca. Adicione até <strong>{HERO_MAX_IMAGES} imagens</strong> —
-              quando houver mais de uma, elas alternam automaticamente a cada
-              6s. Tamanho recomendado: <strong>1920×720px</strong> (mínimo),
-              proporção 8:3.
+              quando houver mais de uma, elas alternam automaticamente no
+              intervalo configurado abaixo. Tamanho recomendado:{" "}
+              <strong>1920×720px</strong> (mínimo), proporção 8:3.
             </p>
           </header>
 
@@ -368,6 +368,7 @@ function HomeAdmin() {
             overlayOpacity={hero.overlay_opacity}
             titleScale={hero.title_scale}
             subtitleScale={hero.subtitle_scale}
+            slideIntervalMs={hero.slide_interval_ms}
           />
 
           {/* Image list */}
