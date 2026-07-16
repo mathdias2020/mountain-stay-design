@@ -78,118 +78,119 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
     city || "Todas as regiões",
   ].join(" · ");
 
-  const fields = (
-    <div className="grid grid-cols-1 gap-4">
-      {/* Check-in */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-text-secondary">Chegada</label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <UiButton
-              variant="outline"
-              className={cn(
-                "justify-start text-left font-normal",
-                !checkin && "text-text-muted",
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {checkin
-                ? format(checkin, "dd/MM/yyyy", { locale: ptBR })
-                : "Check-in"}
-            </UiButton>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={checkin}
-              onSelect={(d) => {
-                setCheckin(d ?? undefined);
-                if (d && checkout && checkout <= d) {
-                  setCheckout(addDays(d, 1));
-                }
-              }}
-              initialFocus
-              disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
-              className="pointer-events-auto p-3"
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* Check-out */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-text-secondary">Saída</label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <UiButton
-              variant="outline"
-              className={cn(
-                "justify-start text-left font-normal",
-                !checkout && "text-text-muted",
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {checkout
-                ? format(checkout, "dd/MM/yyyy", { locale: ptBR })
-                : "Check-out"}
-            </UiButton>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={checkout}
-              onSelect={(d) => setCheckout(d ?? undefined)}
-              initialFocus
-              disabled={(d) => d < checkoutMin}
-              className="pointer-events-auto p-3"
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* Guests */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-text-secondary">Hóspedes</label>
-        <Select value={guests} onValueChange={setGuests}>
-          <SelectTrigger>
-            <SelectValue placeholder="Quantos hóspedes?" />
-          </SelectTrigger>
-          <SelectContent className="max-h-60 bg-white">
-            {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
-              <SelectItem key={n} value={String(n)}>
-                {n} {n === 1 ? "hóspede" : "hóspedes"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* City */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-text-secondary">Região</label>
-        <Select
-          value={city || "all"}
-          onValueChange={(v) => setCity(v === "all" ? "" : v)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Todas as regiões" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            <SelectItem value="all">Todas as regiões</SelectItem>
-            {(citiesList ?? []).map((c) => (
-              <SelectItem key={c.id} value={c.name}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Submit */}
-      <Button variant="primary" onClick={handleSubmit} className="h-11 w-full">
-        Buscar propriedades
-      </Button>
+  const checkInField = (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-text-secondary">Chegada</label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <UiButton
+            variant="outline"
+            className={cn(
+              "justify-start text-left font-normal",
+              !checkin && "text-text-muted",
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {checkin
+              ? format(checkin, "dd/MM/yyyy", { locale: ptBR })
+              : "Check-in"}
+          </UiButton>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={checkin}
+            onSelect={(d) => {
+              setCheckin(d ?? undefined);
+              if (d && checkout && checkout <= d) {
+                setCheckout(addDays(d, 1));
+              }
+            }}
+            initialFocus
+            disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+            className="pointer-events-auto p-3"
+          />
+        </PopoverContent>
+      </Popover>
     </div>
+  );
+
+  const checkOutField = (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-text-secondary">Saída</label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <UiButton
+            variant="outline"
+            className={cn(
+              "justify-start text-left font-normal",
+              !checkout && "text-text-muted",
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {checkout
+              ? format(checkout, "dd/MM/yyyy", { locale: ptBR })
+              : "Check-out"}
+          </UiButton>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={checkout}
+            onSelect={(d) => setCheckout(d ?? undefined)}
+            initialFocus
+            disabled={(d) => d < checkoutMin}
+            className="pointer-events-auto p-3"
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+
+  const guestsField = (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-text-secondary">Hóspedes</label>
+      <Select value={guests} onValueChange={setGuests}>
+        <SelectTrigger>
+          <SelectValue placeholder="Quantos hóspedes?" />
+        </SelectTrigger>
+        <SelectContent className="max-h-60 bg-white">
+          {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+            <SelectItem key={n} value={String(n)}>
+              {n} {n === 1 ? "hóspede" : "hóspedes"}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const cityField = (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-text-secondary">Região</label>
+      <Select
+        value={city || "all"}
+        onValueChange={(v) => setCity(v === "all" ? "" : v)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Todas as regiões" />
+        </SelectTrigger>
+        <SelectContent className="bg-white">
+          <SelectItem value="all">Todas as regiões</SelectItem>
+          {(citiesList ?? []).map((c) => (
+            <SelectItem key={c.id} value={c.name}>
+              {c.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const submitButton = (
+    <Button variant="primary" onClick={handleSubmit} className="h-10 w-full md:w-auto">
+      Buscar
+    </Button>
   );
 
   if (variant === "mobile-footer") {
@@ -224,7 +225,15 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
               Ajustar busca
             </SheetTitle>
           </SheetHeader>
-          {fields}
+          <div className="grid grid-cols-1 gap-4">
+            {checkInField}
+            {checkOutField}
+            {guestsField}
+            {cityField}
+            <Button variant="primary" onClick={handleSubmit} className="h-11 w-full">
+              Buscar propriedades
+            </Button>
+          </div>
         </SheetContent>
       </Sheet>
     );
@@ -237,7 +246,11 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
         style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}
       >
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_1fr_auto] md:items-end">
-          {fields}
+          {checkInField}
+          {checkOutField}
+          {guestsField}
+          {cityField}
+          {submitButton}
         </div>
       </div>
     </div>
