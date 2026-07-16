@@ -179,18 +179,29 @@ function HomeAdmin() {
   });
   const [hero, setHero] = useState<HomeHero | null>(null);
   const [heroImageUrls, setHeroImageUrls] = useState<string[]>([]);
-  const [heroPendingFile, setHeroPendingFile] = useState<File | null>(null);
+  const [heroMobileImageUrls, setHeroMobileImageUrls] = useState<string[]>([]);
+  const [heroPendingFile, setHeroPendingFile] = useState<
+    { file: File; target: "desktop" | "mobile" } | null
+  >(null);
   const [heroUploading, setHeroUploading] = useState(false);
+  const [imageTab, setImageTab] = useState<"desktop" | "mobile">("desktop");
+  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">(
+    "desktop",
+  );
 
   useEffect(() => {
     if (heroRemote && !hero) {
-      const { image_urls, ...rest } = heroRemote;
+      const { image_urls, mobile_image_urls, ...rest } = heroRemote;
       setHero(rest);
       setHeroImageUrls(image_urls);
+      setHeroMobileImageUrls(mobile_image_urls);
     }
   }, [heroRemote, hero]);
 
-  const onHeroFileSelected = async (file: File) => {
+  const onHeroFileSelected = async (
+    file: File,
+    target: "desktop" | "mobile",
+  ) => {
     if (!ALLOWED.includes(file.type)) {
       toast.error("Formato inválido. Use JPG, PNG ou WebP.");
       return;
@@ -217,20 +228,24 @@ function HomeAdmin() {
       return null;
     });
     if (!dims) return;
-    if (dims.w < HERO_MIN_W || dims.h < HERO_MIN_H) {
+    const minW = target === "mobile" ? HERO_MIN_W_MOBILE : HERO_MIN_W;
+    const minH = target === "mobile" ? HERO_MIN_H_MOBILE : HERO_MIN_H;
+    if (dims.w < minW || dims.h < minH) {
       toast.error(
-        `A imagem precisa ter no mínimo ${HERO_MIN_W}×${HERO_MIN_H}px (atual: ${dims.w}×${dims.h}).`,
+        `A imagem precisa ter no mínimo ${minW}×${minH}px (atual: ${dims.w}×${dims.h}).`,
       );
       return;
     }
-    setHeroPendingFile(file);
+    setHeroPendingFile({ file, target });
   };
 
   const onHeroCropConfirmed = async (cropped: File) => {
+    const target = heroPendingFile?.target ?? "desktop";
     setHeroPendingFile(null);
     setHeroUploading(true);
     try {
-      const path = `hero/${crypto.randomUUID()}.jpg`;
+      const folder = target === "mobile" ? "hero-mobile" : "hero";
+      const path = `${folder}/${crypto.randomUUID()}.jpg`;
       const { error } = await supabase.storage
         .from("home-assets")
         .upload(path, cropped, { contentType: "image/jpeg" });
@@ -238,12 +253,35 @@ function HomeAdmin() {
       const { data } = await supabase.storage
         .from("home-assets")
         .createSignedUrl(path, 60 * 60);
-      setHero((h) =>
-        h ? { ...h, images: [...h.images, path].slice(0, HERO_MAX_IMAGES) } : h,
-      );
-      setHeroImageUrls((urls) =>
-        [...urls, data?.signedUrl ?? ""].filter(Boolean).slice(0, HERO_MAX_IMAGES),
-      );
+      if (target === "mobile") {
+        setHero((h) =>
+          h
+            ? {
+                ...h,
+                mobile_images: [...h.mobile_images, path].slice(
+                  0,
+                  HERO_MAX_IMAGES,
+                ),
+              }
+            : h,
+        );
+        setHeroMobileImageUrls((urls) =>
+          [...urls, data?.signedUrl ?? ""]
+            .filter(Boolean)
+            .slice(0, HERO_MAX_IMAGES),
+        );
+      } else {
+        setHero((h) =>
+          h
+            ? { ...h, images: [...h.images, path].slice(0, HERO_MAX_IMAGES) }
+            : h,
+        );
+        setHeroImageUrls((urls) =>
+          [...urls, data?.signedUrl ?? ""]
+            .filter(Boolean)
+            .slice(0, HERO_MAX_IMAGES),
+        );
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao subir imagem");
     } finally {
@@ -251,23 +289,41 @@ function HomeAdmin() {
     }
   };
 
-  const removeHeroImage = (idx: number) => {
-    setHero((h) =>
-      h ? { ...h, images: h.images.filter((_, i) => i !== idx) } : h,
-    );
-    setHeroImageUrls((urls) => urls.filter((_, i) => i !== idx));
+  const removeHeroImage = (idx: number, target: "desktop" | "mobile") => {
+    if (target === "mobile") {
+      setHero((h) =>
+        h
+          ? { ...h, mobile_images: h.mobile_images.filter((_, i) => i !== idx) }
+          : h,
+      );
+      setHeroMobileImageUrls((urls) => urls.filter((_, i) => i !== idx));
+    } else {
+      setHero((h) =>
+        h ? { ...h, images: h.images.filter((_, i) => i !== idx) } : h,
+      );
+      setHeroImageUrls((urls) => urls.filter((_, i) => i !== idx));
+    }
   };
 
-  const moveHeroImage = (from: number, to: number) => {
+  const moveHeroImage = (
+    from: number,
+    to: number,
+    target: "desktop" | "mobile",
+  ) => {
     setHero((h) => {
       if (!h) return h;
-      if (to < 0 || to >= h.images.length) return h;
-      const arr = [...h.images];
+      const src = target === "mobile" ? h.mobile_images : h.images;
+      if (to < 0 || to >= src.length) return h;
+      const arr = [...src];
       const [it] = arr.splice(from, 1);
       arr.splice(to, 0, it);
-      return { ...h, images: arr };
+      return target === "mobile"
+        ? { ...h, mobile_images: arr }
+        : { ...h, images: arr };
     });
-    setHeroImageUrls((urls) => {
+    const setter =
+      target === "mobile" ? setHeroMobileImageUrls : setHeroImageUrls;
+    setter((urls) => {
       if (to < 0 || to >= urls.length) return urls;
       const arr = [...urls];
       const [it] = arr.splice(from, 1);
