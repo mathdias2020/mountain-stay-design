@@ -29,8 +29,10 @@ import {
 import { ImageCropDialog } from "@/components/admin/ImageCropDialog";
 import { Slider } from "@/components/ui/slider";
 import { Hero } from "@/components/home/Hero";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const HERO_PREVIEW_REF_WIDTH = 1280;
+const HERO_PREVIEW_REF_WIDTH_MOBILE = 390;
 
 function HeroPreview({
   imageUrls,
@@ -40,6 +42,11 @@ function HeroPreview({
   titleScale,
   subtitleScale,
   slideIntervalMs,
+  mode,
+  mobileImageUrls,
+  mobileOverlayOpacity,
+  mobileTitleScale,
+  mobileSubtitleScale,
 }: {
   imageUrls: string[];
   title: string;
@@ -48,11 +55,18 @@ function HeroPreview({
   titleScale: number;
   subtitleScale: number;
   slideIntervalMs: number;
+  mode: "desktop" | "mobile";
+  mobileImageUrls: string[];
+  mobileOverlayOpacity: number;
+  mobileTitleScale: number;
+  mobileSubtitleScale: number;
 }) {
   const outerRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(1);
   const [innerHeight, setInnerHeight] = useState(480);
+  const refWidth =
+    mode === "mobile" ? HERO_PREVIEW_REF_WIDTH_MOBILE : HERO_PREVIEW_REF_WIDTH;
 
   useLayoutEffect(() => {
     const outer = outerRef.current;
@@ -60,7 +74,7 @@ function HeroPreview({
     if (!outer || !inner) return;
     const update = () => {
       const w = outer.clientWidth;
-      if (w > 0) setScale(w / HERO_PREVIEW_REF_WIDTH);
+      if (w > 0) setScale(Math.min(1, w / refWidth));
       setInnerHeight(inner.offsetHeight);
     };
     update();
@@ -68,18 +82,22 @@ function HeroPreview({
     ro.observe(outer);
     ro.observe(inner);
     return () => ro.disconnect();
-  }, []);
+  }, [refWidth]);
 
   return (
     <div
       ref={outerRef}
-      className="mt-5 overflow-hidden rounded-[14px] border border-border bg-[#f5f4f0]"
+      className={
+        mode === "mobile"
+          ? "mt-5 mx-auto overflow-hidden rounded-[14px] border border-border bg-[#f5f4f0]"
+          : "mt-5 overflow-hidden rounded-[14px] border border-border bg-[#f5f4f0]"
+      }
       style={{ height: innerHeight * scale, position: "relative" }}
     >
       <div
         ref={innerRef}
         style={{
-          width: HERO_PREVIEW_REF_WIDTH,
+          width: refWidth,
           transform: `scale(${scale})`,
           transformOrigin: "top left",
         }}
@@ -92,6 +110,11 @@ function HeroPreview({
           titleScale={titleScale}
           subtitleScale={subtitleScale}
           slideIntervalMs={slideIntervalMs}
+          mobileImageUrls={mobileImageUrls}
+          mobileOverlayOpacity={mobileOverlayOpacity}
+          mobileTitleScale={mobileTitleScale}
+          mobileSubtitleScale={mobileSubtitleScale}
+          forceMode={mode}
         />
       </div>
     </div>
