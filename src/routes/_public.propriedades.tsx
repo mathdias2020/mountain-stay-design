@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
@@ -44,6 +44,57 @@ function AllPropertiesPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const hasDateRange = Boolean(search.checkin && search.checkout);
+
+  const hasAnyFilter = Boolean(
+    search.checkin || search.checkout || search.guests || search.city,
+  );
+
+  // Hydrate from sessionStorage when landing with a clean URL.
+  useEffect(() => {
+    if (hasAnyFilter) return;
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.sessionStorage.getItem("propriedades:filters");
+      if (!raw) return;
+      const saved = JSON.parse(raw) as HomeFilters;
+      if (!saved.checkin && !saved.checkout && !saved.guests && !saved.city) return;
+      navigate({
+        search: {
+          checkin: saved.checkin,
+          checkout: saved.checkout,
+          guests: saved.guests,
+          city: saved.city,
+          page: undefined,
+        },
+        replace: true,
+      });
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist current URL filters into sessionStorage.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (hasAnyFilter) {
+        window.sessionStorage.setItem(
+          "propriedades:filters",
+          JSON.stringify({
+            checkin: search.checkin,
+            checkout: search.checkout,
+            guests: search.guests,
+            city: search.city,
+          }),
+        );
+      } else {
+        window.sessionStorage.removeItem("propriedades:filters");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [search.checkin, search.checkout, search.guests, search.city, hasAnyFilter]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: [
@@ -94,6 +145,10 @@ function AllPropertiesPage() {
       }),
     });
 
+  // Force FiltersCard to re-hydrate its internal state whenever the URL
+  // params change (e.g. browser Back/Forward or sessionStorage hydration).
+  const filtersKey = `${search.checkin ?? ""}|${search.checkout ?? ""}|${search.guests ?? ""}|${search.city ?? ""}`;
+
   return (
     <>
       <section
@@ -121,6 +176,7 @@ function AllPropertiesPage() {
 
       <div className="hidden sm:block">
         <FiltersCard
+          key={filtersKey}
           initial={{
             checkin: search.checkin,
             checkout: search.checkout,
@@ -195,6 +251,7 @@ function AllPropertiesPage() {
 
       <FiltersCard
         variant="mobile-footer"
+        key={`m-${filtersKey}`}
         className="sm:hidden"
         initial={{
           checkin: search.checkin,
