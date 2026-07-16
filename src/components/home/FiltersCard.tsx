@@ -71,6 +71,20 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
     setOpen(false);
   };
 
+  const handleClear = () => {
+    setCheckin(undefined);
+    setCheckout(undefined);
+    setGuests("");
+    setCity("");
+    onSearch({
+      checkin: undefined,
+      checkout: undefined,
+      guests: undefined,
+      city: undefined,
+    });
+    setOpen(false);
+  };
+
   const summary = [
     checkin ? format(checkin, "dd/MM") : "Entrada",
     checkout ? format(checkout, "dd/MM") : "Saída",
@@ -230,9 +244,22 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
             {checkOutField}
             {guestsField}
             {cityField}
-            <Button variant="primary" onClick={handleSubmit} className="h-11 w-full">
-              Buscar propriedades
-            </Button>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <Button
+                variant="secondary"
+                onClick={handleClear}
+                className="h-11 w-full"
+              >
+                Limpar
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSubmit}
+                className="h-11 w-full"
+              >
+                Aplicar
+              </Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
