@@ -15,28 +15,65 @@ export function FloatingWhatsApp() {
 
   // On mobile, only show after the user scrolls past ~80% of viewport
   // (i.e. moved beyond the hero section). Desktop always shows.
-  const [visible, setVisible] = useState(true);
+  const [scrolledPastHero, setScrolledPastHero] = useState(true);
+  const [filtersVisible, setFiltersVisible] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 767px)");
     const compute = () => {
       if (!mq.matches) {
-        setVisible(true);
+        setScrolledPastHero(true);
         return;
       }
       const threshold = window.innerHeight * 0.8;
-      setVisible(window.scrollY > threshold);
+      setScrolledPastHero(window.scrollY > threshold);
     };
     compute();
     window.addEventListener("scroll", compute, { passive: true });
     window.addEventListener("resize", compute);
     mq.addEventListener("change", compute);
+
+    // Observe any FiltersCard on the page and hide the button while it's
+    // in view on mobile, so it never covers check-in/check-out or Buscar.
+    let observer: IntersectionObserver | null = null;
+    let observed: Element[] = [];
+    const attach = () => {
+      observer?.disconnect();
+      observed = Array.from(document.querySelectorAll("[data-filters-card]"));
+      if (!observed.length) {
+        setFiltersVisible(false);
+        return;
+      }
+      observer = new IntersectionObserver(
+        (entries) => {
+          const anyVisible = entries.some((e) => e.isIntersecting);
+          setFiltersVisible((prev) => {
+            if (anyVisible) return true;
+            // Recompute across all tracked nodes when one leaves view
+            const stillVisible = observed.some((el) => {
+              const r = el.getBoundingClientRect();
+              return r.bottom > 0 && r.top < window.innerHeight;
+            });
+            return stillVisible;
+          });
+        },
+        { threshold: 0.01 },
+      );
+      observed.forEach((el) => observer!.observe(el));
+    };
+    attach();
+    const mo = new MutationObserver(() => attach());
+    mo.observe(document.body, { childList: true, subtree: true });
     return () => {
       window.removeEventListener("scroll", compute);
       window.removeEventListener("resize", compute);
       mq.removeEventListener("change", compute);
+      observer?.disconnect();
+      mo.disconnect();
     };
   }, []);
+
+  const visible = scrolledPastHero && !filtersVisible;
 
   const number = data?.number;
   if (!number) return null;
@@ -49,7 +86,7 @@ export function FloatingWhatsApp() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Falar no WhatsApp"
-      className="fixed bottom-20 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:bottom-6"
+      className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary sm:bottom-6 sm:right-6"
       style={{
         backgroundColor: "#25D366",
         opacity: visible ? 1 : 0,
