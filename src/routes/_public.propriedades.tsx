@@ -206,7 +206,7 @@ function AllPropertiesPage() {
       />
 
       {/* Spacer so the fixed mobile filter bar doesn't hide the page footer */}
-      <div className="h-44 sm:hidden" aria-hidden="true" />
+      <div className="mobile-footer-spacer h-44 sm:hidden" aria-hidden="true" />
     </>
   );
 }
