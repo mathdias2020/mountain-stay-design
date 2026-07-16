@@ -1,13 +1,8 @@
 import { LegalLink } from "@/components/legal/LegalLink";
-import { cn } from "@/lib/utils";
 
-interface PublicFooterProps {
-  className?: string;
-}
-
-export function PublicFooter({ className }: PublicFooterProps) {
+export function PublicFooter() {
   return (
-    <footer className={cn("bg-primary text-white", className)}>
+    <footer className="bg-primary text-white">
       <div className="mx-auto max-w-7xl px-6 py-8 text-center">
         <p className="font-semibold">RotainStay — Nas Montanhas</p>
         <p
