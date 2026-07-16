@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getWhatsappNumber } from "@/lib/home.functions";
@@ -12,6 +13,31 @@ export function FloatingWhatsApp() {
     staleTime: 60_000,
   });
 
+  // On mobile, only show after the user scrolls past ~80% of viewport
+  // (i.e. moved beyond the hero section). Desktop always shows.
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const compute = () => {
+      if (!mq.matches) {
+        setVisible(true);
+        return;
+      }
+      const threshold = window.innerHeight * 0.8;
+      setVisible(window.scrollY > threshold);
+    };
+    compute();
+    window.addEventListener("scroll", compute, { passive: true });
+    window.addEventListener("resize", compute);
+    mq.addEventListener("change", compute);
+    return () => {
+      window.removeEventListener("scroll", compute);
+      window.removeEventListener("resize", compute);
+      mq.removeEventListener("change", compute);
+    };
+  }, []);
+
   const number = data?.number;
   if (!number) return null;
 
@@ -23,8 +49,15 @@ export function FloatingWhatsApp() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Falar no WhatsApp"
-      className="fixed bottom-20 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:bottom-6"
-      style={{ backgroundColor: "#25D366" }}
+      className="fixed bottom-20 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:bottom-6"
+      style={{
+        backgroundColor: "#25D366",
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? "auto" : "none",
+        transform: visible ? "translateY(0)" : "translateY(20px)",
+      }}
+      tabIndex={visible ? 0 : -1}
+      aria-hidden={!visible}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
