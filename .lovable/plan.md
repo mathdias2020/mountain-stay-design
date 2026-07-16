@@ -1,51 +1,40 @@
 ## Objetivo
+Deixar o header público transparente no mobile, exibindo a foto de fundo do Hero por trás dele, com logo, texto e ícone do menu em branco. O drawer mobile continua branco como está hoje.
 
-1. **Homepage mobile**: transformar o hero em uma "tela de boas-vindas" 16:9 ocupando 100% da largura + altura visível do primeiro contato, com um indicador animado de rolagem. Ao rolar, o restante da home aparece normalmente.
-2. **Admin Home**: permitir subir conjuntos separados de imagens de fundo — um para **desktop**, outro para **mobile** — em vez de um único conjunto compartilhado.
+## Decisões confirmadas
+- Header transparente **sempre** no mobile (não apenas sobre o Hero).
+- Drawer lateral ao abrir o menu continua **branco**.
+- Desktop permanece inalterado (fundo branco, texto escuro).
 
----
+## Implementação
 
-## 1. Hero mobile 16:9 com scroll hint
+### 1. `src/components/layout/PublicHeader.tsx`
+- Adicionar detecção de viewport mobile (`max-width: 767px`).
+- No mobile:
+  - Posicionar header como `fixed top-0` (ou `absolute`) sobre o conteúdo.
+  - Remover fundo branco e borda inferior (`bg-transparent`).
+  - Tornar logo, links de navegação e ícone do menu **brancos**.
+  - Adicionar um gradiente escuro sutil por trás do header (`bg-gradient-to-b from-black/40 to-transparent`) para garantir legibilidade do texto branco sobre qualquer fundo, sem esconder completamente a imagem.
+  - Manter `z-50` para ficar acima do Hero.
+- No desktop: manter comportamento atual (fundo branco, texto escuro).
+- Drawer mobile: **não alterar** — continua branco com links escuros.
 
-Arquivo: `src/components/home/Hero.tsx`
+### 2. `src/components/home/Hero.tsx`
+- Ajustar altura do Hero mobile de `calc(100dvh - 68px)` para `100dvh` (ou `100svh`), pois o header passa a sobrepor a imagem.
+- Adicionar `padding-top` no conteúdo do Hero mobile equivalente à altura do header (~68–72 px), para que o título e subtítulo não fiquem escondidos atrás do header.
+- Garantir que o indicador "Role para explorar" continue visível e posicionado na parte inferior da tela.
 
-- No breakpoint mobile (`< md`):
-  - Section vira `aspect-[9/16]` (retrato, mais próximo do print de referência que o usuário mandou — a foto de fundo ocupa toda a "primeira dobra" do celular). Confirma se você prefere `9/16` (retrato, cobre a tela do celular como no print) ou literalmente `16/9` (paisagem, faixa curta no topo).
-  - Largura 100% (`w-screen`), sem padding lateral que crie faixas.
-  - Título/subtítulo alinhados na parte inferior-central (estilo dos prints).
-  - Indicador de rolagem: chevron duplo animado (bounce) + texto curto tipo "Role para explorar", posicionado no rodapé do hero, escondendo automaticamente após o primeiro scroll.
-- No desktop (`md+`): mantém o comportamento atual (min-height 480, padding, texto centralizado).
-- Slideshow, overlay, escalas de fonte continuam funcionando nos dois modos.
+### 3. Ajustes no layout geral (`src/routes/_public.tsx`)
+- Verificar se o header fixo no mobile não cria espaçamento indesejado no topo das páginas subsequentes.
+- Se necessário, compensar com `pt-[altura-do-header]` apenas nas rotas que não possuem Hero em tela cheia.
 
-Nenhuma mudança em `_public.index.tsx` além de garantir que o hero cole no topo (sem margem/padding do layout público acima dele no mobile).
+## Resultado esperado
+- No mobile, o usuário vê a foto de fundo do Hero ocupando toda a tela inicial, com o header transparente e elementos em branco por cima.
+- Ao rolar para baixo, o header permanece transparente com texto branco (com gradiente sutil para legibilidade).
+- Ao abrir o menu hambúrguer, o drawer continua branco e legível.
+- Desktop não sofre alterações visuais.
 
----
-
-## 2. Admin: imagens separadas desktop × mobile
-
-### Backend (`src/lib/home.functions.ts`)
-
-- Adicionar campo `mobile_images: string[]` (max 5) ao tipo `HomeHero` e ao `heroSchema`. `images` permanece como "desktop".
-- `getHomeHero` retorna também `mobile_image_urls: string[]` (URLs assinadas).
-- `setHomeHero` aceita e persiste `mobile_images`.
-- Migração: adicionar coluna/JSON field correspondente com default `[]` (o hero hoje é guardado em uma tabela de settings — vou reutilizar o mesmo registro JSON, sem nova tabela).
-
-### Admin UI (`src/routes/_admin.admin.home.tsx`)
-
-- Na aba do Hero, dividir a seção de imagens em duas subseções via `Tabs` (`Desktop` / `Mobile`), cada uma com seu próprio uploader, lista reordenável e limite independente (até 5 cada).
-- Preview WYSIWYG: dois previews lado a lado (ou toggle) — um renderizando o Hero com as imagens desktop, outro com o `viewport` mobile forçado usando as imagens mobile. Se você preferir um único preview com toggle Desktop/Mobile, faço só um.
-- Se `mobile_images` estiver vazio, o site faz fallback para `images` (desktop) no mobile, para não quebrar configurações existentes.
-
-### Consumo público (`src/components/home/Hero.tsx` + `_public.index.tsx`)
-
-- `Hero` recebe também `mobileImageUrls`. Escolha da lista ativa via `useMediaQuery('(max-width: 767px)')` (com fallback para desktop durante SSR/hidratação para evitar flash).
-- `slide_interval_ms`, overlay, escalas continuam globais (compartilhados).
-
----
-
-## Pontos que preciso confirmar antes de implementar
-
-1. Aspect ratio do hero mobile: **9:16 (retrato, cobre a tela toda)** como nos prints, ou literal 16:9 (faixa curta no topo)?
-2. Textos (título/subtítulo) no mobile: **inferior-centralizado** (como nos prints) ou continuar centralizado no meio?
-3. Preview admin: **um preview com toggle Desktop/Mobile** ou **dois previews lado a lado**?
-4. Escalas de fonte e overlay: manter **compartilhados** entre desktop e mobile, ou virar campos separados também?
+## Arquivos alterados
+- `src/components/layout/PublicHeader.tsx`
+- `src/components/home/Hero.tsx`
+- Possivelmente `src/routes/_public.tsx` (ajuste de espaçamento, se necessário)

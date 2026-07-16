@@ -100,10 +100,10 @@ export function Hero({
     // subtract that height to fit entirely on the first screen.
     return (
       <section
-        className="relative w-full overflow-hidden bg-primary"
+        className="relative -mt-[68px] w-full overflow-hidden bg-primary md:mt-0"
         style={{
-          height: "calc(100dvh - 68px)",
-          minHeight: "calc(100dvh - 68px)",
+          height: "100svh",
+          minHeight: "100svh",
         }}
       >
         {hasImage && (
@@ -128,7 +128,7 @@ export function Hero({
           </>
         )}
         <div className="absolute inset-0 flex flex-col">
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 pt-[68px] text-center">
             <h1
               className="font-semibold text-white"
               style={{ fontFamily: "Inter, sans-serif", fontWeight: 600 }}
