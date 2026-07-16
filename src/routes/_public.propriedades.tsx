@@ -145,6 +145,10 @@ function AllPropertiesPage() {
       }),
     });
 
+  // Force FiltersCard to re-hydrate its internal state whenever the URL
+  // params change (e.g. browser Back/Forward or sessionStorage hydration).
+  const filtersKey = `${search.checkin ?? ""}|${search.checkout ?? ""}|${search.guests ?? ""}|${search.city ?? ""}`;
+
   return (
     <>
       <section
@@ -169,10 +173,6 @@ function AllPropertiesPage() {
           </p>
         </div>
       </section>
-
-  // Force FiltersCard to re-hydrate its internal state whenever the URL
-  // params change (e.g. browser Back/Forward or sessionStorage hydration).
-  const filtersKey = `${search.checkin ?? ""}|${search.checkout ?? ""}|${search.guests ?? ""}|${search.city ?? ""}`;
 
       <div className="hidden sm:block">
         <FiltersCard
@@ -251,6 +251,7 @@ function AllPropertiesPage() {
 
       <FiltersCard
         variant="mobile-footer"
+        key={`m-${filtersKey}`}
         className="sm:hidden"
         initial={{
           checkin: search.checkin,
