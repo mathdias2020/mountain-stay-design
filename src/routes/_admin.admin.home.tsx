@@ -438,121 +438,240 @@ function HomeAdmin() {
             </div>
           </div>
 
-          {/* Preview WYSIWYG (mesmo componente da home, escalado) */}
-          <p className="mt-5 text-[12px] text-text-muted">
-            Pré-visualização proporcional à home — tipografia, espaçamentos e
-            posicionamento idênticos ao que o visitante vê.
-          </p>
-          <HeroPreview
-            imageUrls={heroImageUrls}
-            title={hero.title}
-            subtitle={hero.subtitle}
-            overlayOpacity={hero.overlay_opacity}
-            titleScale={hero.title_scale}
-            subtitleScale={hero.subtitle_scale}
-            slideIntervalMs={hero.slide_interval_ms}
-          />
-
-          {/* Image list */}
-          <div className="mt-5">
-            <div className="mb-2 flex items-center justify-between">
-              <Label>
-                Imagens ({hero.images.length}/{HERO_MAX_IMAGES})
-              </Label>
-              <label
-                className={`inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm ${
-                  hero.images.length >= HERO_MAX_IMAGES || heroUploading
-                    ? "cursor-not-allowed opacity-50"
-                    : "cursor-pointer hover:bg-secondary"
-                }`}
-              >
-                <Upload className="h-4 w-4" />
-                {heroUploading ? "Subindo…" : "Adicionar imagem"}
-                <input
-                  type="file"
-                  accept={ALLOWED.join(",")}
-                  className="hidden"
-                  disabled={hero.images.length >= HERO_MAX_IMAGES || heroUploading}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) onHeroFileSelected(f);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            </div>
-            {hero.images.length === 0 ? (
-              <p className="text-sm text-text-muted">
-                Nenhuma imagem cadastrada.
-              </p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                {hero.images.map((path, idx) => (
-                  <div
-                    key={path}
-                    className="relative overflow-hidden rounded-[10px] border border-border"
-                    style={{ aspectRatio: "8 / 3", background: "#f5f4f0" }}
-                  >
-                    {heroImageUrls[idx] && (
-                      <img
-                        src={heroImageUrls[idx]}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                    <div className="absolute left-2 top-2 rounded bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">
-                      {idx + 1}
-                    </div>
-                    <div className="absolute right-2 top-2 flex gap-1">
-                      <button
-                        type="button"
-                        disabled={idx === 0}
-                        onClick={() => moveHeroImage(idx, idx - 1)}
-                        className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white disabled:opacity-40"
-                        title="Mover para cima"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        disabled={idx === hero.images.length - 1}
-                        onClick={() => moveHeroImage(idx, idx + 1)}
-                        className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white disabled:opacity-40"
-                        title="Mover para baixo"
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeHeroImage(idx)}
-                        className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white hover:bg-red-600/80"
-                        title="Remover"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-5 max-w-md">
-            <Label>Opacidade do overlay escuro: {hero.overlay_opacity}%</Label>
-            <Slider
-              value={[hero.overlay_opacity]}
-              min={0}
-              max={80}
-              step={5}
-              onValueChange={(v) => setHero({ ...hero, overlay_opacity: v[0] })}
-              className="mt-2"
-            />
-            <p className="mt-1 text-[12px] text-text-muted">
-              Mais opacidade = texto mais legível, foto menos vibrante. Padrão 35%.
+          {/* Preview WYSIWYG com toggle desktop/mobile */}
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[12px] text-text-muted">
+              Pré-visualização proporcional à home — tipografia, espaçamentos e
+              posicionamento idênticos ao que o visitante vê.
             </p>
+            <div className="inline-flex rounded-md border border-border p-0.5">
+              <button
+                type="button"
+                onClick={() => setPreviewMode("desktop")}
+                className={`px-3 py-1 text-xs font-medium rounded ${previewMode === "desktop" ? "bg-primary text-white" : "text-text-secondary hover:bg-secondary"}`}
+              >
+                Desktop
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewMode("mobile")}
+                className={`px-3 py-1 text-xs font-medium rounded ${previewMode === "mobile" ? "bg-primary text-white" : "text-text-secondary hover:bg-secondary"}`}
+              >
+                Mobile
+              </button>
+            </div>
+          </div>
+          <div className={previewMode === "mobile" ? "mx-auto max-w-[420px]" : ""}>
+            <HeroPreview
+              mode={previewMode}
+              imageUrls={heroImageUrls}
+              mobileImageUrls={heroMobileImageUrls}
+              title={hero.title}
+              subtitle={hero.subtitle}
+              overlayOpacity={hero.overlay_opacity}
+              titleScale={hero.title_scale}
+              subtitleScale={hero.subtitle_scale}
+              slideIntervalMs={hero.slide_interval_ms}
+              mobileOverlayOpacity={hero.mobile_overlay_opacity}
+              mobileTitleScale={hero.mobile_title_scale}
+              mobileSubtitleScale={hero.mobile_subtitle_scale}
+            />
           </div>
 
-          <div className="mt-5 max-w-md">
+          {/* Image lists (desktop / mobile) */}
+          <div className="mt-6">
+            <Tabs
+              value={imageTab}
+              onValueChange={(v) => setImageTab(v as "desktop" | "mobile")}
+            >
+              <TabsList>
+                <TabsTrigger value="desktop">
+                  Desktop ({hero.images.length}/{HERO_MAX_IMAGES})
+                </TabsTrigger>
+                <TabsTrigger value="mobile">
+                  Mobile ({hero.mobile_images.length}/{HERO_MAX_IMAGES})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="desktop" className="mt-4">
+                <p className="mb-2 text-[12px] text-text-muted">
+                  Fotos horizontais para telas grandes. Mínimo{" "}
+                  <strong>{HERO_MIN_W}×{HERO_MIN_H}px</strong> — recorte 8:3.
+                </p>
+                <div className="mb-3 flex justify-end">
+                  <label
+                    className={`inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm ${
+                      hero.images.length >= HERO_MAX_IMAGES || heroUploading
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer hover:bg-secondary"
+                    }`}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {heroUploading ? "Subindo…" : "Adicionar imagem"}
+                    <input
+                      type="file"
+                      accept={ALLOWED.join(",")}
+                      className="hidden"
+                      disabled={
+                        hero.images.length >= HERO_MAX_IMAGES || heroUploading
+                      }
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) onHeroFileSelected(f, "desktop");
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                {hero.images.length === 0 ? (
+                  <p className="text-sm text-text-muted">
+                    Nenhuma imagem cadastrada para desktop.
+                  </p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                    {hero.images.map((path, idx) => (
+                      <div
+                        key={path}
+                        className="relative overflow-hidden rounded-[10px] border border-border"
+                        style={{ aspectRatio: "8 / 3", background: "#f5f4f0" }}
+                      >
+                        {heroImageUrls[idx] && (
+                          <img
+                            src={heroImageUrls[idx]}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                        <div className="absolute left-2 top-2 rounded bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">
+                          {idx + 1}
+                        </div>
+                        <div className="absolute right-2 top-2 flex gap-1">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => moveHeroImage(idx, idx - 1, "desktop")}
+                            className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white disabled:opacity-40"
+                            title="Mover para cima"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === hero.images.length - 1}
+                            onClick={() => moveHeroImage(idx, idx + 1, "desktop")}
+                            className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white disabled:opacity-40"
+                            title="Mover para baixo"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeHeroImage(idx, "desktop")}
+                            className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white hover:bg-red-600/80"
+                            title="Remover"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="mobile" className="mt-4">
+                <p className="mb-2 text-[12px] text-text-muted">
+                  Fotos verticais para celular (retrato). Mínimo{" "}
+                  <strong>{HERO_MIN_W_MOBILE}×{HERO_MIN_H_MOBILE}px</strong> —
+                  recorte 9:16. Se ficar vazio, o site usa as fotos de desktop
+                  também no mobile.
+                </p>
+                <div className="mb-3 flex justify-end">
+                  <label
+                    className={`inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm ${
+                      hero.mobile_images.length >= HERO_MAX_IMAGES || heroUploading
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer hover:bg-secondary"
+                    }`}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {heroUploading ? "Subindo…" : "Adicionar imagem"}
+                    <input
+                      type="file"
+                      accept={ALLOWED.join(",")}
+                      className="hidden"
+                      disabled={
+                        hero.mobile_images.length >= HERO_MAX_IMAGES ||
+                        heroUploading
+                      }
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) onHeroFileSelected(f, "mobile");
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                {hero.mobile_images.length === 0 ? (
+                  <p className="text-sm text-text-muted">
+                    Nenhuma imagem cadastrada para mobile.
+                  </p>
+                ) : (
+                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+                    {hero.mobile_images.map((path, idx) => (
+                      <div
+                        key={path}
+                        className="relative overflow-hidden rounded-[10px] border border-border"
+                        style={{ aspectRatio: "9 / 16", background: "#f5f4f0" }}
+                      >
+                        {heroMobileImageUrls[idx] && (
+                          <img
+                            src={heroMobileImageUrls[idx]}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                        <div className="absolute left-2 top-2 rounded bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">
+                          {idx + 1}
+                        </div>
+                        <div className="absolute right-2 top-2 flex gap-1">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => moveHeroImage(idx, idx - 1, "mobile")}
+                            className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white disabled:opacity-40"
+                            title="Mover para cima"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === hero.mobile_images.length - 1}
+                            onClick={() => moveHeroImage(idx, idx + 1, "mobile")}
+                            className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white disabled:opacity-40"
+                            title="Mover para baixo"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeHeroImage(idx, "mobile")}
+                            className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-white hover:bg-red-600/80"
+                            title="Remover"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Slide interval (shared) */}
+          <div className="mt-6 max-w-md">
             <Label>Intervalo entre imagens</Label>
             <Select
               value={String(hero.slide_interval_ms)}
@@ -580,34 +699,86 @@ function HomeAdmin() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
-            <div>
-              <Label>Tamanho do título: {hero.title_scale}%</Label>
-              <Slider
-                value={[hero.title_scale]}
-                min={60}
-                max={160}
-                step={5}
-                onValueChange={(v) => setHero({ ...hero, title_scale: v[0] })}
-                className="mt-2"
-              />
-              <p className="mt-1 text-[12px] text-text-muted">
-                100% = padrão. Aumenta/diminui proporcionalmente em mobile e desktop.
-              </p>
+          {/* Per-device overlay + scales */}
+          <div className="mt-6 grid gap-6 md:grid-cols-2">
+            <div className="rounded-[10px] border border-border p-4">
+              <h3 className="text-sm font-semibold text-text-primary">Desktop</h3>
+              <div className="mt-3">
+                <Label>Overlay escuro: {hero.overlay_opacity}%</Label>
+                <Slider
+                  value={[hero.overlay_opacity]}
+                  min={0}
+                  max={80}
+                  step={5}
+                  onValueChange={(v) => setHero({ ...hero, overlay_opacity: v[0] })}
+                  className="mt-2"
+                />
+              </div>
+              <div className="mt-4">
+                <Label>Tamanho do título: {hero.title_scale}%</Label>
+                <Slider
+                  value={[hero.title_scale]}
+                  min={60}
+                  max={160}
+                  step={5}
+                  onValueChange={(v) => setHero({ ...hero, title_scale: v[0] })}
+                  className="mt-2"
+                />
+              </div>
+              <div className="mt-4">
+                <Label>Tamanho do subtítulo: {hero.subtitle_scale}%</Label>
+                <Slider
+                  value={[hero.subtitle_scale]}
+                  min={60}
+                  max={160}
+                  step={5}
+                  onValueChange={(v) => setHero({ ...hero, subtitle_scale: v[0] })}
+                  className="mt-2"
+                />
+              </div>
             </div>
-            <div>
-              <Label>Tamanho do subtítulo: {hero.subtitle_scale}%</Label>
-              <Slider
-                value={[hero.subtitle_scale]}
-                min={60}
-                max={160}
-                step={5}
-                onValueChange={(v) => setHero({ ...hero, subtitle_scale: v[0] })}
-                className="mt-2"
-              />
-              <p className="mt-1 text-[12px] text-text-muted">
-                100% = padrão.
-              </p>
+
+            <div className="rounded-[10px] border border-border p-4">
+              <h3 className="text-sm font-semibold text-text-primary">Mobile</h3>
+              <div className="mt-3">
+                <Label>Overlay escuro: {hero.mobile_overlay_opacity}%</Label>
+                <Slider
+                  value={[hero.mobile_overlay_opacity]}
+                  min={0}
+                  max={80}
+                  step={5}
+                  onValueChange={(v) =>
+                    setHero({ ...hero, mobile_overlay_opacity: v[0] })
+                  }
+                  className="mt-2"
+                />
+              </div>
+              <div className="mt-4">
+                <Label>Tamanho do título: {hero.mobile_title_scale}%</Label>
+                <Slider
+                  value={[hero.mobile_title_scale]}
+                  min={60}
+                  max={160}
+                  step={5}
+                  onValueChange={(v) =>
+                    setHero({ ...hero, mobile_title_scale: v[0] })
+                  }
+                  className="mt-2"
+                />
+              </div>
+              <div className="mt-4">
+                <Label>Tamanho do subtítulo: {hero.mobile_subtitle_scale}%</Label>
+                <Slider
+                  value={[hero.mobile_subtitle_scale]}
+                  min={60}
+                  max={160}
+                  step={5}
+                  onValueChange={(v) =>
+                    setHero({ ...hero, mobile_subtitle_scale: v[0] })
+                  }
+                  className="mt-2"
+                />
+              </div>
             </div>
           </div>
 
@@ -619,9 +790,21 @@ function HomeAdmin() {
 
           <ImageCropDialog
             open={!!heroPendingFile}
-            source={heroPendingFile ? { kind: "file", file: heroPendingFile } : null}
-            aspect={HERO_ASPECT}
-            title="Recortar imagem do hero (8:3)"
+            source={
+              heroPendingFile
+                ? { kind: "file", file: heroPendingFile.file }
+                : null
+            }
+            aspect={
+              heroPendingFile?.target === "mobile"
+                ? HERO_ASPECT_MOBILE
+                : HERO_ASPECT
+            }
+            title={
+              heroPendingFile?.target === "mobile"
+                ? "Recortar imagem do hero mobile (9:16)"
+                : "Recortar imagem do hero desktop (8:3)"
+            }
             onCancel={() => setHeroPendingFile(null)}
             onConfirm={onHeroCropConfirmed}
           />
