@@ -116,7 +116,7 @@ export function EventsSection() {
 
   return (
     <section
-      style={{ paddingTop: 64, paddingBottom: 64 }}
+      style={{ paddingBottom: 64 }}
       className="bg-background"
       aria-label="Eventos na região"
     >
