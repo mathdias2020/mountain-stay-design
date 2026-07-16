@@ -204,6 +204,9 @@ function AllPropertiesPage() {
         }}
         onSearch={handleSearch}
       />
+
+      {/* Spacer so the fixed mobile filter bar doesn't hide the page footer */}
+      <div className="h-44 sm:hidden" aria-hidden="true" />
     </>
   );
 }
