@@ -2,7 +2,6 @@ import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { FloatingWhatsApp } from "@/components/layout/FloatingWhatsApp";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_public")({
   component: PublicLayout,
@@ -18,11 +17,14 @@ function PublicLayout() {
       <main className="flex-1">
         <Outlet />
       </main>
-      <PublicFooter
-        className={cn(
-          isPropertiesRoute && "pb-32 sm:pb-0",
-        )}
-      />
+      <PublicFooter />
+      {isPropertiesRoute && (
+        <div
+          className="h-40 shrink-0 sm:hidden"
+          aria-hidden="true"
+          style={{ backgroundColor: "#5C5B57" }}
+        />
+      )}
       <FloatingWhatsApp />
     </div>
   );
