@@ -20,9 +20,8 @@ function PublicLayout() {
       <PublicFooter />
       {isPropertiesRoute && (
         <div
-          className="h-40 shrink-0 sm:hidden"
+          className="h-40 shrink-0 bg-primary sm:hidden"
           aria-hidden="true"
-          style={{ backgroundColor: "#5C5B57" }}
         />
       )}
       <FloatingWhatsApp />
