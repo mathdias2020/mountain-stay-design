@@ -167,7 +167,7 @@ function HomePage() {
 
       <section
         ref={sectionRef}
-        className="mx-auto max-w-7xl px-6 pb-12"
+        className="mx-auto max-w-7xl px-6 pb-12 max-md:bg-primary"
         style={{ marginTop: -((photoHeight ?? 280) + 1) }}
       >
 
