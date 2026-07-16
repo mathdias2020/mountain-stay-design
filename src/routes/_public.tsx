@@ -20,7 +20,7 @@ function PublicLayout() {
       <PublicFooter />
       {isPropertiesRoute && (
         <div
-          className="h-40 shrink-0 bg-primary sm:hidden"
+          className="h-24 shrink-0 bg-primary sm:hidden"
           aria-hidden="true"
         />
       )}
