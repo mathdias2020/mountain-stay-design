@@ -96,7 +96,10 @@ function AllPropertiesPage() {
 
   return (
     <>
-      <section className="bg-background" style={{ paddingTop: 48, paddingBottom: 48 }}>
+      <section
+        className="hidden sm:block bg-background"
+        style={{ paddingTop: 48, paddingBottom: 48 }}
+      >
         <div className="mx-auto max-w-7xl px-6 text-center">
           <h1
             style={{
@@ -116,17 +119,19 @@ function AllPropertiesPage() {
         </div>
       </section>
 
-      <FiltersCard
-        initial={{
-          checkin: search.checkin,
-          checkout: search.checkout,
-          guests: search.guests,
-          city: search.city,
-        }}
-        onSearch={handleSearch}
-      />
+      <div className="hidden sm:block">
+        <FiltersCard
+          initial={{
+            checkin: search.checkin,
+            checkout: search.checkout,
+            guests: search.guests,
+            city: search.city,
+          }}
+          onSearch={handleSearch}
+        />
+      </div>
 
-      <section className="mx-auto max-w-7xl px-6 py-12">
+      <section className="mx-auto max-w-7xl px-6 py-12 sm:pb-12" style={{ paddingBottom: 96 }}>
         {isLoading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -187,6 +192,18 @@ function AllPropertiesPage() {
           </>
         )}
       </section>
+
+      <FiltersCard
+        variant="mobile-footer"
+        className="sm:hidden"
+        initial={{
+          checkin: search.checkin,
+          checkout: search.checkout,
+          guests: search.guests,
+          city: search.city,
+        }}
+        onSearch={handleSearch}
+      />
     </>
   );
 }
