@@ -95,10 +95,16 @@ export function Hero({
   const scrollHintVisible = true;
 
   if (isMobile) {
+    // iPhone 14 Pro Max reference: 430×932 CSS px. The sticky mobile header is
+    // ~68 px (40 px logo + 14 px top + 14 px bottom padding), so the hero must
+    // subtract that height to fit entirely on the first screen.
     return (
       <section
         className="relative w-full overflow-hidden bg-primary"
-        style={{ aspectRatio: "9 / 16", minHeight: "100svh" }}
+        style={{
+          height: "calc(100dvh - 68px)",
+          minHeight: "calc(100dvh - 68px)",
+        }}
       >
         {hasImage && (
           <>
@@ -121,52 +127,57 @@ export function Hero({
             />
           </>
         )}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-          <h1
-            className="font-semibold text-white"
-            style={{ fontFamily: "Inter, sans-serif", fontWeight: 600 }}
+        <div className="absolute inset-0 flex flex-col">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
+            <h1
+              className="font-semibold text-white"
+              style={{ fontFamily: "Inter, sans-serif", fontWeight: 600 }}
+            >
+              <span
+                className="block leading-tight"
+                style={{
+                  fontSize: `clamp(${24 * tScale}px, ${6 * tScale}vw, ${30 * tScale}px)`,
+                  ...(hasImage ? { textShadow: "0 2px 12px rgba(0,0,0,0.55)" } : {}),
+                }}
+              >
+                {heading}
+              </span>
+            </h1>
+            <p
+              className="mt-3 max-w-[17rem]"
+              style={{ color: "#EEEDEA", fontWeight: 400 }}
+            >
+              <span
+                className="block"
+                style={{
+                  fontSize: `clamp(${13 * sScale}px, ${3.8 * sScale}vw, ${15 * sScale}px)`,
+                  ...(hasImage ? { textShadow: "0 1px 8px rgba(0,0,0,0.6)" } : {}),
+                }}
+              >
+                {sub}
+              </span>
+            </p>
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none flex shrink-0 flex-col items-center pt-4 transition-opacity duration-500"
+            style={{
+              opacity: scrollHintVisible ? 1 : 0,
+              paddingBottom: "calc(16px + env(safe-area-inset-bottom))",
+            }}
           >
             <span
-              className="block leading-tight"
-              style={{
-                fontSize: `${32 * tScale}px`,
-                ...(hasImage ? { textShadow: "0 2px 12px rgba(0,0,0,0.55)" } : {}),
-              }}
+              className="mb-1 text-[11px] uppercase tracking-[0.2em] text-white/85"
+              style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}
             >
-              {heading}
+              Role para explorar
             </span>
-          </h1>
-          <p
-            className="mt-4 max-w-sm"
-            style={{ color: "#EEEDEA", fontWeight: 400 }}
-          >
-            <span
-              className="block"
-              style={{
-                fontSize: `${15 * sScale}px`,
-                ...(hasImage ? { textShadow: "0 1px 8px rgba(0,0,0,0.6)" } : {}),
-              }}
-            >
-              {sub}
-            </span>
-          </p>
-        </div>
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-6 flex flex-col items-center transition-opacity duration-500"
-          style={{ opacity: scrollHintVisible ? 1 : 0 }}
-        >
-          <span
-            className="mb-1 text-[11px] uppercase tracking-[0.2em] text-white/85"
-            style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}
-          >
-            Role para explorar
-          </span>
-          <ChevronDown
-            className="h-5 w-5 animate-bounce text-white"
-            strokeWidth={2.5}
-            style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.5))" }}
-          />
+            <ChevronDown
+              className="h-5 w-5 animate-bounce text-white"
+              strokeWidth={2.5}
+              style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.5))" }}
+            />
+          </div>
         </div>
       </section>
     );
