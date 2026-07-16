@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { format, addDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, SlidersHorizontal } from "lucide-react";
 import { Button as UiButton } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,6 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import { listActiveCities } from "@/lib/cities.functions";
@@ -43,6 +50,7 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
     initial.guests ? String(initial.guests) : "",
   );
   const [city, setCity] = useState<string>(initial.city ?? "");
+  const [open, setOpen] = useState(false);
   const listCitiesFn = useServerFn(listActiveCities);
   const { data: citiesList } = useQuery({
     queryKey: ["cities", "active"],
@@ -53,23 +61,28 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
   const checkoutMin = checkin ? addDays(checkin, 1) : new Date();
 
   const handleSubmit = () => {
-    onSearch({
+    const next = {
       checkin: checkin ? format(checkin, "yyyy-MM-dd") : undefined,
       checkout: checkout ? format(checkout, "yyyy-MM-dd") : undefined,
       guests: guests ? Number(guests) : undefined,
       city: city || undefined,
-    });
+    };
+    onSearch(next);
+    setOpen(false);
   };
 
-  const isFooter = variant === "mobile-footer";
+  const summary = [
+    checkin ? format(checkin, "dd/MM") : "Entrada",
+    checkout ? format(checkout, "dd/MM") : "Saída",
+    guests ? `${guests} hósp.` : "Hóspedes",
+    city || "Todas as regiões",
+  ].join(" · ");
 
   const fields = (
-    <>
+    <div className="grid grid-cols-1 gap-4">
       {/* Check-in */}
-      <div className={cn("flex flex-col gap-1.5", isFooter && "min-w-0 flex-1")}>
-        {!isFooter && (
-          <label className="text-xs font-medium text-text-secondary">Chegada</label>
-        )}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-text-secondary">Chegada</label>
         <Popover>
           <PopoverTrigger asChild>
             <UiButton
@@ -77,18 +90,15 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
               className={cn(
                 "justify-start text-left font-normal",
                 !checkin && "text-text-muted",
-                isFooter && "h-10 px-2 text-xs",
               )}
             >
-              <CalendarIcon className={cn("mr-2 h-4 w-4", isFooter && "mr-1 h-3.5 w-3.5")} />
-              <span className="truncate">
-                {checkin
-                  ? format(checkin, isFooter ? "dd/MM" : "dd/MM/yyyy", { locale: ptBR })
-                  : isFooter ? "Entrada" : "Check-in"}
-              </span>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {checkin
+                ? format(checkin, "dd/MM/yyyy", { locale: ptBR })
+                : "Check-in"}
             </UiButton>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align={isFooter ? "center" : "start"}>
+          <PopoverContent className="w-auto p-0" align="start">
             <Calendar
               mode="single"
               selected={checkin}
@@ -107,10 +117,8 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
       </div>
 
       {/* Check-out */}
-      <div className={cn("flex flex-col gap-1.5", isFooter && "min-w-0 flex-1")}>
-        {!isFooter && (
-          <label className="text-xs font-medium text-text-secondary">Saída</label>
-        )}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-text-secondary">Saída</label>
         <Popover>
           <PopoverTrigger asChild>
             <UiButton
@@ -118,18 +126,15 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
               className={cn(
                 "justify-start text-left font-normal",
                 !checkout && "text-text-muted",
-                isFooter && "h-10 px-2 text-xs",
               )}
             >
-              <CalendarIcon className={cn("mr-2 h-4 w-4", isFooter && "mr-1 h-3.5 w-3.5")} />
-              <span className="truncate">
-                {checkout
-                  ? format(checkout, isFooter ? "dd/MM" : "dd/MM/yyyy", { locale: ptBR })
-                  : isFooter ? "Saída" : "Check-out"}
-              </span>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {checkout
+                ? format(checkout, "dd/MM/yyyy", { locale: ptBR })
+                : "Check-out"}
             </UiButton>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align={isFooter ? "center" : "start"}>
+          <PopoverContent className="w-auto p-0" align="start">
             <Calendar
               mode="single"
               selected={checkout}
@@ -143,13 +148,11 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
       </div>
 
       {/* Guests */}
-      <div className={cn("flex flex-col gap-1.5", isFooter && "min-w-0 flex-1")}>
-        {!isFooter && (
-          <label className="text-xs font-medium text-text-secondary">Hóspedes</label>
-        )}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-text-secondary">Hóspedes</label>
         <Select value={guests} onValueChange={setGuests}>
-          <SelectTrigger className={cn(isFooter && "h-10 px-2 text-xs")}>
-            <SelectValue placeholder={isFooter ? "Hósp." : "Quantos hóspedes?"} />
+          <SelectTrigger>
+            <SelectValue placeholder="Quantos hóspedes?" />
           </SelectTrigger>
           <SelectContent className="max-h-60 bg-white">
             {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
@@ -162,16 +165,14 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
       </div>
 
       {/* City */}
-      <div className={cn("flex flex-col gap-1.5", isFooter && "min-w-0 flex-1")}>
-        {!isFooter && (
-          <label className="text-xs font-medium text-text-secondary">Região</label>
-        )}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-text-secondary">Região</label>
         <Select
           value={city || "all"}
           onValueChange={(v) => setCity(v === "all" ? "" : v)}
         >
-          <SelectTrigger className={cn(isFooter && "h-10 px-2 text-xs")}>
-            <SelectValue placeholder={isFooter ? "Região" : "Todas as regiões"} />
+          <SelectTrigger>
+            <SelectValue placeholder="Todas as regiões" />
           </SelectTrigger>
           <SelectContent className="bg-white">
             <SelectItem value="all">Todas as regiões</SelectItem>
@@ -185,29 +186,47 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
       </div>
 
       {/* Submit */}
-      <Button
-        variant="primary"
-        onClick={handleSubmit}
-        className={cn("h-10 w-full md:w-auto", isFooter && "h-10 w-auto shrink-0 px-3 text-xs")}
-      >
-        Buscar
+      <Button variant="primary" onClick={handleSubmit} className="h-11 w-full">
+        Buscar propriedades
       </Button>
-    </>
+    </div>
   );
 
-  if (isFooter) {
+  if (variant === "mobile-footer") {
     return (
-      <div
-        className={cn(
-          "fixed bottom-0 left-0 right-0 z-50 border-t bg-white px-3 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.08)]",
-          className,
-        )}
-        style={{ borderColor: "#E2E1DD" }}
-      >
-        <div className="mx-auto flex max-w-7xl items-center gap-2">
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <div
+            className={cn(
+              "fixed bottom-0 left-0 right-0 z-50 border-t bg-white px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.08)]",
+              className,
+            )}
+            style={{ borderColor: "#E2E1DD" }}
+          >
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors hover:bg-muted/30"
+              style={{ borderColor: "#E2E1DD" }}
+            >
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">
+                {summary}
+              </span>
+              <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary">
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtros
+              </span>
+            </button>
+          </div>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="px-6 pb-8 pt-4">
+          <SheetHeader className="mb-4 text-left">
+            <SheetTitle className="text-lg font-semibold text-text-primary">
+              Ajustar busca
+            </SheetTitle>
+          </SheetHeader>
           {fields}
-        </div>
-      </div>
+        </SheetContent>
+      </Sheet>
     );
   }
 
