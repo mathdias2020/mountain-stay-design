@@ -51,14 +51,16 @@ export function PublicHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full border-b bg-white transition-shadow duration-200",
+        "fixed md:sticky top-0 z-50 w-full transition-shadow duration-200",
+        "bg-gradient-to-b from-black/50 to-transparent md:bg-none md:bg-white",
+        "border-b-0 md:border-b md:border-[#E2E1DD]",
       )}
       style={{
-        borderBottomColor: "#E2E1DD",
         boxShadow: scrolled ? "0 1px 3px rgba(0,0,0,0.05)" : "none",
+        height: 68,
       }}
     >
-      <div className="relative mx-auto flex max-w-7xl items-center justify-between px-4 md:px-8" style={{ paddingTop: 14, paddingBottom: 14 }}>
+      <div className="relative mx-auto flex h-full max-w-7xl items-center justify-between px-4 md:px-8" style={{ paddingTop: 14, paddingBottom: 14 }}>
         <Link
           to="/"
           className="absolute left-1/2 -translate-x-1/2 flex items-center md:static md:translate-x-0"
@@ -67,7 +69,7 @@ export function PublicHeader() {
           <img
             src={rotainstayLogo.url}
             alt="RotainStay — Nas Montanhas"
-            className="h-10 w-auto shrink-0 sm:h-12 md:h-14"
+            className="h-10 w-auto shrink-0 brightness-0 invert md:filter-none sm:h-12 md:h-14"
           />
         </Link>
 
@@ -147,7 +149,7 @@ export function PublicHeader() {
           <button
             type="button"
             aria-label="Abrir menu"
-            className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-md text-text-primary hover:bg-secondary"
+            className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-md text-white hover:bg-white/10"
             onClick={() => setMobileOpen(true)}
           >
             <Menu className="h-5 w-5" />
