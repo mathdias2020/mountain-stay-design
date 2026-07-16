@@ -91,16 +91,8 @@ export function Hero({
     return () => window.clearInterval(id);
   }, [activeImages.length, slideIntervalMs]);
 
-  // Scroll indicator: hide after first user scroll (mobile only).
-  const [scrollHintVisible, setScrollHintVisible] = useState(true);
-  useEffect(() => {
-    if (!isMobile) return;
-    const onScroll = () => {
-      if (window.scrollY > 24) setScrollHintVisible(false);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [isMobile]);
+  // Scroll indicator: always visible on mobile.
+  const scrollHintVisible = true;
 
   if (isMobile) {
     return (
