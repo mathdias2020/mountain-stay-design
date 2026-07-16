@@ -129,7 +129,7 @@ export function Hero({
             />
           </>
         )}
-        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-6 pb-24 text-center">
+        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-6 pb-20 text-center">
           <h1
             className="font-semibold text-white"
             style={{ fontFamily: "Inter, sans-serif", fontWeight: 600 }}
