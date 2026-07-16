@@ -139,6 +139,10 @@ function HomePage() {
           titleScale={hero?.title_scale ?? 100}
           subtitleScale={hero?.subtitle_scale ?? 100}
           slideIntervalMs={hero?.slide_interval_ms ?? 6000}
+          mobileImageUrls={hero?.mobile_image_urls ?? []}
+          mobileOverlayOpacity={hero?.mobile_overlay_opacity}
+          mobileTitleScale={hero?.mobile_title_scale}
+          mobileSubtitleScale={hero?.mobile_subtitle_scale}
         />
 
         <FiltersCard

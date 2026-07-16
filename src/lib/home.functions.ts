@@ -76,6 +76,11 @@ export type HomeHero = {
   title_scale: number; // 50-200 (%), 100 = padrão
   subtitle_scale: number; // 50-200 (%), 100 = padrão
   slide_interval_ms: HeroIntervalMs;
+  // Mobile-specific overrides (fall back to desktop values when omitted)
+  mobile_images: string[]; // storage paths, max HERO_MAX_IMAGES
+  mobile_overlay_opacity: number; // 0-100
+  mobile_title_scale: number; // 50-200 (%)
+  mobile_subtitle_scale: number; // 50-200 (%)
 };
 
 const heroSchema = z.object({
@@ -89,6 +94,10 @@ const heroSchema = z.object({
     .number()
     .int()
     .refine((v): v is HeroIntervalMs => (HERO_INTERVAL_OPTIONS as readonly number[]).includes(v)),
+  mobile_images: z.array(z.string().min(1)).max(HERO_MAX_IMAGES),
+  mobile_overlay_opacity: z.number().int().min(0).max(100),
+  mobile_title_scale: z.number().int().min(50).max(200),
+  mobile_subtitle_scale: z.number().int().min(50).max(200),
 });
 
 const DEFAULT_HERO_TITLE =
@@ -105,6 +114,10 @@ function defaultHero(): HomeHero {
     title_scale: 100,
     subtitle_scale: 100,
     slide_interval_ms: 6000,
+    mobile_images: [],
+    mobile_overlay_opacity: 35,
+    mobile_title_scale: 100,
+    mobile_subtitle_scale: 100,
   };
 }
 
@@ -126,6 +139,21 @@ function parseHero(raw: unknown): HomeHero {
       : legacyPath
         ? [legacyPath]
         : [];
+    const mobileImages = Array.isArray(obj.mobile_images)
+      ? (obj.mobile_images as unknown[]).filter(
+          (x): x is string => typeof x === "string" && x.length > 0,
+        )
+      : [];
+    const desktopOverlay =
+      typeof obj.overlay_opacity === "number" ? obj.overlay_opacity : 35;
+    const desktopTitleScale =
+      typeof obj.title_scale === "number"
+        ? Math.max(50, Math.min(200, Math.round(obj.title_scale)))
+        : 100;
+    const desktopSubScale =
+      typeof obj.subtitle_scale === "number"
+        ? Math.max(50, Math.min(200, Math.round(obj.subtitle_scale)))
+        : 100;
     const merged = {
       title:
         typeof obj.title === "string" && obj.title.trim()
@@ -135,22 +163,28 @@ function parseHero(raw: unknown): HomeHero {
         typeof obj.subtitle === "string" && obj.subtitle.trim()
           ? obj.subtitle
           : DEFAULT_HERO_SUBTITLE,
-      overlay_opacity:
-        typeof obj.overlay_opacity === "number" ? obj.overlay_opacity : 35,
+      overlay_opacity: desktopOverlay,
       images: images.slice(0, HERO_MAX_IMAGES),
-      title_scale:
-        typeof obj.title_scale === "number"
-          ? Math.max(50, Math.min(200, Math.round(obj.title_scale)))
-          : 100,
-      subtitle_scale:
-        typeof obj.subtitle_scale === "number"
-          ? Math.max(50, Math.min(200, Math.round(obj.subtitle_scale)))
-          : 100,
+      title_scale: desktopTitleScale,
+      subtitle_scale: desktopSubScale,
       slide_interval_ms:
         typeof obj.slide_interval_ms === "number" &&
         (HERO_INTERVAL_OPTIONS as readonly number[]).includes(obj.slide_interval_ms)
           ? (obj.slide_interval_ms as HeroIntervalMs)
           : 6000,
+      mobile_images: mobileImages.slice(0, HERO_MAX_IMAGES),
+      mobile_overlay_opacity:
+        typeof obj.mobile_overlay_opacity === "number"
+          ? Math.max(0, Math.min(100, Math.round(obj.mobile_overlay_opacity)))
+          : desktopOverlay,
+      mobile_title_scale:
+        typeof obj.mobile_title_scale === "number"
+          ? Math.max(50, Math.min(200, Math.round(obj.mobile_title_scale)))
+          : desktopTitleScale,
+      mobile_subtitle_scale:
+        typeof obj.mobile_subtitle_scale === "number"
+          ? Math.max(50, Math.min(200, Math.round(obj.mobile_subtitle_scale)))
+          : desktopSubScale,
     };
     return heroSchema.parse(merged);
   } catch {
@@ -352,21 +386,29 @@ export const getAboutPage = createServerFn({ method: "GET" }).handler(
 );
 
 export const getHomeHero = createServerFn({ method: "GET" }).handler(
-  async (): Promise<HomeHero & { image_urls: string[] }> => {
+  async (): Promise<
+    HomeHero & { image_urls: string[]; mobile_image_urls: string[] }
+  > => {
     setResponseHeader(
       "cache-control",
       "public, max-age=60, s-maxage=120, stale-while-revalidate=600",
     );
     const raw = await readSetting("home_hero");
     const hero = parseHero(raw);
+    const allPaths = Array.from(
+      new Set([...hero.images, ...hero.mobile_images]),
+    );
     const signed =
-      hero.images.length > 0
-        ? await signMany("home-assets", hero.images)
+      allPaths.length > 0
+        ? await signMany("home-assets", allPaths)
         : new Map<string, string>();
     const image_urls = hero.images
       .map((p) => signed.get(p))
       .filter((u): u is string => !!u);
-    return { ...hero, image_urls };
+    const mobile_image_urls = hero.mobile_images
+      .map((p) => signed.get(p))
+      .filter((u): u is string => !!u);
+    return { ...hero, image_urls, mobile_image_urls };
   },
 );
 
