@@ -269,7 +269,7 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
   return (
     <div
       data-filters-card
-      className={cn("relative z-10 mx-auto max-w-5xl px-6 md:-mt-8", className)}
+      className={cn("relative z-10 mx-auto max-w-5xl px-6 pt-20 md:-mt-8", className)}
     >
       <div
         className="rounded-[14px] bg-white p-5"
