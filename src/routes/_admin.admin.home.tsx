@@ -133,6 +133,9 @@ const MAX_BYTES = 10 * 1024 * 1024;
 const HERO_ASPECT = 1920 / 720; // 8:3
 const HERO_MIN_W = 1920;
 const HERO_MIN_H = 720;
+const HERO_ASPECT_MOBILE = 9 / 16; // retrato
+const HERO_MIN_W_MOBILE = 720;
+const HERO_MIN_H_MOBILE = 1280;
 
 function HomeAdmin() {
   const qc = useQueryClient();
