@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { FloatingWhatsApp } from "@/components/layout/FloatingWhatsApp";
@@ -8,6 +8,9 @@ export const Route = createFileRoute("/_public")({
 });
 
 function PublicLayout() {
+  const router = useRouter();
+  const isPropertiesRoute = router.state.location.pathname === "/propriedades";
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <PublicHeader />
@@ -15,6 +18,12 @@ function PublicLayout() {
         <Outlet />
       </main>
       <PublicFooter />
+      {isPropertiesRoute && (
+        <div
+          className="h-40 shrink-0 bg-primary sm:hidden"
+          aria-hidden="true"
+        />
+      )}
       <FloatingWhatsApp />
     </div>
   );
