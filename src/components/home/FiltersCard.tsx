@@ -206,7 +206,7 @@ export function FiltersCard({ initial, onSearch, variant = "default", className 
           >
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors hover:bg-muted/30"
+              className="flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 pr-16 text-left transition-colors hover:bg-muted/30"
               style={{ borderColor: "#E2E1DD" }}
             >
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">
