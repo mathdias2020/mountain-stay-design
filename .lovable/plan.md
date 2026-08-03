@@ -1,40 +1,34 @@
-## Objetivo
-Deixar o header público transparente no mobile, exibindo a foto de fundo do Hero por trás dele, com logo, texto e ícone do menu em branco. O drawer mobile continua branco como está hoje.
+# Qualidade das fotos no desktop
 
-## Decisões confirmadas
-- Header transparente **sempre** no mobile (não apenas sobre o Hero).
-- Drawer lateral ao abrir o menu continua **branco**.
-- Desktop permanece inalterado (fundo branco, texto escuro).
+## O problema é real — sim
 
-## Implementação
+Confirmei no código o que seu cliente percebeu:
 
-### 1. `src/components/layout/PublicHeader.tsx`
-- Adicionar detecção de viewport mobile (`max-width: 767px`).
-- No mobile:
-  - Posicionar header como `fixed top-0` (ou `absolute`) sobre o conteúdo.
-  - Remover fundo branco e borda inferior (`bg-transparent`).
-  - Tornar logo, links de navegação e ícone do menu **brancos**.
-  - Adicionar um gradiente escuro sutil por trás do header (`bg-gradient-to-b from-black/40 to-transparent`) para garantir legibilidade do texto branco sobre qualquer fundo, sem esconder completamente a imagem.
-  - Manter `z-50` para ficar acima do Hero.
-- No desktop: manter comportamento atual (fundo branco, texto escuro).
-- Drawer mobile: **não alterar** — continua branco com links escuros.
+- No upload, além da foto original, é gerada uma miniatura de **800px** no lado maior, JPEG com qualidade 78%.
+- O site público (cards da home/propriedades e a **foto principal** da página do imóvel) usa essa miniatura de 800px. A foto original só é usada na galeria em tela cheia (lightbox).
+- No celular, 800px cobre a largura da tela com folga, então parece nítida. No desktop, a foto principal do imóvel é exibida com cerca de 1100–1300px de largura (e mais ainda em telas Retina), ou seja, uma imagem de 800px é **esticada** — daí o aspecto borrado/perda de qualidade.
 
-### 2. `src/components/home/Hero.tsx`
-- Ajustar altura do Hero mobile de `calc(100dvh - 68px)` para `100dvh` (ou `100svh`), pois o header passa a sobrepor a imagem.
-- Adicionar `padding-top` no conteúdo do Hero mobile equivalente à altura do header (~68–72 px), para que o título e subtítulo não fiquem escondidos atrás do header.
-- Garantir que o indicador "Role para explorar" continue visível e posicionado na parte inferior da tela.
+Então não é impressão: é uma imagem pequena sendo ampliada.
 
-### 3. Ajustes no layout geral (`src/routes/_public.tsx`)
-- Verificar se o header fixo no mobile não cria espaçamento indesejado no topo das páginas subsequentes.
-- Se necessário, compensar com `pt-[altura-do-header]` apenas nas rotas que não possuem Hero em tela cheia.
+## O que vou fazer
 
-## Resultado esperado
-- No mobile, o usuário vê a foto de fundo do Hero ocupando toda a tela inicial, com o header transparente e elementos em branco por cima.
-- Ao rolar para baixo, o header permanece transparente com texto branco (com gradiente sutil para legibilidade).
-- Ao abrir o menu hambúrguer, o drawer continua branco e legível.
-- Desktop não sofre alterações visuais.
+1. **Gerar uma versão intermediária no upload** (~1800px no lado maior, qualidade 85%), além da miniatura de 800px que continua servindo os cards pequenos e thumbs.
+2. **Usar a versão adequada em cada lugar**:
+   - thumbs pequenos e cards de listagem: 800px (rápido, como hoje);
+   - foto principal da página do imóvel e hero: versão de 1800px, com `srcset` para o navegador escolher conforme a tela e a densidade de pixels;
+   - lightbox: original, como já é hoje.
+3. **Fotos já cadastradas** (que não têm a versão intermediária): em telas grandes o site passa a usar a **foto original** em vez da miniatura de 800px, então a nitidez melhora imediatamente, sem o cliente precisar re-subir nada.
+4. **Recomendação de upload** no painel admin: aviso curto indicando o tamanho ideal (lado maior ≥ 2000px) para que a versão de 1800px seja realmente nítida. Fotos enviadas pequenas não podem ser recuperadas — isso vale avisar ao cliente.
 
-## Arquivos alterados
-- `src/components/layout/PublicHeader.tsx`
-- `src/components/home/Hero.tsx`
-- Possivelmente `src/routes/_public.tsx` (ajuste de espaçamento, se necessário)
+## Detalhes técnicos
+
+- `src/lib/image-thumb.ts`: parametrizar o gerador para produzir duas saídas (800 e 1800).
+- `src/components/admin/PropertyForm.tsx`: subir `id.thumb.jpg` (atual) + `id.med.jpg`, mantendo o original.
+- `src/lib/properties.functions.ts`: assinar e devolver, por foto, `thumb_url`, `url` (média, com fallback para o original) e `full_url`; a listagem continua devolvendo thumbs.
+- `src/components/property/PhotoGallery.tsx` e `src/components/home/PropertyCard.tsx`: consumir os novos campos com `srcset`/`sizes`; a foto principal deixa de usar o thumb de 800px.
+- Sem mudança de schema: os caminhos derivados (`.thumb.jpg` / `.med.jpg`) continuam sendo resolvidos a partir de `storage_path`/`public_url`.
+
+## Fora do escopo (posso fazer depois se quiser)
+
+- Rotina de reprocessamento em lote das fotos antigas para gerar as versões de 1800px.
+- Conversão para WebP/AVIF (ganho extra de nitidez por byte).
