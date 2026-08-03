@@ -19,7 +19,7 @@ async function fetchProperty(id: string) {
   if (error) throw error;
   const { data: photos, error: phErr } = await supabase
     .from("property_photos")
-    .select("id, storage_path, public_url, is_cover, sort_order")
+    .select("id, storage_path, public_url, medium_path, is_cover, sort_order")
     .eq("property_id", id)
     .order("sort_order", { ascending: true });
   if (phErr) throw phErr;
