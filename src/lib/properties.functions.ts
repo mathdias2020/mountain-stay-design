@@ -222,6 +222,7 @@ export const searchProperties = createServerFn({ method: "POST" })
 export type PropertyPhoto = {
   id: string;
   url: string;
+  medium_url: string;
   full_url: string;
   is_cover: boolean;
   sort_order: number;
@@ -299,7 +300,7 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
     const [photosRes, blocksRes, reservsRes] = await Promise.all([
       supabaseAdmin
         .from("property_photos")
-        .select("id, storage_path, public_url, is_cover, sort_order")
+        .select("id, storage_path, public_url, medium_path, is_cover, sort_order")
         .eq("property_id", prop.id)
         .order("is_cover", { ascending: false })
         .order("sort_order", { ascending: true }),
@@ -378,6 +379,7 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
       if (p.public_url && !p.public_url.startsWith("http")) {
         pathSet.add(p.public_url);
       }
+      if (p.medium_path) pathSet.add(p.medium_path);
     }
     const signed = await signMany(Array.from(pathSet));
     const photos: PropertyPhoto[] = [];
@@ -387,10 +389,15 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
       const fullUrl = p.storage_path ? (signed.get(p.storage_path) ?? "") : "";
       const url =
         (thumbPath ? signed.get(thumbPath) : null) || fullUrl || "";
+      // Medium variant for large screens; older photos have none, so we fall
+      // back to the original instead of upscaling the 800px thumb.
+      const mediumUrl =
+        (p.medium_path ? signed.get(p.medium_path) : null) || fullUrl || url;
       if (url) {
         photos.push({
           id: p.id,
           url,
+          medium_url: mediumUrl,
           full_url: fullUrl || url,
           is_cover: p.is_cover,
           sort_order: p.sort_order,

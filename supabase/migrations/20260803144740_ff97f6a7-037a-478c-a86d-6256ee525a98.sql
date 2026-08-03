@@ -1,0 +1,1 @@
+ALTER TABLE public.property_photos ADD COLUMN IF NOT EXISTS medium_path text;

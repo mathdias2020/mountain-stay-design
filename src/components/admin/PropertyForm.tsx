@@ -51,6 +51,7 @@ type ExistingPhoto = {
   id: string;
   storage_path: string;
   public_url: string;
+  medium_path?: string | null;
   is_cover: boolean;
   sort_order: number;
 };
@@ -403,6 +404,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
           if (p.data.public_url && !p.data.public_url.startsWith("http")) {
             paths.push(p.data.public_url);
           }
+          if (p.data.medium_path) paths.push(p.data.medium_path);
         }
         await supabase.storage.from(BUCKET).remove(paths);
         await supabase
@@ -413,7 +415,13 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
 
       // Upload new photos
       const visible = photos.filter((p) => !(p.kind === "existing" && p.markedForDeletion));
-      const newOrder: { id?: string; storage_path: string; public_url: string; is_cover: boolean }[] = [];
+      const newOrder: {
+        id?: string;
+        storage_path: string;
+        public_url: string;
+        medium_path: string | null;
+        is_cover: boolean;
+      }[] = [];
 
       for (let i = 0; i < visible.length; i++) {
         const p = visible[i];
@@ -444,9 +452,28 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
           } catch {
             thumbPath = "";
           }
+          // Medium (~1800px) variant used by large screens on the public site.
+          // Without it, big surfaces would upscale the 800px thumb and look soft.
+          let mediumPath: string | null = null;
+          try {
+            const medium = await generateThumbnail(p.file, 1800, 0.85);
+            if (medium) {
+              const candidate = `properties/${pid}/${id}.med.jpg`;
+              const { error: mdErr } = await supabase.storage
+                .from(BUCKET)
+                .upload(candidate, medium, {
+                  contentType: "image/jpeg",
+                  upsert: false,
+                });
+              if (!mdErr) mediumPath = candidate;
+            }
+          } catch {
+            mediumPath = null;
+          }
           newOrder.push({
             storage_path: path,
             public_url: thumbPath, // legacy column reused for thumb path
+            medium_path: mediumPath,
             is_cover: p.isCover,
           });
         } else {
@@ -454,6 +481,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
             id: p.data.id,
             storage_path: p.data.storage_path,
             public_url: p.data.public_url,
+            medium_path: p.data.medium_path ?? null,
             is_cover: p.data.is_cover,
           });
         }
@@ -476,6 +504,7 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
           property_id: pid as string,
           storage_path: p.storage_path,
           public_url: p.public_url,
+          medium_path: p.medium_path,
           is_cover: p.is_cover,
           sort_order: newOrder.findIndex((x) => x.storage_path === p.storage_path),
         }));
@@ -790,7 +819,9 @@ export function PropertyForm({ mode, propertyId, initialValues, initialPhotos }:
         <h2 style={sectionTitleStyle}>Fotos</h2>
         <PhotoDropzone onFiles={addPhotoFiles} disabled={visiblePhotos.length >= MAX_PHOTOS} />
         <p style={{ fontSize: 12, color: "#9A9890", marginTop: 8 }}>
-          {visiblePhotos.length}/{MAX_PHOTOS} fotos · JPG/PNG/WebP até 5MB
+          {visiblePhotos.length}/{MAX_PHOTOS} fotos · JPG/PNG/WebP até 5MB · para
+          máxima nitidez no computador, envie fotos com pelo menos 2000px no lado
+          maior
         </p>
 
         {visiblePhotos.length > 0 && (

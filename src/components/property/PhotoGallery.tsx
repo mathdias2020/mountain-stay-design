@@ -55,7 +55,13 @@ export function PhotoGallery({ photos, propertyName }: Props) {
     <>
       <div className="relative overflow-hidden rounded-[14px] bg-secondary">
         <img
-          src={main.url}
+          src={main.medium_url || main.url}
+          srcSet={
+            main.medium_url && main.medium_url !== main.url
+              ? `${main.url} 800w, ${main.medium_url} 1800w`
+              : undefined
+          }
+          sizes="(min-width: 1024px) 820px, 100vw"
           alt={`Foto de ${propertyName}`}
           fetchPriority="high"
           decoding="async"

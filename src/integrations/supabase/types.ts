@@ -470,6 +470,7 @@ export type Database = {
           created_at: string
           id: string
           is_cover: boolean
+          medium_path: string | null
           property_id: string
           public_url: string
           sort_order: number
@@ -479,6 +480,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_cover?: boolean
+          medium_path?: string | null
           property_id: string
           public_url: string
           sort_order?: number
@@ -488,6 +490,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_cover?: boolean
+          medium_path?: string | null
           property_id?: string
           public_url?: string
           sort_order?: number
