@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { calculatePrice, expandBlockedDates, rangeIsBlocked } from "./pricing";
+import { expandBlockedDates, rangeIsBlocked } from "./pricing/engine";
 
 const HOW_FOUND = ["Instagram", "Indicação de amigo", "Google", "Outro"] as const;
 
@@ -46,7 +46,7 @@ export const createReservation = createServerFn({ method: "POST" })
     const { data: prop, error: propErr } = await supabaseAdmin
       .from("properties")
       .select(
-        "id, name, status, max_guests, parking_spots, price_weekday, price_weekend, price_high_season, high_season_dates, cleaning_fee, min_nights_weekday, min_nights_weekend, accepts_pets",
+        "id, name, status, max_guests, parking_spots, accepts_pets",
       )
       .eq("id", data.property_id)
       .maybeSingle();
@@ -107,33 +107,25 @@ export const createReservation = createServerFn({ method: "POST" })
         end: r.checkout_date,
       })),
     ]);
-    const ci = new Date(data.checkin_date + "T00:00:00");
-    const co = new Date(data.checkout_date + "T00:00:00");
-    if (rangeIsBlocked(ci, co, blockedSet)) {
+    if (rangeIsBlocked(data.checkin_date, data.checkout_date, blockedSet)) {
       throw new Error("Período indisponível. Selecione outras datas.");
     }
 
-    // 5. Recalcular preço (NÃO confiar no cliente)
-    const hsDates = Array.isArray(prop.high_season_dates)
-      ? (prop.high_season_dates as { start: string; end: string }[])
-      : [];
-    const breakdown = calculatePrice(
-      ci,
-      co,
-      Number(prop.price_weekday),
-      Number(prop.price_weekend),
-      Number(prop.cleaning_fee),
-      prop.price_high_season != null ? Number(prop.price_high_season) : null,
-      hsDates,
-    );
-    if (breakdown.nights === 0) throw new Error("Período inválido.");
-    const minRequired =
-      breakdown.weekendNights > 0
-        ? prop.min_nights_weekend
-        : prop.min_nights_weekday;
-    if (breakdown.nights < minRequired) {
+    // 5. Recalcular preço com o motor oficial (NÃO confiar no cliente)
+    const { loadPricingConfig } = await import("@/lib/pricing/loader.server");
+    const { calculateQuote } = await import("@/lib/pricing/engine");
+    const config = await loadPricingConfig(prop.id);
+    if (!config) throw new Error("Precificação não encontrada.");
+    const quote = calculateQuote(config, {
+      checkin: data.checkin_date,
+      checkout: data.checkout_date,
+      guests: totalGuests,
+      pets: data.num_pets,
+    });
+    if (quote.nights === 0) throw new Error("Período inválido.");
+    if (quote.nights < quote.minNightsRequired) {
       throw new Error(
-        `Esta propriedade exige mínimo de ${minRequired} noites para o período selecionado.`,
+        `Esta propriedade exige mínimo de ${quote.minNightsRequired} noites para o período selecionado.`,
       );
     }
 
@@ -145,7 +137,7 @@ export const createReservation = createServerFn({ method: "POST" })
       uses_count: number;
     } | null = null;
     let discountAmount = 0;
-    let finalTotal = breakdown.total;
+    let finalTotal = quote.total;
     if (data.coupon_code) {
       const { data: c, error: cErr } = await supabaseAdmin
         .from("coupons")
@@ -162,8 +154,8 @@ export const createReservation = createServerFn({ method: "POST" })
         throw new Error("Cupom esgotado.");
       }
       const pct = Number(c.discount_percent);
-      discountAmount = Math.round(breakdown.total * pct) / 100;
-      finalTotal = Math.max(0, breakdown.total - discountAmount);
+      discountAmount = Math.round(quote.total * pct) / 100;
+      finalTotal = Math.max(0, quote.total - discountAmount);
       couponRow = {
         id: c.id,
         code: c.code,
@@ -175,8 +167,8 @@ export const createReservation = createServerFn({ method: "POST" })
     // 5c. Sinal (50%) e saldo (50%); vencimento do saldo = checkin - 5 dias
     const depositAmount = Math.round(finalTotal * 50) / 100;
     const balanceAmount = Math.round((finalTotal - depositAmount) * 100) / 100;
-    const dueMs = ci.getTime() - 5 * 86400000;
-    const dueDateIso = new Date(dueMs).toISOString().slice(0, 10);
+    const { addDaysKey } = await import("@/lib/pricing/engine");
+    const dueDateIso = addDaysKey(data.checkin_date, -5);
 
     // 6. Insert (trigger preenche reservation_code)
     const { data: created, error: insErr } = await supabaseAdmin
@@ -194,19 +186,11 @@ export const createReservation = createServerFn({ method: "POST" })
         num_children: data.num_children,
         num_pets: data.num_pets,
         num_vehicles: data.num_vehicles,
-        total_nights: breakdown.nights,
+        total_nights: quote.nights,
         price_breakdown: {
-          weekday_nights: breakdown.weekdayNights,
-          weekend_nights: breakdown.weekendNights,
-          high_season_nights: breakdown.highSeasonNights,
-          weekday_price: breakdown.weekdayPrice,
-          weekend_price: breakdown.weekendPrice,
-          high_season_price: breakdown.highSeasonPrice,
-          weekday_subtotal: breakdown.weekdaySubtotal,
-          weekend_subtotal: breakdown.weekendSubtotal,
-          high_season_total: breakdown.highSeasonTotal,
-          cleaning_fee: breakdown.cleaningFee,
-          subtotal: breakdown.total,
+          engine_version: 2,
+          quote: JSON.parse(JSON.stringify(quote)),
+          subtotal: quote.total,
           coupon_code: couponRow?.code ?? null,
           coupon_discount_percent: couponRow?.discount_percent ?? null,
           coupon_discount_amount: discountAmount || null,

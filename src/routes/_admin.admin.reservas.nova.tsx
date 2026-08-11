@@ -24,7 +24,7 @@ import {
   ConflictWarningDialog,
   type ConflictPayload,
 } from "@/components/admin/ConflictWarningDialog";
-import { calculatePrice } from "@/lib/pricing";
+import { quoteProperty } from "@/lib/pricing.functions";
 import { formatBRL } from "@/lib/admin-format";
 
 export const Route = createFileRoute("/_admin/admin/reservas/nova")({
@@ -92,30 +92,24 @@ function NewReservationPage() {
     [properties.data, propertyId],
   );
 
-  // sugestão de preço quando não foi tocado manualmente
-  const suggestedPrice = useMemo(() => {
-    if (!selectedProp || !checkin || !checkout || checkout <= checkin) return null;
-    try {
-      const ci = new Date(checkin + "T00:00:00");
-      const co = new Date(checkout + "T00:00:00");
-      const b = calculatePrice(
-        ci,
-        co,
-        Number(selectedProp.price_weekday),
-        Number(selectedProp.price_weekend),
-        Number(selectedProp.cleaning_fee),
-        selectedProp.price_high_season != null
-          ? Number(selectedProp.price_high_season)
-          : null,
-        Array.isArray(selectedProp.high_season_dates)
-          ? selectedProp.high_season_dates
-          : [],
-      );
-      return b.total;
-    } catch {
-      return null;
-    }
-  }, [selectedProp, checkin, checkout]);
+  // sugestão de preço vinda do motor oficial de precificação
+  const validRange = Boolean(propertyId && checkin && checkout && checkout > checkin);
+  const quoteQuery = useQuery({
+    queryKey: ["admin", "quote", propertyId, checkin, checkout, adults + children, pets],
+    enabled: validRange,
+    retry: false,
+    queryFn: () =>
+      quoteProperty({
+        data: {
+          property_id: propertyId,
+          checkin,
+          checkout,
+          guests: Math.max(1, adults + children),
+          pets,
+        },
+      }),
+  });
+  const suggestedPrice = validRange ? (quoteQuery.data?.quote.total ?? null) : null;
 
   const effectivePrice =
     priceTouched && totalPrice ? Number(totalPrice) : suggestedPrice ?? 0;

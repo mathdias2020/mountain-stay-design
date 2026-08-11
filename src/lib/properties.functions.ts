@@ -67,6 +67,8 @@ export type PropertyListItem = {
   bathrooms: number;
   price_weekday: number;
   price_weekend: number;
+  /** Menor preço por noite calculado pelo motor oficial (próximos 180 dias). */
+  from_price: number;
   cover_url: string | null;
   photos: string[];
   is_available: boolean | null; // null when no dates selected
@@ -191,9 +193,31 @@ export const searchProperties = createServerFn({ method: "POST" })
       for (const id of ids) availability.set(id, !unavailable.has(id));
     }
 
+    const { loadPricingConfigs } = await import("@/lib/pricing/loader.server");
+    const { calculateQuote, lowestNightlyPrice } = await import(
+      "@/lib/pricing/engine"
+    );
+    const configs = await loadPricingConfigs(ids);
+    const today = new Date().toISOString().slice(0, 10);
+
     const items: PropertyListItem[] = rows.map((r) => {
-      const basePrice = Math.min(Number(r.price_weekday), Number(r.price_weekend));
-      const estimated = hasDateRange ? basePrice * nightsCount : null;
+      const config = configs.get(r.id);
+      const fallback = Math.min(Number(r.price_weekday), Number(r.price_weekend));
+      const fromPrice = config
+        ? lowestNightlyPrice(config, today)
+        : fallback;
+      let estimated: number | null = null;
+      if (hasDateRange && config) {
+        try {
+          estimated = calculateQuote(config, {
+            checkin: data.checkin!,
+            checkout: data.checkout!,
+            guests: data.guests ?? 1,
+          }).total;
+        } catch {
+          estimated = fallback * nightsCount;
+        }
+      }
       const photoUrls = photosByProp.get(r.id) ?? [];
       return {
         id: r.id,
@@ -205,6 +229,7 @@ export const searchProperties = createServerFn({ method: "POST" })
         bathrooms: r.bathrooms,
         price_weekday: Number(r.price_weekday),
         price_weekend: Number(r.price_weekend),
+        from_price: fromPrice,
         cover_url: photoUrls[0] ?? null,
         photos: photoUrls,
         is_available: hasDateRange ? (availability.get(r.id) ?? true) : null,
@@ -246,6 +271,8 @@ export type PropertyDetail = {
   price_weekend: number;
   price_high_season: number | null;
   cleaning_fee: number;
+  /** Menor preço por noite calculado pelo motor oficial. */
+  from_price: number;
   min_nights_weekday: number;
   min_nights_weekend: number;
   checkin_time: string;
@@ -413,6 +440,10 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
       })),
     ];
 
+    const { loadPricingConfig } = await import("@/lib/pricing/loader.server");
+    const { lowestNightlyPrice } = await import("@/lib/pricing/engine");
+    const pricingConfig = await loadPricingConfig(prop.id);
+
     return {
       id: prop.id,
       slug: prop.slug,
@@ -430,6 +461,9 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
       price_high_season:
         prop.price_high_season != null ? Number(prop.price_high_season) : null,
       cleaning_fee: Number(prop.cleaning_fee),
+      from_price: pricingConfig
+        ? lowestNightlyPrice(pricingConfig, new Date().toISOString().slice(0, 10))
+        : Math.min(Number(prop.price_weekday), Number(prop.price_weekend)),
       min_nights_weekday: prop.min_nights_weekday,
       min_nights_weekend: prop.min_nights_weekend,
       checkin_time: prop.checkin_time,
@@ -552,6 +586,10 @@ export const getSuggestedProperties = createServerFn({ method: "POST" })
     if (pick.length === 0) return { properties: [] };
 
     const pickedIds = pick.map((r) => r.id);
+    const { loadPricingConfigs } = await import("@/lib/pricing/loader.server");
+    const { lowestNightlyPrice } = await import("@/lib/pricing/engine");
+    const configs = await loadPricingConfigs(pickedIds);
+    const today = new Date().toISOString().slice(0, 10);
     const { data: photos } = await supabaseAdmin
       .from("property_photos")
       .select("property_id, storage_path, public_url, is_cover, sort_order")
@@ -580,7 +618,10 @@ export const getSuggestedProperties = createServerFn({ method: "POST" })
     }
 
     const items: PropertyListItem[] = pick.map((r) => {
-      const basePrice = Math.min(Number(r.price_weekday), Number(r.price_weekend));
+      const config = configs.get(r.id);
+      const fromPrice = config
+        ? lowestNightlyPrice(config, today)
+        : Math.min(Number(r.price_weekday), Number(r.price_weekend));
       const photoUrls = photosByProp.get(r.id) ?? [];
       return {
         id: r.id,
@@ -592,6 +633,7 @@ export const getSuggestedProperties = createServerFn({ method: "POST" })
         bathrooms: r.bathrooms,
         price_weekday: Number(r.price_weekday),
         price_weekend: Number(r.price_weekend),
+        from_price: fromPrice,
         cover_url: photoUrls[0] ?? null,
         photos: photoUrls,
         is_available: hasDateRange ? true : null,
