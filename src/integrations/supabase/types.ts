@@ -374,24 +374,33 @@ export type Database = {
           accepts_pets: boolean
           address_detail: string | null
           amenities: Json | null
+          base_price: number
           bathrooms: number
           bedrooms: number
           checkin_time: string
           checkout_time: string
           city: string
           cleaning_fee: number
+          cleaning_fee_short: number | null
+          cleaning_fee_short_max_nights: number | null
           created_at: string
+          currency: string
           description: string | null
+          extra_guest_price: number
           featured: boolean
           google_maps_url: string | null
           high_season_dates: Json | null
           house_rules: string | null
           id: string
+          included_guests: number
           max_guests: number
           min_nights_weekday: number
           min_nights_weekend: number
           name: string
           parking_spots: number
+          pet_fee_amount: number
+          pet_fee_enabled: boolean
+          pet_fee_mode: string
           price_high_season: number | null
           price_weekday: number
           price_weekend: number
@@ -405,24 +414,33 @@ export type Database = {
           accepts_pets?: boolean
           address_detail?: string | null
           amenities?: Json | null
+          base_price?: number
           bathrooms: number
           bedrooms: number
           checkin_time?: string
           checkout_time?: string
           city: string
           cleaning_fee?: number
+          cleaning_fee_short?: number | null
+          cleaning_fee_short_max_nights?: number | null
           created_at?: string
+          currency?: string
           description?: string | null
+          extra_guest_price?: number
           featured?: boolean
           google_maps_url?: string | null
           high_season_dates?: Json | null
           house_rules?: string | null
           id?: string
+          included_guests?: number
           max_guests: number
           min_nights_weekday?: number
           min_nights_weekend?: number
           name: string
           parking_spots?: number
+          pet_fee_amount?: number
+          pet_fee_enabled?: boolean
+          pet_fee_mode?: string
           price_high_season?: number | null
           price_weekday: number
           price_weekend: number
@@ -436,24 +454,33 @@ export type Database = {
           accepts_pets?: boolean
           address_detail?: string | null
           amenities?: Json | null
+          base_price?: number
           bathrooms?: number
           bedrooms?: number
           checkin_time?: string
           checkout_time?: string
           city?: string
           cleaning_fee?: number
+          cleaning_fee_short?: number | null
+          cleaning_fee_short_max_nights?: number | null
           created_at?: string
+          currency?: string
           description?: string | null
+          extra_guest_price?: number
           featured?: boolean
           google_maps_url?: string | null
           high_season_dates?: Json | null
           house_rules?: string | null
           id?: string
+          included_guests?: number
           max_guests?: number
           min_nights_weekday?: number
           min_nights_weekend?: number
           name?: string
           parking_spots?: number
+          pet_fee_amount?: number
+          pet_fee_enabled?: boolean
+          pet_fee_mode?: string
           price_high_season?: number | null
           price_weekday?: number
           price_weekend?: number
@@ -464,6 +491,164 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      property_date_prices: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          min_nights: number | null
+          price: number | null
+          property_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          min_nights?: number | null
+          price?: number | null
+          property_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          min_nights?: number | null
+          price?: number | null
+          property_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_date_prices_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_fees: {
+        Row: {
+          active: boolean
+          amount: number
+          calc_mode: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          property_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount: number
+          calc_mode: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          property_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          calc_mode?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          property_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_fees_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_lastminute_discounts: {
+        Row: {
+          active: boolean
+          created_at: string
+          days_before: number
+          discount_percent: number
+          id: string
+          property_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          days_before: number
+          discount_percent: number
+          id?: string
+          property_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          days_before?: number
+          discount_percent?: number
+          id?: string
+          property_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_lastminute_discounts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_length_discounts: {
+        Row: {
+          created_at: string
+          discount_percent: number
+          id: string
+          min_nights: number
+          property_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          discount_percent: number
+          id?: string
+          min_nights: number
+          property_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          discount_percent?: number
+          id?: string
+          min_nights?: number
+          property_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_length_discounts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_photos: {
         Row: {
@@ -499,6 +684,106 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "property_photos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_promotions: {
+        Row: {
+          active: boolean
+          created_at: string
+          discount_percent: number
+          end_date: string
+          id: string
+          name: string
+          property_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          discount_percent: number
+          end_date: string
+          id?: string
+          name: string
+          property_id: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          discount_percent?: number
+          end_date?: string
+          id?: string
+          name?: string
+          property_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_promotions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_seasonal_rules: {
+        Row: {
+          active: boolean
+          adjust_percent: number | null
+          created_at: string
+          end_date: string
+          id: string
+          max_nights: number | null
+          min_nights: number | null
+          name: string
+          price_fixed: number | null
+          priority: number
+          property_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          adjust_percent?: number | null
+          created_at?: string
+          end_date: string
+          id?: string
+          max_nights?: number | null
+          min_nights?: number | null
+          name: string
+          price_fixed?: number | null
+          priority?: number
+          property_id: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          adjust_percent?: number | null
+          created_at?: string
+          end_date?: string
+          id?: string
+          max_nights?: number | null
+          min_nights?: number | null
+          name?: string
+          price_fixed?: number | null
+          priority?: number
+          property_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_seasonal_rules_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
@@ -559,6 +844,100 @@ export type Database = {
           whatsapp?: string
         }
         Relationships: []
+      }
+      property_taxes: {
+        Row: {
+          active: boolean
+          base_cleaning: boolean
+          base_extra_guests: boolean
+          base_fees: boolean
+          base_lodging: boolean
+          base_pet: boolean
+          created_at: string
+          fixed_amount: number | null
+          id: string
+          name: string
+          property_id: string
+          rate_percent: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          base_cleaning?: boolean
+          base_extra_guests?: boolean
+          base_fees?: boolean
+          base_lodging?: boolean
+          base_pet?: boolean
+          created_at?: string
+          fixed_amount?: number | null
+          id?: string
+          name: string
+          property_id: string
+          rate_percent?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          base_cleaning?: boolean
+          base_extra_guests?: boolean
+          base_fees?: boolean
+          base_lodging?: boolean
+          base_pet?: boolean
+          created_at?: string
+          fixed_amount?: number | null
+          id?: string
+          name?: string
+          property_id?: string
+          rate_percent?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_taxes_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_weekday_prices: {
+        Row: {
+          created_at: string
+          id: string
+          price: number
+          property_id: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          price: number
+          property_id: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          price?: number
+          property_id?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_weekday_prices_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reservation_documents: {
         Row: {

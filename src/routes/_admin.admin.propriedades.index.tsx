@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Eye, Home as HomeIcon, Pencil, Star } from "lucide-react";
+import { DollarSign, Eye, Home as HomeIcon, Pencil, Star } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -370,6 +370,11 @@ function PropertyRowItem({
       <div className="flex items-center justify-end gap-1">
         <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Editar">
           <Pencil size={16} />
+        </Button>
+        <Button variant="ghost" size="icon" asChild aria-label="Precificação">
+          <a href={`/admin/propriedades/${row.id}/precificacao`}>
+            <DollarSign size={16} />
+          </a>
         </Button>
         <Button variant="ghost" size="icon" asChild aria-label="Ver imóvel">
           <a href={`/imovel/${row.slug}`} target="_blank" rel="noreferrer">
