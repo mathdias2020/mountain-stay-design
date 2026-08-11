@@ -271,6 +271,8 @@ export type PropertyDetail = {
   price_weekend: number;
   price_high_season: number | null;
   cleaning_fee: number;
+  /** Menor preço por noite calculado pelo motor oficial. */
+  from_price: number;
   min_nights_weekday: number;
   min_nights_weekend: number;
   checkin_time: string;
@@ -438,6 +440,10 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
       })),
     ];
 
+    const { loadPricingConfig } = await import("@/lib/pricing/loader.server");
+    const { lowestNightlyPrice } = await import("@/lib/pricing/engine");
+    const pricingConfig = await loadPricingConfig(prop.id);
+
     return {
       id: prop.id,
       slug: prop.slug,
@@ -455,6 +461,9 @@ export const getPropertyDetail = createServerFn({ method: "POST" })
       price_high_season:
         prop.price_high_season != null ? Number(prop.price_high_season) : null,
       cleaning_fee: Number(prop.cleaning_fee),
+      from_price: pricingConfig
+        ? lowestNightlyPrice(pricingConfig, new Date().toISOString().slice(0, 10))
+        : Math.min(Number(prop.price_weekday), Number(prop.price_weekend)),
       min_nights_weekday: prop.min_nights_weekday,
       min_nights_weekend: prop.min_nights_weekend,
       checkin_time: prop.checkin_time,
