@@ -193,6 +193,13 @@ export const searchProperties = createServerFn({ method: "POST" })
       for (const id of ids) availability.set(id, !unavailable.has(id));
     }
 
+    const { loadPricingConfigs } = await import("@/lib/pricing/loader.server");
+    const { calculateQuote, lowestNightlyPrice } = await import(
+      "@/lib/pricing/engine"
+    );
+    const configs = await loadPricingConfigs(ids);
+    const today = new Date().toISOString().slice(0, 10);
+
     const items: PropertyListItem[] = rows.map((r) => {
       const config = configs.get(r.id);
       const fallback = Math.min(Number(r.price_weekday), Number(r.price_weekend));
