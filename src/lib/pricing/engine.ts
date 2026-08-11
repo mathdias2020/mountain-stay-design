@@ -543,3 +543,63 @@ export function rangeIsBlocked(
 ): boolean {
   return listNights(checkin, checkout).some((k) => blockedSet.has(k));
 }
+
+// ----------------------- apoio ao calendário -----------------------
+
+export type NightPriceInfo = {
+  date: string;
+  price: number;
+  /** origem do preço final da noite */
+  source: "base" | "weekday" | "seasonal" | "override";
+  seasonalRule: string | null;
+  promotionName: string | null;
+  promotionPercent: number | null;
+  minNights: number | null;
+};
+
+/** Preço e origem de uma noite específica — usado no calendário do admin. */
+export function nightPriceInfo(
+  config: PricingConfig,
+  date: string,
+): NightPriceInfo {
+  let price = round2(config.base_price);
+  let source: NightPriceInfo["source"] = "base";
+
+  const wd = config.weekday_prices[weekdayOf(date)];
+  if (wd != null) {
+    price = round2(wd);
+    source = "weekday";
+  }
+
+  const rule = seasonalRuleFor(date, config.seasonal_rules);
+  let minNights: number | null = null;
+  if (rule) {
+    if (rule.price_fixed != null) {
+      price = round2(rule.price_fixed);
+      source = "seasonal";
+    } else if (rule.adjust_percent != null) {
+      price = round2(price + pct(price, rule.adjust_percent));
+      source = "seasonal";
+    }
+    if (rule.min_nights) minNights = rule.min_nights;
+  }
+
+  const ov = config.date_overrides.find((o) => o.date === date);
+  if (ov?.price != null) {
+    price = round2(ov.price);
+    source = "override";
+  }
+  if (ov?.min_nights) minNights = ov.min_nights;
+
+  const promo = promotionFor(date, config.promotions);
+
+  return {
+    date,
+    price,
+    source,
+    seasonalRule: rule?.name ?? null,
+    promotionName: promo?.name ?? null,
+    promotionPercent: promo?.discount_percent ?? null,
+    minNights,
+  };
+}
