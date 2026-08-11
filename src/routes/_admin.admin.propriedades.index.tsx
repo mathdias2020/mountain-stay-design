@@ -371,6 +371,11 @@ function PropertyRowItem({
         <Button variant="ghost" size="icon" onClick={onEdit} aria-label="Editar">
           <Pencil size={16} />
         </Button>
+        <Button variant="ghost" size="icon" asChild aria-label="Precificação">
+          <a href={`/admin/propriedades/${row.id}/precificacao`}>
+            <DollarSign size={16} />
+          </a>
+        </Button>
         <Button variant="ghost" size="icon" asChild aria-label="Ver imóvel">
           <a href={`/imovel/${row.slug}`} target="_blank" rel="noreferrer">
             <Eye size={16} />
