@@ -67,6 +67,8 @@ export type PropertyListItem = {
   bathrooms: number;
   price_weekday: number;
   price_weekend: number;
+  /** Menor preço por noite calculado pelo motor oficial (próximos 180 dias). */
+  from_price: number;
   cover_url: string | null;
   photos: string[];
   is_available: boolean | null; // null when no dates selected
@@ -192,8 +194,23 @@ export const searchProperties = createServerFn({ method: "POST" })
     }
 
     const items: PropertyListItem[] = rows.map((r) => {
-      const basePrice = Math.min(Number(r.price_weekday), Number(r.price_weekend));
-      const estimated = hasDateRange ? basePrice * nightsCount : null;
+      const config = configs.get(r.id);
+      const fallback = Math.min(Number(r.price_weekday), Number(r.price_weekend));
+      const fromPrice = config
+        ? lowestNightlyPrice(config, today)
+        : fallback;
+      let estimated: number | null = null;
+      if (hasDateRange && config) {
+        try {
+          estimated = calculateQuote(config, {
+            checkin: data.checkin!,
+            checkout: data.checkout!,
+            guests: data.guests ?? 1,
+          }).total;
+        } catch {
+          estimated = fallback * nightsCount;
+        }
+      }
       const photoUrls = photosByProp.get(r.id) ?? [];
       return {
         id: r.id,
@@ -205,6 +222,7 @@ export const searchProperties = createServerFn({ method: "POST" })
         bathrooms: r.bathrooms,
         price_weekday: Number(r.price_weekday),
         price_weekend: Number(r.price_weekend),
+        from_price: fromPrice,
         cover_url: photoUrls[0] ?? null,
         photos: photoUrls,
         is_available: hasDateRange ? (availability.get(r.id) ?? true) : null,
@@ -580,7 +598,10 @@ export const getSuggestedProperties = createServerFn({ method: "POST" })
     }
 
     const items: PropertyListItem[] = pick.map((r) => {
-      const basePrice = Math.min(Number(r.price_weekday), Number(r.price_weekend));
+      const config = configs.get(r.id);
+      const fromPrice = config
+        ? lowestNightlyPrice(config, today)
+        : Math.min(Number(r.price_weekday), Number(r.price_weekend));
       const photoUrls = photosByProp.get(r.id) ?? [];
       return {
         id: r.id,
@@ -592,6 +613,7 @@ export const getSuggestedProperties = createServerFn({ method: "POST" })
         bathrooms: r.bathrooms,
         price_weekday: Number(r.price_weekday),
         price_weekend: Number(r.price_weekend),
+        from_price: fromPrice,
         cover_url: photoUrls[0] ?? null,
         photos: photoUrls,
         is_available: hasDateRange ? true : null,
