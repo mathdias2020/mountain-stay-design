@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
-import { formatBRL, type PriceBreakdown } from "@/lib/pricing";
+import { formatBRL, type PriceQuote } from "@/lib/pricing/engine";
 import { createReservation } from "@/lib/reservations.functions";
 import {
   getPixSettings,
@@ -23,7 +23,7 @@ interface Props {
   checkin: Date | undefined;
   checkout: Date | undefined;
   guests: number;
-  breakdown: PriceBreakdown | null;
+  breakdown: PriceQuote | null;
 }
 
 type Errors = Partial<Record<string, string>>;
