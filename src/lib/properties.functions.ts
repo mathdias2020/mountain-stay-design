@@ -577,6 +577,10 @@ export const getSuggestedProperties = createServerFn({ method: "POST" })
     if (pick.length === 0) return { properties: [] };
 
     const pickedIds = pick.map((r) => r.id);
+    const { loadPricingConfigs } = await import("@/lib/pricing/loader.server");
+    const { lowestNightlyPrice } = await import("@/lib/pricing/engine");
+    const configs = await loadPricingConfigs(pickedIds);
+    const today = new Date().toISOString().slice(0, 10);
     const { data: photos } = await supabaseAdmin
       .from("property_photos")
       .select("property_id, storage_path, public_url, is_cover, sort_order")
