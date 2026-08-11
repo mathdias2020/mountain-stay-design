@@ -189,7 +189,7 @@ export const createReservation = createServerFn({ method: "POST" })
         total_nights: quote.nights,
         price_breakdown: {
           engine_version: 2,
-          quote: quote as unknown as Record<string, unknown>,
+          quote: JSON.parse(JSON.stringify(quote)),
           subtotal: quote.total,
           coupon_code: couponRow?.code ?? null,
           coupon_discount_percent: couponRow?.discount_percent ?? null,
