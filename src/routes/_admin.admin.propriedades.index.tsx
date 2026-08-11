@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Eye, Home as HomeIcon, Pencil, Star } from "lucide-react";
+import { DollarSign, Eye, Home as HomeIcon, Pencil, Star } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
