@@ -19,7 +19,7 @@ import { PhotoGallery } from "@/components/property/PhotoGallery";
 import { AmenitiesList } from "@/components/property/AmenitiesList";
 import { BookingCard } from "@/components/property/BookingCard";
 import { AvailabilityCalendar } from "@/components/property/AvailabilityCalendar";
-import { expandBlockedDates } from "@/lib/pricing";
+import { expandBlockedDates } from "@/lib/pricing/engine";
 import { DetailPageSkeleton } from "@/components/skeletons/DetailPageSkeleton";
 import { Suggestions } from "@/components/property/Suggestions";
 

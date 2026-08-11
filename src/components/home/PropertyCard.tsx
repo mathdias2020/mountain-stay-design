@@ -20,7 +20,9 @@ interface Props {
 
 export function PropertyCard({ property, showAvailability, searchParams }: Props) {
   const disabled = showAvailability && property.is_available === false;
-  const basePrice = Math.min(property.price_weekday, property.price_weekend);
+  const basePrice =
+    property.from_price ??
+    Math.min(property.price_weekday, property.price_weekend);
   const [imgBroken, setImgBroken] = useState(false);
   const photos = property.photos?.length
     ? property.photos
